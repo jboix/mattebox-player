@@ -1,0 +1,40 @@
+name: E2E
+
+# The demo page in three real browsers. Slower than the Vitest tiers and
+# sensitive to runner load, so it runs nightly, on demand from the Actions
+# tab, and on a pull request when it gets the `e2e` label. `npm run test:e2e`
+# runs it locally.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 4 * * *'
+  pull_request:
+    types: [labeled]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - name: Install dependencies
+        env:
+          HUSKY: '0'
+        run: npm ci
+      - name: Install browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Demo page E2E
+        run: npx playwright test

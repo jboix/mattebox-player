@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mattebox player demo</title>
+  <link rel="icon" type="image/svg+xml" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <main id="app">
+    <header class="brand">
+      <img class="logo" alt="">
+      <div>
+        <h1>Mattebox <span class="tag">player</span></h1>
+        <p class="tagline">Every row loads a source and states which handler won.</p>
+      </div>
+    </header>
+    <mattebox-player id="player"></mattebox-player>
+    <table id="sources">
+      <thead>
+        <tr><th>Source</th><th>Kind</th><th>Handler</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </main>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

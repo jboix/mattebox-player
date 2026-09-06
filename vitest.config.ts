@@ -1,0 +1,51 @@
+import { fileURLToPath } from 'node:url';
+import { playwright } from '@vitest/browser-playwright';
+import { defineConfig } from 'vitest/config';
+
+// Tests import the workspace packages by name and get their sources, the
+// same mapping as tsconfig.json's paths, so no build is needed first.
+const alias = {
+  '@mattebox/player-core': fileURLToPath(new URL('packages/core/src/index.ts', import.meta.url)),
+  '@mattebox/player': fileURLToPath(new URL('packages/player/src/index.ts', import.meta.url)),
+};
+
+export default defineConfig({
+  resolve: { alias },
+  test: {
+    coverage: {
+      provider: 'v8',
+      include: ['packages/*/src/**'],
+      // v8 cannot instrument Firefox or WebKit; coverage measures the node tier.
+      exclude: [
+        'packages/player/src/**',
+        'packages/core/src/index.ts',
+        'packages/core/src/types.ts',
+      ],
+      // json-summary and json feed the PR coverage comment. No thresholds.
+      reporter: ['text', 'json-summary', 'json'],
+    },
+    projects: [
+      {
+        resolve: { alias },
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['packages/*/test/node/**/*.test.ts', 'packages/*/src/**/*.test.ts'],
+        },
+      },
+      {
+        resolve: { alias },
+        test: {
+          name: 'browser',
+          include: ['packages/*/test/browser/**/*.test.ts'],
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright(),
+            instances: [{ browser: 'chromium' }, { browser: 'firefox' }, { browser: 'webkit' }],
+          },
+        },
+      },
+    ],
+  },
+});

@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noEmitHelpers": true,
+    "importHelpers": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    // Typecheck and tests resolve the workspace packages to their sources,
+    // so neither needs a build first. The package build configs reset this
+    // and resolve through node_modules to the built output instead.
+    "paths": {
+      "@mattebox/player-core": ["./packages/core/src/index.ts"],
+      "@mattebox/player": ["./packages/player/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/*/src",
+    "packages/*/cdn",
+    "packages/*/test",
+    "demo",
+    "test",
+    "vitest.config.ts",
+    "playwright.config.ts"
+  ],
+  "exclude": ["demo/dist"]
+}

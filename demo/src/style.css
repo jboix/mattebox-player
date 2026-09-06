@@ -1,0 +1,55 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem;
+  max-width: 64rem;
+  margin-inline: auto;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.logo {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: block;
+  border-radius: 10px;
+}
+
+.brand h1,
+.brand p {
+  margin: 0;
+}
+
+.tag {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+mattebox-player {
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}

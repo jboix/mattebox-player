@@ -1,0 +1,24 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreExportsUsedInFile": true,
+  "workspaces": {
+    ".": {
+      "entry": ["demo/src/main.ts", "scripts/*.mjs", "test/e2e/**/*.ts"],
+      "project": ["demo/src/**/*.ts", "scripts/**/*.mjs", "test/**/*.ts", "*.ts"],
+      "ignoreDependencies": [
+        "@semantic-release/exec",
+        "@semantic-release/git",
+        "semantic-release-monorepo"
+      ]
+    },
+    "packages/core": {
+      "entry": ["src/index.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/player": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"],
+      "ignoreDependencies": ["@mattebox/player-core"]
+    }
+  }
+}
