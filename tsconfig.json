@@ -5,6 +5,10 @@
     "moduleResolution": "bundler",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
+    // Waives two bugs in vitest 5.0.0's own types: a missing `@vitest/expect`
+    // import and a benchmark option that exactOptionalPropertyTypes rejects.
+    // Drop it once `tsc --noEmit` stays green without it.
+    "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "exactOptionalPropertyTypes": true,
