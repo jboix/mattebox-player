@@ -41,7 +41,7 @@ jobs:
         run: npm ci
 
       - name: Install browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+        uses: ./.github/actions/playwright-browsers
 
       - name: Verify the gates one last time
         run: npm run verify

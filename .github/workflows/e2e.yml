@@ -1,15 +1,13 @@
 name: E2E
 
-# The demo page in three real browsers. Slower than the Vitest tiers and
-# sensitive to runner load, so it runs nightly, on demand from the Actions
-# tab, and on a pull request when it gets the `e2e` label. `npm run test:e2e`
-# runs it locally.
+# The demo page in three real browsers. The Quality workflow runs this suite
+# on every pull request; this run repeats it nightly against main and on
+# demand from the Actions tab, so a browser or runner change surfaces without
+# waiting for a change here. `npm run test:e2e` runs it locally.
 on:
   workflow_dispatch:
   schedule:
     - cron: '0 4 * * *'
-  pull_request:
-    types: [labeled]
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -17,7 +15,6 @@ concurrency:
 
 jobs:
   e2e:
-    if: github.event_name != 'pull_request' || github.event.label.name == 'e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -35,6 +32,6 @@ jobs:
           HUSKY: '0'
         run: npm ci
       - name: Install browsers
-        run: npx playwright install --with-deps chromium firefox webkit
+        uses: ./.github/actions/playwright-browsers
       - name: Demo page E2E
         run: npx playwright test
