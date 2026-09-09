@@ -11,36 +11,167 @@
     rel="stylesheet"
     href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
   />
-  <script type="module" crossorigin src="/mattebox-player/assets/index-QIcE9Fhr.js"></script>
-  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-Ch2fBJUF.css">
+  <script>
+    // Before the first paint, so the page never flashes the other theme.
+    try {
+      const theme = localStorage.getItem('mattebox.demo.theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+  <script type="module" crossorigin src="/mattebox-player/assets/index-fwCn7-p8.js"></script>
+  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-CNZHXBjj.css">
 </head>
 <body>
-  <main id="app">
-    <header class="masthead">
-      <img class="logo" alt="">
-      <div class="masthead-text">
-        <h1>Mattebox player</h1>
-        <p>Pick a source. The element routes it, and the row records which handler took it.</p>
+  <header class="masthead">
+    <img class="logo" alt="">
+    <h1>Mattebox player</h1>
+    <button type="button" id="open-content" class="chooser">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12.8 12.8L17 17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Load content</span>
+    </button>
+    <button type="button" id="theme-toggle" class="theme-toggle"></button>
+  </header>
+
+  <dialog id="content-dialog" aria-labelledby="content-title">
+    <div class="flag-head">
+      <h2 id="content-title">Content</h2>
+      <div class="segments" role="tablist" aria-label="Content source">
+        <button type="button" role="tab" data-route="static" aria-selected="true">Static</button>
+        <button type="button" role="tab" data-route="srgssr" aria-selected="false">SRG SSR</button>
       </div>
-      <dl class="plate">
-        <div><dt>Preset</dt><dd>full</dd></div>
-        <div><dt>Chain</dt><dd>mattebox &rarr; native</dd></div>
-      </dl>
-    </header>
+      <button type="button" id="close-content" aria-label="Close">✕</button>
+    </div>
 
-    <mattebox-player id="player" muted></mattebox-player>
+    <div id="route-static" role="tabpanel">
+      <ol id="stream-list" class="picks" aria-label="Demo streams"></ol>
+      <div class="row">
+        <input id="stream-url" class="grow" placeholder="https://…/master.m3u8  or  manifest.mpd" aria-label="Stream URL" />
+        <button type="button" id="load-url">Load</button>
+      </div>
+      <div class="row">
+        <input id="license-url" class="grow" placeholder="DRM license URL (for encrypted streams)" aria-label="License URL" />
+        <input id="thumb-url" class="grow" placeholder="Thumbnail track URL (WebVTT sprite sheet, optional)" aria-label="Thumbnail track URL" />
+      </div>
+      <p id="stream-note" class="hint"></p>
+    </div>
 
-    <table id="sources">
-      <thead>
-        <tr>
-          <th scope="col">Kind</th>
-          <th scope="col">Source</th>
-          <th scope="col">Inferred type</th>
-          <th scope="col">Handler</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div id="route-srgssr" role="tabpanel" hidden>
+      <form id="search-form" class="row">
+        <select id="search-bu" aria-label="Business unit"></select>
+        <input id="search-query" class="grow" type="search" placeholder="Search a title, or paste a URN" autocomplete="off" />
+        <button type="submit">Search</button>
+      </form>
+      <p id="search-state" class="hint" aria-live="polite"></p>
+      <ol id="search-results" class="picks tall" hidden></ol>
+      <div id="composition" hidden></div>
+    </div>
+  </dialog>
+
+  <main id="app" class="rig">
+    <div class="frame">
+      <section aria-label="Player">
+        <mattebox-player id="player" muted></mattebox-player>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+      <section class="flag flag-bottom" aria-labelledby="markup-title">
+        <div class="flag-head">
+          <h2 id="markup-title">Markup</h2>
+          <button type="button" id="copy-markup">Copy</button>
+        </div>
+        <pre id="markup"></pre>
+      </section>
+    </div>
+
+    <aside class="flag flag-right" id="options" aria-labelledby="options-title">
+      <div class="flag-head">
+        <h2 id="options-title">The element</h2>
+        <button type="button" id="reset-options" title="Back to the defaults, forgetting what was saved">Reset</button>
+      </div>
+
+      <fieldset class="group" id="media">
+        <legend>Media</legend>
+        <div class="checks">
+          <label class="check"><input type="checkbox" data-flag="autoplay" /><span>Autoplay</span></label>
+          <label class="check"><input type="checkbox" data-flag="muted" checked /><span>Start muted</span></label>
+          <label class="check"><input type="checkbox" data-knob-flag="start" checked /><span>Big play button</span></label>
+        </div>
+        <label class="field"><span>Poster URL</span><input type="url" id="poster" placeholder="https://…/poster.jpg" /></label>
+        <div class="pair">
+          <label class="field">
+            <span>Preset</span>
+            <select id="preset">
+              <option value="full">full</option>
+              <option value="dual">dual</option>
+              <option value="dual-drm">dual-drm</option>
+              <option value="dual-ts">dual-ts</option>
+              <option value="dual-ts-drm">dual-ts-drm</option>
+              <option value="hls">hls</option>
+              <option value="hls-drm">hls-drm</option>
+              <option value="hls-ts">hls-ts</option>
+              <option value="hls-ts-drm">hls-ts-drm</option>
+              <option value="dash">dash</option>
+              <option value="dash-drm">dash-drm</option>
+              <option value="kernel">kernel</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Controls</span>
+            <select id="controls">
+              <option value="custom">custom</option>
+              <option value="native">native</option>
+              <option value="none">none</option>
+            </select>
+          </label>
+        </div>
+        <div class="pair">
+          <label class="field">
+            <span>Subtitle size</span>
+            <select data-look="subtitle-size">
+              <option value="small">small</option>
+              <option value="medium" selected>medium</option>
+              <option value="large">large</option>
+              <option value="xlarge">xlarge</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Subtitle background</span>
+            <select data-look="subtitle-background">
+              <option value="none">none</option>
+              <option value="dark" selected>dark</option>
+              <option value="solid">solid</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="group" id="layout">
+        <legend>Layout</legend>
+        <p class="hint">Tick what the bar carries. Drag to reorder, across the two sides too.</p>
+        <div class="pair sides">
+          <div>
+            <h3>Left</h3>
+            <ul id="layout-left" class="layout-list" data-side="left"></ul>
+          </div>
+          <div>
+            <h3>Right</h3>
+            <ul id="layout-right" class="layout-list" data-side="right"></ul>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="group" id="knobs">
+        <legend>Knobs</legend>
+        <div class="pair">
+          <label class="field"><span>Skip back, seconds</span><input type="number" min="0" step="1" data-knob="skip-back" value="10" /></label>
+          <label class="field"><span>Skip forward, seconds</span><input type="number" min="0" step="1" data-knob="skip-forward" value="10" /></label>
+          <label class="field"><span>Idle, ms</span><input type="number" min="0" step="100" data-knob="idle-ms" value="3000" /></label>
+          <label class="field"><span>Seek step, seconds</span><input type="number" min="0" step="1" data-knob="seek-step" value="5" /></label>
+          <label class="field"><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
+          <label class="field"><span>Live window, buffer goals</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
+        </div>
+      </fieldset>
+    </aside>
+
   </main>
 </body>
 </html>
