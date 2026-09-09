@@ -9,11 +9,15 @@ module.exports = {
       to: { path: '^packages/player/|node_modules/@mattebox/player/' },
     },
     {
-      name: 'ui-reaches-the-core-through-its-package',
-      comment: 'The element imports @mattebox/player-core, never packages/core/src by path.',
+      name: 'ui-reaches-the-core-through-its-entry',
+      comment:
+        'The element imports @mattebox/player-core and gets its entry. Both the workspace ' +
+        'symlink and the tsconfig paths resolve that specifier to packages/core/src/index.ts, ' +
+        'so the checkable invariant is the one that matters: anything else under the core is a ' +
+        'reach into its internals.',
       severity: 'error',
       from: { path: '^packages/player/' },
-      to: { path: '^packages/core/' },
+      to: { path: '^packages/core/src/', pathNot: '^packages/core/src/index\\.ts$' },
     },
     {
       name: 'no-circular',

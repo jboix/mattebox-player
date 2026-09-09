@@ -1,7 +1,7 @@
 // One budget per package, min+brotli. kB is 1000 bytes. Needs `npm run build`.
-// The core's budget is the number the design fixed. The element's is a
-// placeholder until the panels exist; deliverable 3 sets it at the first real
-// measurement and holds it. Raise either only with a reason in the commit body.
+// The core's budget is the number the design fixed. The element's was set at
+// its first real measurement, 5.28 kB with the six panels, and holds there.
+// Raise either only with a reason in the commit body.
 module.exports = [
   {
     name: '@mattebox/player-core',
@@ -14,7 +14,11 @@ module.exports = [
   {
     name: '@mattebox/player',
     path: 'packages/player/dist/cdn/mattebox-player.min.js',
+    // The engine is a peer here too: the CDN bundle reads it from the
+    // `mattebox` global, and its dynamic preset imports resolve against the
+    // page's engine, never into this download.
+    ignore: ['mattebox'],
     brotli: true,
-    limit: '1.5 kB',
+    limit: '5.5 kB',
   },
 ];

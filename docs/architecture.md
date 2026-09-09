@@ -52,14 +52,14 @@ carry playback. The panels cover only what the element cannot show, and each
 one feature-tests its namespace on `session.engine` and renders nothing for
 a native session.
 
-| Panel      | Namespace                                |
-| ---------- | ---------------------------------------- |
-| Quality    | `engine.quality`                         |
-| Tracks     | `engine.tracks`                          |
-| Live       | `engine.live`                            |
-| DRM        | `engine.drm`                             |
-| Thumbnails | `engine.thumbnails`                      |
-| Error      | `engine.error`, the core's `error` event |
+| Panel      | Namespace                                 |
+| ---------- | ----------------------------------------- |
+| Quality    | `engine.quality`                          |
+| Tracks     | `engine.tracks`                           |
+| Live       | `engine.live`                             |
+| DRM        | `engine.drm`                              |
+| Thumbnails | `engine.thumbnails`, loaded but not drawn |
+| Error      | `engine.error`, the core's `error` event  |
 
 ## Builds
 
@@ -77,3 +77,7 @@ engine bundle and the size story stays the engine's.
 3. The element with native controls and the namespace panels, its tests passing.
 4. The demo page: every source kind, each row stating which handler won.
 5. The [integrator log](integrator-log.md), complete, ordered by how much each entry hurt.
+
+Custom controls are not among them. They are scoped for v2 in
+[v2 custom controls](v2-custom-controls.md), which states what the integrator
+log asks for and what building it would cost.

@@ -39,6 +39,10 @@ three-tier answer of `canPlayType`: `probably`, `maybe`, or the empty string.
 A `probably` from a later handler does not beat a `maybe` from an earlier
 one. Order is the integrator's policy.
 
+A handler that claimed a source and then found it was not its own throws
+`Declined` from `handle`. The chain reads that as an empty `canHandle` and
+tries the next handler.
+
 ```ts
 interface Handler {
   name: string;
@@ -54,16 +58,32 @@ interface Handler {
 | `matteboxHandler` | `engine.accepts(type)`, gated on MSE support. An undefined type is `maybe` | Attaches, loads with `mimeType`, disposes by unload and detach |
 | `nativeHandler`   | `video.canPlayType(type)`. An undefined type is `maybe`                    | Disposes whatever holds the element, then assigns `src`        |
 
-The mattebox handler takes a preset or a stage list:
+The mattebox handler takes a preset or a stage list. Start with `full`: it
+composes every stage the engine ships, so no source kind is missing an
+adapter and no namespace is missing. A narrower preset or an explicit stage
+list trades features for bytes, which is optimization work.
 
 ```ts
-import dual from 'mattebox/presets/dual';
+import full from 'mattebox/presets/full';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import abr from 'mattebox/stages/abr';
 
-matteboxHandler({ preset: dual });
+matteboxHandler({ preset: full });
 matteboxHandler({ stages: [hlsCmaf(), abr()] });
 ```
+
+| Option      | Is                                                             |
+| ----------- | -------------------------------------------------------------- |
+| `preset`    | A preset factory. Without one, `stages` are the whole stack.   |
+| `stages`    | Stages to compose. With a preset they merge by name.           |
+| `config`    | Kernel tuning overrides, passed through.                       |
+| `transport` | Network hooks and overrides, passed through.                   |
+| `without`   | Names of preset stages to leave out. Ignored without a preset. |
+
+The handler builds one engine on first use and keeps it across loads:
+`unload` and `detach` return the kernel to its initial state. It is built
+lazily because `accepts` is an instance method, so the first routing question
+composes the whole stack.
 
 ## Fallthrough
 
@@ -75,6 +95,21 @@ next handler. A signed URL with no extension costs one round of headers
 before landing on native.
 
 Any other fatal error is the session's error, not a fallthrough.
+
+When no handler claims the source, `load` rejects and the `error` event
+carries `MANIFEST_UNSUPPORTED` with the URL, so a UI showing the event does
+not also need to catch the rejection.
+
+## Loading replaces
+
+`load` disposes the current session before running the chain, so a player
+that switches streams only ever calls `load`.
+
+Loads run one at a time and settle in the order they were called. When a
+second `load` arrives while the first is still running, the first still
+resolves first, with its own session, already disposed; the second wins and
+is what `player.session` returns. Read `player.session`, not the resolved
+value, when two loads may overlap.
 
 ## Errors
 
@@ -93,10 +128,10 @@ player.on('error', ({ category, code, fatal, handler }) => {
 
 ```ts
 import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import dual from 'mattebox/presets/dual';
+import full from 'mattebox/presets/full';
 
 const player = createPlayer(video, {
-  handlers: [matteboxHandler({ preset: dual }), nativeHandler()],
+  handlers: [matteboxHandler({ preset: full }), nativeHandler()],
 });
 
 for (const url of ['vod/master.m3u8', 'clip.mp4', 'signed/12345']) {

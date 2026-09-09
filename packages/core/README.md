@@ -11,10 +11,10 @@ npm install @mattebox/player-core mattebox
 
 ```ts
 import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import dual from 'mattebox/presets/dual';
+import full from 'mattebox/presets/full';
 
 const player = createPlayer(video, {
-  handlers: [matteboxHandler({ preset: dual }), nativeHandler()],
+  handlers: [matteboxHandler({ preset: full }), nativeHandler()],
 });
 
 const session = await player.load({ url: 'https://example.com/vod/master.m3u8' });

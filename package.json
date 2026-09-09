@@ -64,6 +64,7 @@
     "dependency-cruiser": "^18.2.0",
     "husky": "^9.1.7",
     "knip": "^6.33.0",
+    "mattebox": "^0.2.1",
     "playwright": "^1.62.1",
     "publint": "^0.3.24",
     "remark-cli": "^12.0.1",

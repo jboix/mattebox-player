@@ -54,11 +54,11 @@ is your policy: the first non-empty answer wins.
 
 ```ts
 import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import dual from 'mattebox/presets/dual';
+import full from 'mattebox/presets/full';
 
 const video = document.querySelector('video');
 const player = createPlayer(video, {
-  handlers: [matteboxHandler({ preset: dual }), nativeHandler()],
+  handlers: [matteboxHandler({ preset: full }), nativeHandler()],
 });
 
 player.on('error', (error) => console.error(error.code));

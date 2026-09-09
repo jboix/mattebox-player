@@ -5,21 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Mattebox player demo</title>
   <link rel="icon" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+  />
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <main id="app">
-    <header class="brand">
+    <header class="masthead">
       <img class="logo" alt="">
-      <div>
-        <h1>Mattebox <span class="tag">player</span></h1>
-        <p class="tagline">Every row loads a source and states which handler won.</p>
+      <div class="masthead-text">
+        <h1>Mattebox player</h1>
+        <p>Pick a source. The element routes it, and the row records which handler took it.</p>
       </div>
+      <dl class="plate">
+        <div><dt>Preset</dt><dd>full</dd></div>
+        <div><dt>Chain</dt><dd>mattebox &rarr; native</dd></div>
+      </dl>
     </header>
-    <mattebox-player id="player"></mattebox-player>
+
+    <mattebox-player id="player" muted></mattebox-player>
+
     <table id="sources">
       <thead>
-        <tr><th>Source</th><th>Kind</th><th>Handler</th></tr>
+        <tr>
+          <th scope="col">Kind</th>
+          <th scope="col">Source</th>
+          <th scope="col">Inferred type</th>
+          <th scope="col">Handler</th>
+        </tr>
       </thead>
       <tbody></tbody>
     </table>

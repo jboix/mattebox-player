@@ -41,8 +41,8 @@ export interface PlayerError {
   readonly code: string;
   readonly fatal: boolean;
   readonly recoverable: boolean;
-  /** The handler whose session reported it. */
-  readonly handler: string;
+  /** The handler whose session reported it, or null when no handler claimed the source. */
+  readonly handler: string | null;
   readonly context?: Readonly<Record<string, unknown>>;
 }
 

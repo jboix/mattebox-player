@@ -16,6 +16,7 @@ playwright-report/
 blob-report/
 __screenshots__/
 .vitest-attachments/
+.vitest/
 
 # misc
 .DS_Store

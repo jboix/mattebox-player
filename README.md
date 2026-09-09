@@ -41,17 +41,18 @@ the URL has a known extension.
 ```
 
 The video inside keeps its native API and controls. The element adds only
-what the browser cannot show: quality, tracks, live, DRM, thumbnails, and
-errors, each present exactly when the engine's namespace is.
+what the browser cannot show: quality, tracks, live, DRM, and errors, each
+present exactly when the engine's namespace is. Every element it draws
+carries a `part`, so the page styles all of it with `::part()`.
 
 With your own UI, take the core and choose the handler order:
 
 ```ts
 import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import dual from 'mattebox/presets/dual';
+import full from 'mattebox/presets/full';
 
 const player = createPlayer(video, {
-  handlers: [matteboxHandler({ preset: dual }), nativeHandler()],
+  handlers: [matteboxHandler({ preset: full }), nativeHandler()],
 });
 
 const session = await player.load({ url: 'https://example.com/vod/master.m3u8' });

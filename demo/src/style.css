@@ -1,55 +1,331 @@
+/*
+ * The page is a work surface and the player is an instrument set down on it,
+ * so the page is light and the player is the one dark object. Nothing is
+ * rounded: a matte box is machined aluminium and hard flags.
+ *
+ * The routing verdict is the left edge of each row, so the table is scannable
+ * before a word of it is read. That is the one place this page spends colour.
+ *
+ * The rules under "The player" style the element's shadow DOM from outside,
+ * through ::part(). They are here rather than in the element because this is
+ * the page's design, not the element's default.
+ */
+
 :root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  line-height: 1.4;
+  /* Committed to one look: an instrument bench, not a themed page. */
+  color-scheme: light;
+
+  --ground: #e6e4de;
+  --surface: #f2f1ec;
+  --ink: #16191c;
+  --ink-soft: #5f635f;
+  --rule: #c8c5bc;
+  --rule-strong: #a9a59a;
+
+  --panel: #1a1e21;
+  --panel-ink: #eceae3;
+  --panel-soft: #9aa09c;
+
+  /* The engine took it. */
+  --claim: #2c6a58;
+  /* The browser took it. */
+  --plain: #4a4f52;
+  /* Nothing took it. */
+  --tally: #b5301a;
+
+  --measure: 68rem;
+  --step: 0.75rem;
+
+  --sans: "Barlow", system-ui, sans-serif;
+  --condensed: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  padding: 1.5rem;
-  max-width: 64rem;
+  padding: calc(var(--step) * 3) var(--step) calc(var(--step) * 6);
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 1rem / 1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  max-width: var(--measure);
   margin-inline: auto;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+/* The masthead */
+
+.masthead {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--step) calc(var(--step) * 1.5);
+  padding-bottom: calc(var(--step) * 1.5);
+  border-bottom: 2px solid var(--ink);
 }
 
 .logo {
-  width: 44px;
-  height: 44px;
-  flex: none;
+  width: 52px;
+  height: 52px;
   display: block;
-  border-radius: 10px;
+  background: var(--panel);
+  padding: 6px;
 }
 
-.brand h1,
-.brand p {
+.masthead-text {
+  min-width: 0;
+}
+
+.masthead h1 {
   margin: 0;
+  font-family: var(--condensed);
+  font-weight: 600;
+  font-size: 2.25rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
 }
 
-.tag {
-  font-weight: 400;
-  opacity: 0.7;
+.masthead p {
+  margin: 0.35rem 0 0;
+  max-width: 46ch;
+  color: var(--ink-soft);
 }
+
+/* The spec plate: what the page is running, stated rather than implied. */
+.plate {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 calc(var(--step) * 2);
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.plate div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.plate dt {
+  color: var(--ink-soft);
+}
+
+.plate dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 500;
+}
+
+/* The player */
 
 mattebox-player {
-  aspect-ratio: 16 / 9;
+  display: block;
+  margin-top: calc(var(--step) * 2);
   background: #000;
+  border: 1px solid var(--rule-strong);
 }
 
-table {
+/*
+ * Everything below reaches into the element's shadow DOM. For normal
+ * declarations the outer tree wins over the shadow tree, so none of this
+ * needs !important and none of it needs to outrank anything.
+ */
+mattebox-player::part(panels),
+mattebox-player::part(error) {
+  gap: calc(var(--step) * 1.5);
+  padding: 0.55rem var(--step);
+  background: var(--panel);
+  color: var(--panel-ink);
+  font: 400 0.875rem / 1.4 var(--sans);
+}
+
+mattebox-player::part(error) {
+  border-top: 1px solid #2c3236;
+  color: #f0b5a8;
+}
+
+mattebox-player::part(text) {
+  color: var(--panel-soft);
+}
+
+mattebox-player::part(value) {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: #7fd0b4;
+}
+
+mattebox-player::part(select),
+mattebox-player::part(button) {
+  border-radius: 0;
+  border: 1px solid #3a4145;
+  background: #23282c;
+  padding: 0.2rem 0.45rem;
+  color: inherit;
+  font: inherit;
+}
+
+mattebox-player::part(select):hover,
+mattebox-player::part(button):hover {
+  border-color: #5d666b;
+}
+
+mattebox-player::part(select):focus-visible,
+mattebox-player::part(button):focus-visible {
+  outline: 2px solid #7fd0b4;
+  outline-offset: 1px;
+}
+
+mattebox-player::part(live-badge) {
+  padding: 0.1rem 0.4rem;
+  background: var(--tally);
+  color: #fff;
+  font-weight: 600;
+}
+
+/*
+ * State rides the part name, because ::part() takes no attribute selector.
+ * It also cannot descend, so this reaches the live panel itself and not the
+ * badge inside it; replacing a panel's markup is the deferred slot API.
+ */
+mattebox-player::part(at-edge) {
+  box-shadow: inset 3px 0 0 var(--tally);
+  padding-left: 0.55rem;
+}
+
+mattebox-player::part(error-retry) {
+  border-color: #f0b5a8;
+}
+
+/* The sources */
+
+#sources {
   width: 100%;
+  margin-top: calc(var(--step) * 3);
   border-collapse: collapse;
-  margin-top: 1.5rem;
+  background: var(--surface);
+  font-size: 0.9375rem;
 }
 
-th,
-td {
+/* Matches the verdict edge on the body rows, so the columns line up. */
+#sources thead tr {
+  border-left: 5px solid transparent;
+}
+
+#sources th {
+  padding: 0 0.9rem 0.4rem;
+  border-bottom: 1px solid var(--ink);
+  color: var(--ink-soft);
+  font-family: var(--condensed);
+  font-size: 1rem;
+  font-weight: 600;
   text-align: left;
-  padding: 0.4rem 0.6rem;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+#sources td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: baseline;
+}
+
+#sources tbody tr {
+  /* The verdict, before a word of the row is read. */
+  border-left: 5px solid var(--rule-strong);
+  cursor: pointer;
+}
+
+#sources tbody tr[data-verdict="mattebox"] {
+  border-left-color: var(--claim);
+}
+
+#sources tbody tr[data-verdict="native"] {
+  border-left-color: var(--plain);
+}
+
+#sources tbody tr[data-verdict="failed"] {
+  border-left-color: var(--tally);
+}
+
+#sources tbody tr:hover {
+  background: #eae8e2;
+}
+
+#sources tbody tr:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: -2px;
+}
+
+#sources tbody tr.playing {
+  background: #ddece5;
+  border-left-width: 9px;
+}
+
+#sources td:first-child {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#sources small {
+  display: inline-block;
+  margin-top: 0.15rem;
+  max-width: 34ch;
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+#sources code {
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+#sources td:nth-child(3) {
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+}
+
+#sources td:last-child {
+  font-family: var(--mono);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#sources td.failed {
+  color: var(--tally);
+}
+
+@media (max-width: 46rem) {
+  .masthead h1 {
+    font-size: 1.75rem;
+  }
+
+  #sources {
+    font-size: 0.875rem;
+  }
+
+  #sources td,
+  #sources th {
+    padding-inline: 0.6rem;
+  }
+
+  #sources small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #sources tbody tr {
+    transition:
+      border-left-width 120ms ease,
+      background-color 120ms ease;
+  }
 }

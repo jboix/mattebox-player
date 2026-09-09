@@ -5,14 +5,14 @@ This chapter covers using the element from a script tag.
 ## Two tags
 
 The player's bundle carries the core and the element, and reads the engine
-from the `mattebox` global. Load the engine bundle of the preset you want
-first; the engine's guide, chapter 14, lists them. The page picks the
-engine's size.
+from the `mattebox` global. Load the engine bundle first;
+`mattebox.min.js` carries the `full` preset, and the engine's guide, chapter
+14, lists the narrower bundles. The page picks the engine's size.
 
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8"></mattebox-player>
 
-<script src="https://cdn.jsdelivr.net/npm/mattebox@0.2.1/dist/cdn/mattebox.dual.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mattebox@0.2.1/dist/cdn/mattebox.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js" defer></script>
 ```
 

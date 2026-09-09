@@ -17,8 +17,7 @@
     },
     "packages/player": {
       "entry": ["src/index.ts", "cdn/*.ts"],
-      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"],
-      "ignoreDependencies": ["@mattebox/player-core"]
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }
 }
