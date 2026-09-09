@@ -19,5 +19,5 @@ code, documentation, structure, or formatting.
 - [ ] I have performed a self-review of my own changes.
 - [ ] I have made corresponding changes to the documentation.
 - [ ] I have added tests that prove my fix is effective or that my feature works.
-- [ ] Every workaround of the engine is recorded in `docs/integrator-log.md`.
+- [ ] Every workaround of the engine is called out in a comment where it happens.
 - [ ] `npm run verify` passes locally.

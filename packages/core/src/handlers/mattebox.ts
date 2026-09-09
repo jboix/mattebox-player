@@ -7,7 +7,7 @@
 
 import type { KernelConfig, Mattebox, MatteboxError, Stage, TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
-// `Preset` is only reachable through a preset subpath. See docs/integrator-log.md.
+// `Preset` is only reachable through a preset subpath.
 import type { Preset, PresetOptions } from 'mattebox/presets/full';
 import { Declined } from '../errors.js';
 import type { CanHandle, Handler, HandlerEnvironment, Session, Source } from '../types.js';
@@ -47,7 +47,6 @@ function engineOptions(options: MatteboxHandlerOptions): PresetOptions {
  * to its initial state, and a preset hands out fresh stage instances per
  * engine, so nothing carries over. It is created lazily because `accepts` is
  * an instance method, so the first routing question composes the whole stack.
- * See docs/integrator-log.md.
  */
 export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
   let engine: Mattebox | null = null;
@@ -112,7 +111,7 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
 
       // No engine event says "the manifest parsed". `tracks:changed` rides
       // the same reduction that moves the lifecycle phase to 'ready', so it
-      // is the closest signal there is. See docs/integrator-log.md.
+      // is the closest signal there is.
       offs.push(held.on('tracks:changed', () => finish(() => resolve(session))));
 
       held.load(source.url, source.type === undefined ? {} : { mimeType: source.type });

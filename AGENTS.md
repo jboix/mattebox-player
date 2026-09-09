@@ -14,8 +14,8 @@ The **Mattebox player** is two packages in one npm workspace over the
 The player exists for two reasons in this order. First, to put its author in
 the shoes of an integrator of the engine and find every place the engine's
 API is awkward, missing, or wrong. Second, to be a usable player. When the two
-conflict, the first wins: write the awkward code, and record what you had to
-reach around in `docs/integrator-log.md`.
+conflict, the first wins: write the awkward code, and say in a comment what
+you had to reach around.
 
 > The design record (`docs/specs/` of the engine repository) is maintained
 > locally by the project owner and is not part of this repository. The
@@ -64,8 +64,8 @@ reach around in `docs/integrator-log.md`.
 - Explicit `.js` extensions in all import specifiers.
 - `import type` for type-only imports.
 - Comments explain **why**. Cite the engine's guide chapter when a rule comes from it.
-- Every time you write code that works around the engine, add a line to
-  `docs/integrator-log.md`: what you wanted to do, what you had to do
+- Every time you write code that works around the engine, say so in a
+  comment where it happens: what you wanted to do, what you had to do
   instead, and which engine surface would have made it one call.
 
 ## Writing

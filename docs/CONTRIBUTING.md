@@ -64,8 +64,9 @@ Each of these is checked automatically or in review:
    element registers `<mattebox-player>` on import and nothing else.
 5. **No normalization over native.** `session.engine` is null for native
    playback; the UI feature-tests.
-6. **Every workaround of the engine goes in the integrator log.** See
-   [integrator-log.md](./integrator-log.md).
+6. **Every workaround of the engine is called out in a comment** where it
+   happens: what was wanted, what had to be done instead, and which engine
+   surface would have made it one call.
 7. **Banned TypeScript:** non-const `enum`, `namespace`, parameter properties,
    decorators. The emit check catches violations.
 

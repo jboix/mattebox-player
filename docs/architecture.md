@@ -76,8 +76,8 @@ engine bundle and the size story stays the engine's.
 2. The core with the two handlers and the fallthrough, its tests passing in three browsers.
 3. The element with native controls and the namespace panels, its tests passing.
 4. The demo page: every source kind, each row stating which handler won.
-5. The [integrator log](integrator-log.md), complete, ordered by how much each entry hurt.
+5. The integrator log: every place the engine's API made the player reach
+   around it, ordered by how much each entry hurt.
 
-Custom controls are not among them. They are scoped for v2 in
-[v2 custom controls](v2-custom-controls.md), which states what the integrator
-log asks for and what building it would cost.
+Custom controls came after those five: `controls="custom"` draws the
+element's own bar over the video, and guide chapter 03 covers it.

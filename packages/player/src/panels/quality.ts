@@ -57,7 +57,7 @@ export const qualityPanel: PanelFactory = (session, video): Panel | null => {
   ];
   // No event reports the playing rendition: it is derived from currentTime
   // against the append log, so the element reads it on the clock the video
-  // already ticks. See docs/integrator-log.md.
+  // already ticks.
   video.addEventListener('timeupdate', tick);
   render();
   tick();

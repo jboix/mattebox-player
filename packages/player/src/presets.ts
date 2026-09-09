@@ -21,7 +21,7 @@ interface EngineGlobal {
   readonly preset?: Preset;
 }
 
-/** eme-core's teardown calls `element.setMediaKeys(null)` unguarded, so a build without EME throws out of `detach`. See docs/integrator-log.md. */
+/** eme-core's teardown calls `element.setMediaKeys(null)` unguarded, so a build without EME throws out of `detach`. */
 const DRM_STAGES = ['eme-core', 'eme-cenc', 'eme-fairplay'];
 
 type Load = () => Promise<{ readonly default: Preset }>;

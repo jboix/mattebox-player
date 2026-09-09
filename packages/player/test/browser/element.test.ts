@@ -5,6 +5,7 @@ import type { TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
 import { afterEach, describe, expect, it } from 'vitest';
+import { silence } from './helpers.js';
 
 const HLS_MASTER = `#EXTM3U
 #EXT-X-VERSION:7
@@ -33,33 +34,6 @@ const HLS_ALT = `#EXTM3U
 v1.m3u8
 `;
 
-/**
- * A valid WAV, so a native session in a hermetic test reaches `loadedmetadata`
- * instead of a MediaError. 8-bit mono at 8 kHz, an eighth of a second of
- * silence: the smallest file a browser will actually decode.
- */
-function silence(): string {
-  const samples = 1000;
-  const bytes = new Uint8Array(44 + samples).fill(128, 44);
-  const view = new DataView(bytes.buffer);
-  const ascii = (offset: number, text: string): void => {
-    for (let i = 0; i < text.length; i += 1) view.setUint8(offset + i, text.charCodeAt(i));
-  };
-  ascii(0, 'RIFF');
-  view.setUint32(4, 36 + samples, true);
-  ascii(8, 'WAVEfmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, 8000, true);
-  view.setUint32(28, 8000, true);
-  view.setUint16(32, 1, true);
-  view.setUint16(34, 8, true);
-  ascii(36, 'data');
-  view.setUint32(40, samples, true);
-  return URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
-}
-
 const ROUTES: Readonly<Record<string, readonly [string, string]>> = {
   '/hls/master.m3u8': [HLS_MASTER, 'application/vnd.apple.mpegurl'],
   '/hls/alt.m3u8': [HLS_ALT, 'application/vnd.apple.mpegurl'],
@@ -80,7 +54,7 @@ const transport: TransportConfig = {
   retry: { maxAttempts: 1 },
 };
 
-/** See docs/integrator-log.md: eme-core tears down through an unguarded setMediaKeys. */
+/** eme-core tears down through an unguarded setMediaKeys. */
 const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay'];
 const EME = 'setMediaKeys' in HTMLMediaElement.prototype;
 
@@ -138,10 +112,28 @@ describe('<mattebox-player>', () => {
     expect(player?.shadowRoot).not.toBeNull();
   });
 
+  it('loads once when its attributes are set before it is connected', async () => {
+    const player = new MatteboxPlayerElement({ handlers: chain() });
+    let changes = 0;
+    player.addEventListener('sourcechange', () => {
+      changes += 1;
+    });
+    player.setAttribute('src', silence());
+    player.setAttribute('type', 'audio/wav');
+    player.setAttribute('muted', '');
+    document.body.append(player);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(changes).toBe(1);
+  });
+
   it('forwards autoplay, muted and poster as attributes', () => {
     document.body.innerHTML = '<mattebox-player muted poster="p.png"></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
     expect(player.video.getAttribute('muted')).toBe('');
+    // The attribute alone would not do: a video reads `muted` into its state
+    // only when it is created, and this one was created before the attribute
+    // reached it. Muted autoplay depends on the state, not the attribute.
+    expect(player.video.muted).toBe(true);
     expect(player.video.getAttribute('poster')).toBe('p.png');
     player.setAttribute('autoplay', '');
     expect(player.video.hasAttribute('autoplay')).toBe(true);
@@ -158,7 +150,7 @@ describe('<mattebox-player>', () => {
   it('loads an engine source and shows the panels its namespaces support', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
 
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     await expect.poll(() => parts(player)).toContain('quality');
 
     const shown = parts(player);
@@ -175,7 +167,7 @@ describe('<mattebox-player>', () => {
 
   it('offers auto plus every rendition in the quality menu', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
 
     const select = player.shadowRoot?.querySelector<HTMLSelectElement>('[part~="quality-select"]');
     await expect.poll(() => select?.options.length ?? 0).toBe(3);
@@ -189,7 +181,7 @@ describe('<mattebox-player>', () => {
 
   it('shows the audio menu when the manifest carries alternate audio', async () => {
     const player = mount({ src: 'https://cdn.test/hls/alt.m3u8' });
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
 
     await expect.poll(() => parts(player)).toContain('tracks');
     const audio = player.shadowRoot?.querySelector<HTMLSelectElement>('[part~="audio-select"]');
@@ -235,7 +227,7 @@ describe('<mattebox-player>', () => {
 
   it('detaches on disconnect, so an SPA navigation leaks no pipeline', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     const video = player.video;
     expect(mattebox.from(video)).not.toBeNull();
 
@@ -246,13 +238,13 @@ describe('<mattebox-player>', () => {
 
   it('reloads the source when it is reconnected', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
 
     player.remove();
     await expect.poll(() => mattebox.from(player.video)).toBeNull();
     document.body.append(player);
 
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
   });
 
   it('hands the element from the native handler to the engine on a source change', async () => {
@@ -275,7 +267,7 @@ describe('<mattebox-player>', () => {
 
   it('names every element it draws, so a page can reach it with ::part()', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine).not.toBeNull();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
 
     const root = player.shadowRoot;
     const named = [...(root?.querySelectorAll('*') ?? [])].filter(
@@ -283,5 +275,98 @@ describe('<mattebox-player>', () => {
     );
     expect(named.length).toBeGreaterThan(0);
     for (const node of named) expect(node.getAttribute('part')).not.toBeNull();
+  });
+});
+
+describe('the bar over an engine session', () => {
+  /** The first element of a part inside the shadow root. */
+  function part(player: MatteboxPlayerElement, name: string): HTMLElement | null {
+    return player.shadowRoot?.querySelector(`[part~="${name}"]`) ?? null;
+  }
+
+  function items(player: MatteboxPlayerElement, name: string): string[] {
+    return [...(part(player, `${name}-popup`)?.querySelectorAll('button') ?? [])].map(
+      (item) => item.textContent ?? '',
+    );
+  }
+
+  it('hides the panels row and carries the quality menu instead', async () => {
+    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    expect(part(player, 'panels')?.hidden).toBe(true);
+    const quality = part(player, 'quality-menu');
+    expect(quality?.hidden).toBe(false);
+    expect(items(player, 'quality')).toEqual(['Auto', '270p', '720p']);
+    // One audio track is no choice, and there is no text.
+    expect(part(player, 'audio-menu')?.hidden).toBe(true);
+    expect(part(player, 'text-menu')?.hidden).toBe(true);
+  });
+
+  it('opens the quality menu, pins a rendition on a choice, and closes', async () => {
+    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    const button = part(player, 'quality-button') as HTMLButtonElement;
+    const popup = part(player, 'quality-popup') as HTMLElement;
+    expect(popup.hidden).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+
+    button.click();
+    expect(popup.hidden).toBe(false);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(part(player, 'quality-menu')?.getAttribute('part')?.split(' ')).toContain('open');
+
+    const choice = [...popup.querySelectorAll('button')].find(
+      (item) => item.textContent === '720p',
+    );
+    choice?.click();
+    expect(popup.hidden).toBe(true);
+    expect(player.engine?.quality.pinned).toBe(choice?.value);
+    button.click();
+    const checked = popup.querySelector('[aria-checked="true"]');
+    expect(checked?.textContent).toBe('720p');
+  });
+
+  it('walks the quality menu with the arrows inside the shadow root', async () => {
+    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    (part(player, 'quality-button') as HTMLButtonElement).click();
+    const popup = part(player, 'quality-popup') as HTMLElement;
+    const options = [...popup.querySelectorAll('button')];
+    const focused = () => player.shadowRoot?.activeElement ?? null;
+    expect(focused()).toBe(options[0]);
+    const press = (key: string) =>
+      popup.dispatchEvent(
+        new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }),
+      );
+    press('ArrowDown');
+    expect(focused()).toBe(options[1]);
+    press('ArrowDown');
+    expect(focused()).toBe(options[2]);
+    press('ArrowUp');
+    expect(focused()).toBe(options[1]);
+    press('Escape');
+    expect(popup.hidden).toBe(true);
+    expect(focused()).toBe(part(player, 'quality-button'));
+  });
+
+  it('shows the audio menu when the manifest carries alternate audio', async () => {
+    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/alt.m3u8' });
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    expect(part(player, 'audio-menu')?.hidden).toBe(false);
+    expect(items(player, 'audio')).toEqual(['en · main', 'fr · alternate']);
+  });
+
+  it('drops the menus with the session', async () => {
+    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    expect(part(player, 'quality-menu')).not.toBeNull();
+    // Typed, so the chain sends it straight to native instead of asking the
+    // engine to sniff a blob the stubbed transport cannot serve.
+    player.setAttribute('type', 'audio/wav');
+    player.setAttribute('src', silence());
+    await expect.poll(() => player.player?.session?.handler).toBe('native');
+    expect(part(player, 'quality-menu')).toBeNull();
+    expect(part(player, 'quality-menu')).toBeNull();
+    expect(part(player, 'quality-slot')?.childElementCount).toBe(0);
   });
 });

@@ -79,7 +79,7 @@ function network(): { readonly requests: string[]; readonly transport: Transport
 /**
  * Playwright's WebKit build ships no EME, and the `full` preset's `eme-core`
  * tears down with an unguarded `element.setMediaKeys(null)`, so composing the
- * DRM tier there throws out of `detach`. See docs/integrator-log.md.
+ * DRM tier there throws out of `detach`.
  */
 const EME = 'setMediaKeys' in HTMLMediaElement.prototype;
 const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay'];

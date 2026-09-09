@@ -73,7 +73,6 @@ panels are the next deliverables, in the order the
 
 - [Guide](docs/guide/README.md): how to use the two packages, one chapter per topic.
 - [Architecture](docs/architecture.md): the two packages, the boundary between them, and the handler chain.
-- [Integrator log](docs/integrator-log.md): every place the engine's API made the player reach around it.
 - [Demo](https://jboix.github.io/mattebox-player/): every source kind, with the handler that won.
 
 ## Contributing

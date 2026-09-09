@@ -5,7 +5,7 @@
  * because the properties are not on the type. A namespace reaches the type
  * only through a `declare module` merge in the stage that contributes it,
  * and of the three a player shows, one merge is unreachable and one does not
- * exist. See docs/integrator-log.md. So the casts live here, once, and the
+ * exist. So the casts live here, once, and the
  * panels read a plain optional shape.
  */
 import type { Mattebox } from 'mattebox';
@@ -26,10 +26,22 @@ export interface LiveApi {
   seekToEdge(): void;
 }
 
+/**
+ * Declared here for the same reason: the `pdt` stage is not among the
+ * package's `exports`, so its `PdtApi` cannot be imported either. A copy.
+ */
+export interface PdtApi {
+  /** Presentation time to epoch seconds, or null without an anchor. */
+  toWallClock(presentationTime: number): number | null;
+  /** Epoch seconds to presentation time, or null without an anchor. */
+  toPresentationTime(wallClock: number): number | null;
+}
+
 export interface Namespaces {
   readonly live?: LiveApi;
   readonly drm?: DrmApi;
   readonly thumbnails?: ThumbnailsApi;
+  readonly pdt?: PdtApi;
 }
 
 /** The optional namespaces on an engine, each present exactly when its stage was composed. */
