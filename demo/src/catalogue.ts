@@ -20,16 +20,8 @@ export interface StreamEntry {
 
 export const STREAMS: readonly StreamEntry[] = [
   {
-    label: 'Bitmovin · Art of Motion (HLS, WebVTT thumbnails)',
-    url: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/m3u8s/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8',
-    thumbnails:
-      'https://bitdash-a.akamaihd.net/content/MI201109210084_1/thumbnails/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.vtt',
-  },
-  {
-    label: 'Bitmovin · Art of Motion (DASH, WebVTT thumbnails)',
-    url: 'https://bitdash-a.akamaihd.net/content/MI201109210084_1/mpds/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.mpd',
-    thumbnails:
-      'https://bitdash-a.akamaihd.net/content/MI201109210084_1/thumbnails/f08e80da-bf1d-4e3d-8899-f0f6155f6efa.vtt',
+    label: 'Unified Streaming · Tears of Steel',
+    url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
   },
   {
     label: 'Apple bipbop basic (HLS, MPEG-TS)',
@@ -47,10 +39,6 @@ export const STREAMS: readonly StreamEntry[] = [
   {
     label: 'Mux · DAI stitched ads (HLS, 4 discontinuities)',
     url: 'https://test-streams.mux.dev/dai-discontinuity-deltatre/manifest.m3u8',
-  },
-  {
-    label: 'Unified Streaming · Tears of Steel',
-    url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
   },
   {
     label: 'SRG SSR · RTS (fr)',
