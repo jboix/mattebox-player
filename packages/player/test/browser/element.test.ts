@@ -4,6 +4,7 @@ import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import type { TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
+import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import { afterEach, describe, expect, it } from 'vitest';
 import { silence } from './helpers.js';
 
@@ -160,6 +161,7 @@ describe('<mattebox-player>', () => {
       'mbx-quality-menu',
       'mbx-audio-menu',
       'mbx-subtitles-menu',
+      'mbx-chapters-menu',
       'mbx-live-button',
       'mbx-drm-badge',
     ]);
@@ -411,5 +413,21 @@ describe('the menus over an engine session', () => {
     player.setAttribute('src', silence());
     await expect.poll(() => player.player?.session?.handler).toBe('native');
     expect(quality.hidden).toBe(true);
+  });
+});
+
+describe('the config option', () => {
+  it('reaches the engine the element builds from a stage list', async () => {
+    // Over the test server: the stages path has no transport hook to route
+    // through, and the manifest is all the session needs to exist.
+    const player = new MatteboxPlayerElement({
+      stages: [hlsCmaf()],
+      config: { bufferGoalSeconds: 45 },
+    });
+    player.setAttribute('muted', '');
+    player.setAttribute('src', new URL('./fixtures/hls/master.m3u8', import.meta.url).href);
+    document.body.append(player);
+    await expect.poll(() => player.engine, { timeout: 10_000 }).not.toBeNull();
+    expect(player.engine?.stats.snapshot().scheduling.bufferGoal).toBe(45);
   });
 });

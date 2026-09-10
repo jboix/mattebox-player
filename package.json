@@ -1,7 +1,7 @@
 {
   "name": "mattebox-player",
   "version": "0.0.0",
-  "description": "Workspace for @mattebox/player-core and @mattebox/player",
+  "description": "Workspace for @mattebox/player-core, @mattebox/player and @mattebox/player-diagnostics",
   "private": true,
   "author": "Josep Boix Requesens",
   "repository": {
@@ -16,7 +16,8 @@
   "type": "module",
   "workspaces": [
     "packages/core",
-    "packages/player"
+    "packages/player",
+    "packages/diagnostics"
   ],
   "devEngines": {
     "runtime": {

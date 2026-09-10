@@ -13,6 +13,8 @@ export interface StreamEntry {
   readonly licenseUrl?: string;
   /** A WebVTT sprite-sheet thumbnail track, for the thumbnails stage. */
   readonly thumbnails?: string;
+  /** A WebVTT chapters track, for the seek bar and the chapters menu. The demo serves its own. */
+  readonly chapters?: string;
   /** Key id to key, base64url. Their presence forces the JavaScript route: keys are not an attribute. */
   readonly clearKeys?: Readonly<Record<string, string>>;
   readonly note?: string;
@@ -22,6 +24,7 @@ export const STREAMS: readonly StreamEntry[] = [
   {
     label: 'Unified Streaming · Tears of Steel',
     url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
+    chapters: 'chapters/tears-of-steel.vtt',
   },
   {
     label: 'Apple bipbop basic (HLS, MPEG-TS)',
@@ -31,6 +34,7 @@ export const STREAMS: readonly StreamEntry[] = [
   {
     label: 'DASH-IF · Big Buck Bunny',
     url: 'https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd',
+    chapters: 'chapters/big-buck-bunny.vtt',
   },
   {
     label: 'DASH-IF · multi-period (ad-insertion layout, test case 5a)',
@@ -80,6 +84,8 @@ export const STREAMS: readonly StreamEntry[] = [
   {
     label: 'Progressive mp4 (native)',
     url: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
+    chapters: 'chapters/sintel-trailer.vtt',
+    note: "the chapters are the video's own text track, so they work on a native session too",
   },
   {
     label: 'mp3 (native)',

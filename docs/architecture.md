@@ -1,21 +1,23 @@
 # Architecture
 
-The Mattebox player is two packages over the `mattebox` engine. This
+The Mattebox player is three packages over the `mattebox` engine. This
 document lists what each package owns and the rules between them. For
 usage, read the [guide](guide/README.md).
 
 ## The packages
 
-| Package                 | Owns                                                                            | Imports                     |
-| ----------------------- | ------------------------------------------------------------------------------- | --------------------------- |
-| `@mattebox/player-core` | Source resolution, the handler chain, the two handlers, the unified error event | The engine (peer)           |
-| `@mattebox/player`      | `<mattebox-player>`, the panels over the engine's namespaces                    | The core, the engine (peer) |
+| Package                        | Owns                                                                             | Imports                                          |
+| ------------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `@mattebox/player-core`        | Source resolution, the handler chain, the two handlers, the unified error event  | The engine (peer)                                |
+| `@mattebox/player`             | `<mattebox-player>`, the panels over the engine's namespaces                     | The core, the engine (peer)                      |
+| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report | The player (peer, types only), the engine (peer) |
 
 Three rules:
 
 - The core never imports the UI. An integrator with their own UI takes the core alone.
 - The UI never bypasses the core to talk to the engine about source selection.
 - The element stays native. Nothing forwards or wraps an `HTMLMediaElement` member.
+- The diagnostics element is a control of the page's own kind: it takes the player's public types and nothing from its internals, and the player never imports it.
 
 ## The core
 
@@ -62,21 +64,24 @@ control carries its parameters and its words as attributes and takes a
 page's glyph through a slot. `docs/v3-composable-controls-plan.md` records
 the decisions.
 
-| Control                                                               | Namespace                   |
-| --------------------------------------------------------------------- | --------------------------- |
-| `mbx-quality-menu`                                                    | `engine.quality`            |
-| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`             |
-| `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt` |
-| `mbx-drm-badge`                                                       | `engine.drm`                |
-| `mbx-seek-bar`                                                        | `engine.thumbnails`         |
-| `mbx-error-screen`, the error surface                                 | the core's `error` event    |
+| Control                                                               | Namespace                                                                                               |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `mbx-quality-menu`                                                    | `engine.quality`                                                                                        |
+| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`                                                                                         |
+| `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt`                                                                             |
+| `mbx-drm-badge`                                                       | `engine.drm`                                                                                            |
+| `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                     |
+| `mbx-seek-bar`, `mbx-chapters-menu`                                   | the video's chapters track, no namespace                                                                |
+| `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm` |
+| `mbx-error-screen`, the error surface                                 | the core's `error` event                                                                                |
 
 ## Builds
 
 Each package builds three ways, the same as the engine: modern ESM from
 `tsc` under `dist/`, ES2015 ESM from Rolldown under `dist/es2015/` (the
-default export condition), and, for the element only, a minified IIFE under
-`dist/cdn/` behind the `matteboxPlayer` global. The CDN bundle carries the
+default export condition), and, for the element and the diagnostics, a
+minified IIFE under `dist/cdn/` behind the `matteboxPlayer` and
+`matteboxPlayerDiagnostics` globals. The CDN bundle carries the
 core and reads the engine from the `mattebox` global, so the page picks the
 engine bundle and the size story stays the engine's.
 
@@ -90,4 +95,6 @@ engine bundle and the size story stays the engine's.
    around it, ordered by how much each entry hurt.
 
 Custom controls came after those five, first as one fixed bar and then, in
-v3, as the elements above. Guide chapter 03 covers them.
+v3, as the elements above. Guide chapter 03 covers them. The chapters and the
+diagnostics came after v3; `diagnostics-and-chapters-plan.md` records the
+decisions, and guide chapter 05 covers the diagnostics.

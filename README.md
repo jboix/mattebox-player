@@ -8,18 +8,19 @@
 [![@mattebox/player-core](https://img.shields.io/npm/v/@mattebox/player-core?label=%40mattebox%2Fplayer-core)](https://www.npmjs.com/package/@mattebox/player-core)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-The Mattebox player is two packages over the [mattebox](https://github.com/jboix/mattebox)
+The Mattebox player is three packages over the [mattebox](https://github.com/jboix/mattebox)
 engine. The engine feeds a MediaSource and never sets the element's `src`.
 The player is everything above that: deciding who feeds the element, and a
 UI on top.
 
-| Package                 | What it is                                                                     | Side effects                    |
-| ----------------------- | ------------------------------------------------------------------------------ | ------------------------------- |
-| `@mattebox/player-core` | The headless layer: source resolution and the handler chain. About a kilobyte. | none                            |
-| `@mattebox/player`      | The `<mattebox-player>` custom element over the core, framework-free.          | registers the element on import |
+| Package                        | What it is                                                                                                 | Side effects                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `@mattebox/player-core`        | The headless layer: source resolution and the handler chain. About a kilobyte.                             | none                            |
+| `@mattebox/player`             | The `<mattebox-player>` custom element over the core, framework-free.                                      | registers the element on import |
+| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`: the stats, the charts, the browser's support and a report to send, inside the player. | registers the element on import |
 
 An integrator with their own UI takes only the core. The engine is a peer
-dependency of both.
+dependency of all three, and the diagnostics is optional.
 
 ## Quick start
 
@@ -76,7 +77,7 @@ green. The controls became elements in v3; the
 ## Documentation
 
 - [Guide](docs/guide/README.md): how to use the two packages, one chapter per topic.
-- [Architecture](docs/architecture.md): the two packages, the boundary between them, and the handler chain.
+- [Architecture](docs/architecture.md): the packages, the boundaries between them, and the handler chain.
 - [Demo](https://jboix.github.io/mattebox-player/): every source kind, with the handler that won.
 
 ## Contributing

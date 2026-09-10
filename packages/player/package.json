@@ -46,6 +46,16 @@
     },
     "./package.json": "./package.json"
   },
+  "typesVersions": {
+    "*": {
+      "element": [
+        "./dist/element-entry.d.ts"
+      ],
+      "elements/*": [
+        "./dist/entries/*.d.ts"
+      ]
+    }
+  },
   "files": [
     "dist",
     "NOTICE"

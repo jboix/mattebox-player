@@ -56,6 +56,10 @@ export interface Words {
   /** With `{seconds}`. */
   readonly skipBack: string;
   readonly skipForward: string;
+  readonly chapters: string;
+  readonly diagnostics: string;
+  readonly copyReport: string;
+  readonly copied: string;
 }
 
 export interface Language {
@@ -110,6 +114,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Torna-ho a provar',
       skipBack: 'Enrere {seconds} segons',
       skipForward: 'Endavant {seconds} segons',
+      chapters: 'Capítols',
+      diagnostics: 'Diagnòstic',
+      copyReport: 'Copia l’informe',
+      copied: 'Copiat',
     },
   },
   es: {
@@ -158,6 +166,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Reintentar',
       skipBack: 'Retroceder {seconds} segundos',
       skipForward: 'Avanzar {seconds} segundos',
+      chapters: 'Capítulos',
+      diagnostics: 'Diagnóstico',
+      copyReport: 'Copiar el informe',
+      copied: 'Copiado',
     },
   },
   fr: {
@@ -206,6 +218,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Réessayer',
       skipBack: 'Reculer de {seconds} secondes',
       skipForward: 'Avancer de {seconds} secondes',
+      chapters: 'Chapitres',
+      diagnostics: 'Diagnostic',
+      copyReport: 'Copier le rapport',
+      copied: 'Copié',
     },
   },
   de: {
@@ -254,6 +270,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Erneut versuchen',
       skipBack: '{seconds} Sekunden zurück',
       skipForward: '{seconds} Sekunden vor',
+      chapters: 'Kapitel',
+      diagnostics: 'Diagnose',
+      copyReport: 'Bericht kopieren',
+      copied: 'Kopiert',
     },
   },
   it: {
@@ -302,6 +322,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Riprova',
       skipBack: 'Indietro di {seconds} secondi',
       skipForward: 'Avanti di {seconds} secondi',
+      chapters: 'Capitoli',
+      diagnostics: 'Diagnostica',
+      copyReport: 'Copia il rapporto',
+      copied: 'Copiato',
     },
   },
   pt: {
@@ -350,6 +374,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'Tentar de novo',
       skipBack: 'Recuar {seconds} segundos',
       skipForward: 'Avançar {seconds} segundos',
+      chapters: 'Capítulos',
+      diagnostics: 'Diagnóstico',
+      copyReport: 'Copiar o relatório',
+      copied: 'Copiado',
     },
   },
   zh: {
@@ -398,6 +426,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: '重试',
       skipBack: '后退 {seconds} 秒',
       skipForward: '前进 {seconds} 秒',
+      chapters: '章节',
+      diagnostics: '诊断',
+      copyReport: '复制报告',
+      copied: '已复制',
     },
   },
   ja: {
@@ -446,6 +478,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: '再試行',
       skipBack: '{seconds} 秒戻る',
       skipForward: '{seconds} 秒進む',
+      chapters: 'チャプター',
+      diagnostics: '診断',
+      copyReport: 'レポートをコピー',
+      copied: 'コピーしました',
     },
   },
   ko: {
@@ -494,6 +530,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: '다시 시도',
       skipBack: '{seconds}초 뒤로',
       skipForward: '{seconds}초 앞으로',
+      chapters: '챕터',
+      diagnostics: '진단',
+      copyReport: '보고서 복사',
+      copied: '복사됨',
     },
   },
   hi: {
@@ -542,6 +582,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'फिर से कोशिश करें',
       skipBack: '{seconds} सेकंड पीछे',
       skipForward: '{seconds} सेकंड आगे',
+      chapters: 'अध्याय',
+      diagnostics: 'निदान',
+      copyReport: 'रिपोर्ट कॉपी करें',
+      copied: 'कॉपी हो गई',
     },
   },
   ar: {
@@ -590,6 +634,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       retry: 'إعادة المحاولة',
       skipBack: 'الرجوع {seconds} ثانية',
       skipForward: 'التقدم {seconds} ثانية',
+      chapters: 'الفصول',
+      diagnostics: 'التشخيص',
+      copyReport: 'نسخ التقرير',
+      copied: 'تم النسخ',
     },
   },
 };
@@ -611,6 +659,14 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
       return { label: words.seek, 'label-of': words.of, 'label-behind': words.behind };
     case 'mbx-live-button':
       return { text: words.live, 'label-live': words.goLive, 'label-at-edge': words.atEdge };
+    case 'mbx-chapters-menu':
+      return { label: words.chapters, 'label-back': words.back };
+    case 'mbx-diagnostics':
+      return {
+        label: words.diagnostics,
+        'label-copy': words.copyReport,
+        'label-copied': words.copied,
+      };
     case 'mbx-speed-menu':
       return { label: words.speed, 'label-normal': words.normal, 'label-back': words.back };
     case 'mbx-quality-menu':

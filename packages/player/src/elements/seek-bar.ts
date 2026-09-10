@@ -22,6 +22,12 @@
  * sprite, drawn by background position at the sprite's own size and scaled
  * down to `--mbx-preview-width`, so a page sets the size with one token.
  *
+ * Chapters divide the track: one gap per chapter boundary, cut through
+ * every layer with a mask, so the played and the buffered spans read per
+ * chapter, and the preview names the chapter under the pointer. They are
+ * the video's own chapters track, see `controls/chapters.ts`.
+ * `chapters="none"` leaves the track whole and the preview without a name.
+ *
  * `step` is what an arrow key moves the playhead by and `page` what Page
  * Up and Page Down do, in seconds. The name comes from `label`; what a
  * screen reader hears at a position from `label-of`, "{current} of
@@ -29,6 +35,8 @@
  * sits in the bar's seek row unless the page says otherwise.
  */
 
+import type { Chapter } from '../controls/chapters.js';
+import { chapterAt, chapters, followChapters } from '../controls/chapters.js';
 import type { Span } from '../controls/ranges.js';
 import { at, clip, EMPTY, fraction } from '../controls/ranges.js';
 import { bufferGoal, live, optional, span, wall } from '../controls/session.js';
@@ -50,6 +58,9 @@ const PREVIEW_WIDTH = 160;
 
 /** The buffer goal assumed for a session that reports none. */
 const BUFFER_GOAL = 30;
+
+/** The gap cut at a chapter boundary, in pixels. */
+const GAP = 2;
 
 const EVENTS = [
   'timeupdate',
@@ -89,6 +100,7 @@ const STYLE = `${SLIDER_STYLE}
 [part~="preview-image"] { position: relative; overflow: hidden; border-radius: 2px; }
 [part~="preview-tile"] { position: absolute; top: 0; left: 0; transform-origin: top left; background-repeat: no-repeat; }
 [part~="preview-time"] { padding: 0 4px; }
+[part~="preview-title"] { max-width: 240px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; }
 [hidden] { display: none; }
 `;
 
@@ -96,9 +108,25 @@ function percent(part: number): string {
   return `${part * 100}%`;
 }
 
+/**
+ * A mask that cuts a gap at each boundary between chapters, as stops along
+ * the track: opaque up to a boundary, clear for the gap, opaque after.
+ */
+function gaps(list: readonly Chapter[], span: Span): string {
+  const stops: string[] = ['#000 0'];
+  for (const chapter of list.slice(1)) {
+    const at = percent(fraction(chapter.start, span));
+    const before = `calc(${at} - ${GAP / 2}px)`;
+    const after = `calc(${at} + ${GAP / 2}px)`;
+    stops.push(`#000 ${before}`, `transparent ${before}`, `transparent ${after}`, `#000 ${after}`);
+  }
+  stops.push('#000 100%');
+  return `linear-gradient(to right, ${stops.join(', ')})`;
+}
+
 export class MbxSeekBar extends Component {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-of', 'label-behind', 'live-window'];
+    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters'];
   }
 
   declare private readonly bar: Slider;
@@ -109,7 +137,11 @@ export class MbxSeekBar extends Component {
   declare private readonly image: HTMLElement;
   declare private readonly tile: HTMLElement;
   declare private readonly time: HTMLElement;
+  declare private readonly caption: HTMLElement;
   declare private range: Span;
+  /** The chapters as last drawn, so the mask is written only when they change. */
+  declare private divided: string;
+  declare private list: Chapter[];
   declare private pending: number | null;
   declare private frame: number;
 
@@ -118,6 +150,8 @@ export class MbxSeekBar extends Component {
     this.range = EMPTY;
     this.pending = null;
     this.frame = 0;
+    this.divided = '';
+    this.list = [];
     const root = this.attachShadow({ mode: 'open' });
     this.bar = slider({
       step: () => number(this, 'step', STEP),
@@ -141,9 +175,11 @@ export class MbxSeekBar extends Component {
     this.image = el('div', 'preview-image');
     this.tile = el('div', 'preview-tile');
     this.time = el('span', 'preview-time');
+    this.caption = el('span', 'preview-title');
+    this.caption.hidden = true;
     this.image.append(this.tile);
     this.image.hidden = true;
-    this.preview.append(this.image, this.time);
+    this.preview.append(this.image, this.caption, this.time);
     this.preview.hidden = true;
     this.bar.root.append(this.preview);
     this.bar.root.addEventListener('pointermove', (event) => {
@@ -162,6 +198,23 @@ export class MbxSeekBar extends Component {
 
   private isLive(): boolean {
     return live(this.player?.engine ?? null) !== undefined;
+  }
+
+  /** Whether the chapters divide the track and name the preview. */
+  private chaptered(): boolean {
+    return this.getAttribute('chapters') !== 'none' && this.list.length > 0;
+  }
+
+  /** The gaps at the chapter boundaries, on every layer of the track at once. */
+  private paintChapters(): void {
+    const mask = this.chaptered() && this.list.length > 1 ? gaps(this.list, this.range) : '';
+    const key = `${mask}|${this.range.start}|${this.range.end}`;
+    if (key === this.divided) return;
+    this.divided = key;
+    const track = this.bar.track.style;
+    // Both spellings: WebKit before 15.4 knows only the prefixed one.
+    track.setProperty('mask-image', mask === '' ? '' : mask);
+    track.setProperty('-webkit-mask-image', mask === '' ? '' : mask);
   }
 
   /** What a screen reader hears at a time. */
@@ -276,6 +329,9 @@ export class MbxSeekBar extends Component {
     this.preview.hidden = false;
     const when = at(part, this.range);
     this.time.textContent = this.label(when);
+    const chapter = this.chaptered() ? this.list[chapterAt(this.list, when)] : undefined;
+    this.caption.hidden = chapter === undefined || chapter.title === '';
+    this.caption.textContent = chapter?.title ?? '';
     this.paintTile(when);
     const whole = this.bar.root.getBoundingClientRect();
     const half = this.preview.offsetWidth / 2;
@@ -293,6 +349,7 @@ export class MbxSeekBar extends Component {
       this.render();
     };
     this.listen(player.video, EVENTS, tick);
+    this.keep(followChapters(player.video, tick));
     this.listen(player, ['sourcechange'], () => {
       this.leave();
       this.render();
@@ -317,9 +374,11 @@ export class MbxSeekBar extends Component {
     const api = live(engine);
     const on = api !== undefined;
     this.range = span(video, engine);
+    this.list = chapters(video);
     this.bar.label(this.getAttribute('label') ?? 'Seek');
     this.bar.range(this.range.start, this.range.end);
     this.paintBuffered(video);
+    this.paintChapters();
     this.edge.hidden = !on;
     if (api !== undefined && api.edge !== null) {
       this.edge.style.left = percent(fraction(api.edge, this.range));

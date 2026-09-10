@@ -25,7 +25,8 @@ export interface MenuGroup {
   readonly name: string;
   /** A heading, or none for a menu of one group. */
   readonly label?: string;
-  readonly items: ReadonlyArray<readonly [string, string]>;
+  /** Each item's id, its text, and a detail drawn at its end, such as a chapter's time. */
+  readonly items: ReadonlyArray<readonly [string, string, string?]>;
   readonly value: string;
   readonly onSelect: (value: string) => void;
 }
@@ -159,12 +160,13 @@ export function menu(options: MenuOptions): Menu {
         section.setAttribute('aria-label', entry.label);
         section.append(el('div', `section-label ${entry.name}-label`, entry.label));
       }
-      for (const [id, text] of entry.items) {
+      for (const [id, text, detail] of entry.items) {
         const choice = item(`item ${entry.name}-item`, text, () => {
           close();
           button.focus();
           entry.onSelect(id);
         });
+        if (detail !== undefined) choice.append(el('span', 'item-detail', detail));
         choice.value = id;
         choice.setAttribute('role', 'menuitemradio');
         const on = id === entry.value;

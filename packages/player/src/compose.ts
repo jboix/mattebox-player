@@ -9,6 +9,7 @@
  */
 import {
   AUDIO_MENU,
+  CHAPTERS_MENU,
   CONTROL_BAR,
   CURRENT_TIME,
   DRM_BADGE,
@@ -47,7 +48,7 @@ export function composeBar(): HTMLElement[] {
     skip(-10),
     document.createElement(PLAY_BUTTON),
     skip(10),
-    ...each(VOLUME, SPACER, SPEED_MENU, SUBTITLES_MENU, AUDIO_MENU),
+    ...each(VOLUME, SPACER, SPEED_MENU, CHAPTERS_MENU, SUBTITLES_MENU, AUDIO_MENU),
     ...each(QUALITY_MENU, PIP_BUTTON, FULLSCREEN_BUTTON),
   );
   return [...each(START_BUTTON, ERROR_SCREEN), bar];
@@ -56,6 +57,8 @@ export function composeBar(): HTMLElement[] {
 /** The row under the video. */
 export function composePanels(): HTMLElement[] {
   const row = document.createElement(PANELS);
-  row.append(...each(QUALITY_MENU, AUDIO_MENU, SUBTITLES_MENU, LIVE_BUTTON, DRM_BADGE));
+  row.append(
+    ...each(QUALITY_MENU, AUDIO_MENU, SUBTITLES_MENU, CHAPTERS_MENU, LIVE_BUTTON, DRM_BADGE),
+  );
   return [row];
 }

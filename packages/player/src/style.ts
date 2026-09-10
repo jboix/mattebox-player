@@ -34,13 +34,20 @@ export const STYLE = `
 ::slotted(video) { display: block; width: 100%; aspect-ratio: auto 16 / 9; }
 :host(:focus-visible) [part~="stage"] { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
 /* Fullscreen goes on the host, so every control the page placed inside
-   comes along. The stage takes the height and the video sits in it. */
-:host(:fullscreen) { display: flex; flex-direction: column; background: #000; }
-:host(:fullscreen) [part~="stage"] { flex: 1; min-height: 0; display: flex; }
+   comes along. The stage takes the height and the video sits in it. The
+   height comes from the browser, which gives the fullscreen element the
+   whole screen with !important, and not from a display on the host:
+   a page's own "mattebox-player { display: block }" beats a :host()
+   rule, so nothing here may depend on one. The error surface, which sits
+   under the stage in the page, goes over its foot instead. */
+:host(:fullscreen) { background: #000; }
+:host(:fullscreen) [part~="stage"] { height: 100%; display: flex; }
 :host(:fullscreen) ::slotted(video) { height: 100%; object-fit: contain; }
-:host(:-webkit-full-screen) { display: flex; flex-direction: column; background: #000; }
-:host(:-webkit-full-screen) [part~="stage"] { flex: 1; min-height: 0; display: flex; }
+:host(:fullscreen) [part~="error"] { position: absolute; left: 0; right: 0; bottom: 0; }
+:host(:-webkit-full-screen) { background: #000; }
+:host(:-webkit-full-screen) [part~="stage"] { height: 100%; display: flex; }
 :host(:-webkit-full-screen) ::slotted(video) { height: 100%; object-fit: contain; }
+:host(:-webkit-full-screen) [part~="error"] { position: absolute; left: 0; right: 0; bottom: 0; }
 [part~="error"] {
   display: flex;
   flex-wrap: wrap;

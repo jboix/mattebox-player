@@ -21,6 +21,10 @@ const alias = [
     find: /^@mattebox\/player$/,
     replacement: fileURLToPath(new URL('packages/player/src/index.ts', import.meta.url)),
   },
+  {
+    find: '@mattebox/player-diagnostics',
+    replacement: fileURLToPath(new URL('packages/diagnostics/src/index.ts', import.meta.url)),
+  },
 ];
 
 export default defineConfig({
@@ -32,6 +36,7 @@ export default defineConfig({
       // v8 cannot instrument Firefox or WebKit; coverage measures the node tier.
       exclude: [
         'packages/player/src/**',
+        'packages/diagnostics/src/**',
         'packages/core/src/index.ts',
         'packages/core/src/types.ts',
       ],

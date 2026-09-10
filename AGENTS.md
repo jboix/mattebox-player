@@ -6,9 +6,11 @@ Place this at the repository root. It applies to every deliverable.
 
 ## What this project is
 
-The **Mattebox player** is two packages in one npm workspace over the
-`mattebox` engine: `@mattebox/player-core` (the headless handler chain) and
-`@mattebox/player` (the `<mattebox-player>` custom element). Read
+The **Mattebox player** is three packages in one npm workspace over the
+`mattebox` engine: `@mattebox/player-core` (the headless handler chain),
+`@mattebox/player` (the `<mattebox-player>` custom element and its
+controls) and `@mattebox/player-diagnostics` (the `<mbx-diagnostics>`
+control, a package of its own because of its weight). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in
@@ -28,8 +30,10 @@ you had to reach around.
    `dependency-cruiser` enforces the import direction.
 
 2. **Runtime dependencies are the engine and the core.** Nothing else.
-   The engine is a peer of both packages; the core is a dependency of the
-   element. Do not add a dependency to work around a problem.
+   The engine is a peer of every package; the core is a dependency of the
+   element. The diagnostics package takes the player's public types and
+   nothing at runtime, which the emit check proves. Do not add a dependency
+   to work around a problem.
 
 3. **The element stays native.** Never forward or wrap an `HTMLMediaElement`
    member. Play, pause, seek, volume, buffered, native controls,

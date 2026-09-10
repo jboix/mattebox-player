@@ -1,0 +1,59 @@
+{
+  "name": "@mattebox/player-diagnostics",
+  "version": "0.1.0",
+  "description": "<mbx-diagnostics>: playback stats, charts, engine state and browser support inside <mattebox-player>, and a report to send.",
+  "author": "Josep Boix Requesens",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jboix/mattebox-player.git",
+    "directory": "packages/diagnostics"
+  },
+  "homepage": "https://github.com/jboix/mattebox-player#readme",
+  "bugs": {
+    "url": "https://github.com/jboix/mattebox-player/issues"
+  },
+  "keywords": [
+    "mattebox",
+    "player",
+    "custom-element",
+    "diagnostics",
+    "stats",
+    "video"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": true,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "main": "./dist/es2015/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "modern": "./dist/index.js",
+      "default": "./dist/es2015/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build:modern && npm run build:es2015 && npm run build:cdn",
+    "build:modern": "tsc -p tsconfig.build.json",
+    "build:es2015": "rolldown -c rolldown.dist.config.mjs",
+    "build:cdn": "rolldown -c rolldown.cdn.config.mjs",
+    "check:package": "publint && attw --pack . --format table --no-emoji",
+    "release:ci": "semantic-release"
+  },
+  "devDependencies": {
+    "@mattebox/player-core": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@mattebox/player": ">=0.1.0",
+    "mattebox": "^0.2.1"
+  }
+}

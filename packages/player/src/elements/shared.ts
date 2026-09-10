@@ -99,7 +99,9 @@ export const MENU_STYLE = `${BUTTON_STYLE}
 [part~="section"] + [part~="section"] { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.12); }
 [part~="section-label"] { padding: 4px 12px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mbx-muted); }
 [part~="item"] {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
   padding: 8px 12px 8px 28px;
   font: inherit;
@@ -112,6 +114,7 @@ export const MENU_STYLE = `${BUTTON_STYLE}
   cursor: pointer;
 }
 [part~="item"]:hover { background: rgba(255, 255, 255, 0.12); }
+[part~="item-detail"] { margin-left: auto; color: var(--mbx-muted); font-variant-numeric: tabular-nums; }
 [part~="item"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
 [part~="page-item"] { position: relative; padding-right: 28px; }
 [part~="page-item"]::after { content: ""; position: absolute; right: 12px; top: 50%; width: 7px; height: 7px; margin-top: -4px; border: solid currentColor; border-width: 1.5px 1.5px 0 0; transform: rotate(45deg); opacity: 0.7; }

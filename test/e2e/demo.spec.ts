@@ -106,6 +106,52 @@ test('the layout lists, the knobs and the language shape the bar and the markup'
   await expect(play).not.toHaveAttribute('label-play');
 });
 
+test('the chapters menu is in the bar, and the seek bar knob writes chapters="none"', async ({
+  page,
+}) => {
+  await page.goto('/?row=none');
+  const bar = page.locator('mattebox-player > mbx-control-bar');
+  await expect(bar.locator('mbx-chapters-menu')).toHaveCount(1);
+  // Hidden until the video has a chapters track.
+  await expect(bar.locator('mbx-chapters-menu')).toBeHidden();
+  await expect(bar.locator('mbx-seek-bar')).not.toHaveAttribute('chapters');
+  await page.locator('[data-knob="chapters"]').selectOption('none');
+  await expect(bar.locator('mbx-seek-bar')).toHaveAttribute('chapters', 'none');
+  await expect(page.locator('#markup')).toContainText('chapters="none"');
+  await page.locator('#language').selectOption('ca');
+  await expect(bar.locator('mbx-chapters-menu')).toHaveAttribute('label', 'Capítols');
+});
+
+test('the diagnostics control is off by default, and its import comes with it', async ({
+  page,
+}) => {
+  await page.goto('/?row=none');
+  const bar = page.locator('mattebox-player > mbx-control-bar');
+  await expect(bar.locator('mbx-diagnostics')).toHaveCount(0);
+  await expect(page.locator('#markup')).not.toContainText('@mattebox/player-diagnostics');
+  await page.locator('#layout-right li[data-name="diagnostics"] input').check();
+  await expect(bar.locator('mbx-diagnostics')).toHaveCount(1);
+  await expect(page.locator('#markup')).toContainText("import '@mattebox/player-diagnostics';");
+  // A page's control, upgraded: the button carries its name.
+  const name = await bar
+    .locator('mbx-diagnostics')
+    .evaluate((el) => el.shadowRoot?.querySelector('button')?.getAttribute('aria-label') ?? '');
+  expect(name).toBe('Diagnostics');
+  await page.locator('#language').selectOption('ca');
+  await expect(bar.locator('mbx-diagnostics')).toHaveAttribute('label', 'Diagnòstic');
+});
+
+test('a chapters track in the chooser reaches the element', async ({ page }) => {
+  await page.goto('/?row=none');
+  await page.locator('#open-content').click();
+  await page.locator('#stream-list button', { hasText: 'Progressive mp4' }).click();
+  await expect(page.locator('#content-dialog')).toBeHidden();
+  const player = page.locator('mattebox-player');
+  await expect(player).toHaveAttribute('chapters', 'chapters/sintel-trailer.vtt');
+  await expect(page.locator('#markup')).toContainText('chapters="chapters/sintel-trailer.vtt"');
+  await expect(page.locator('mattebox-player > video > track[kind="chapters"]')).toHaveCount(1);
+});
+
 test('a control dragged to another row lands there', async ({ page }) => {
   await page.goto('/?row=none');
   const bar = page.locator('mattebox-player > mbx-control-bar');

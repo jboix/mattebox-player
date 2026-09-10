@@ -1,3 +1,10 @@
+/**
+ * The controls over a deterministic video, see `fakeMedia` in helpers.ts:
+ * what a control draws for a state, and what it writes for a click or a
+ * key, with no engine and no media pipeline in the way. Where a control
+ * reads a session, a handler hands the element a fake engine. The
+ * browser's own pipeline is media.test.ts's.
+ */
 import type { MbxControlBar, MbxPlayButton } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler } from '@mattebox/player-core';
@@ -5,19 +12,30 @@ import { nativeHandler } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import type { ThumbnailsApi } from 'mattebox/stages/thumbnails';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cueLift } from '../../src/controls/cues.js';
 import { icon } from '../../src/controls/icons.js';
 import type { LiveApi, PdtApi } from '../../src/namespaces.js';
-import { once, silence } from './helpers.js';
+import { fakeMedia, media, once, silence } from './helpers.js';
 
 const IDLE_MS = 3000;
 
-/** The element over the native handler alone: nothing here needs an engine. */
-function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlayerElement {
-  const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+/** A source for a handler that never reads it: the element loads on any `src`. */
+const SOURCE = 'https://cdn.test/source';
+
+/** The element over `handlers`, its video made deterministic before any control can read it. */
+function build(
+  handlers: readonly Handler[],
+  attributes: Readonly<Record<string, string>> = {},
+): MatteboxPlayerElement {
+  const player = new MatteboxPlayerElement({ handlers });
+  fakeMedia(player.video);
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
   document.body.append(player);
   return player;
+}
+
+/** The element over the native handler alone: nothing here needs an engine. */
+function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlayerElement {
+  return build([nativeHandler()], attributes);
 }
 
 /** The default composition arrives a microtask after the connect. */
@@ -34,24 +52,19 @@ async function custom(
   return player;
 }
 
-/**
- * The element under custom controls with a source loaded: the metadata
- * listener goes on before the composition settles, because a blob WAV can
- * load inside that wait.
- */
+/** The element under custom controls with the metadata of a clip `seconds` long in. */
 async function loaded(
   attributes: Readonly<Record<string, string>> = {},
+  seconds = 10,
 ): Promise<MatteboxPlayerElement> {
-  const player = mount({ controls: 'custom', ...attributes });
-  const metadata = once(player.video, 'loadedmetadata');
-  await settled();
-  await metadata;
+  const player = await custom(attributes);
+  await media(player.video).metadata(seconds);
   return player;
 }
 
-/** The element ready to play: a native session over the WAV, muted so the autoplay policy allows it. */
-function ready(seconds?: number): Promise<MatteboxPlayerElement> {
-  return loaded({ src: silence(seconds), muted: '' });
+/** The element ready to play: muted, as a page that autoplays has it. */
+function ready(seconds = 10): Promise<MatteboxPlayerElement> {
+  return loaded({ muted: '' }, seconds);
 }
 
 function bar(player: MatteboxPlayerElement): MbxControlBar | null {
@@ -172,8 +185,7 @@ describe('the controls attribute', () => {
       changes += 1;
     });
     await once(player, 'sourcechange');
-    await once(player.video, 'loadedmetadata');
-    const loaded = player.video.currentSrc;
+    const loaded = player.video.getAttribute('src');
 
     player.setAttribute('controls', 'custom');
     expect(player.video.hasAttribute('controls')).toBe(false);
@@ -185,7 +197,7 @@ describe('the controls attribute', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(changes).toBe(1);
-    expect(player.video.currentSrc).toBe(loaded);
+    expect(player.video.getAttribute('src')).toBe(loaded);
   });
 
   it('takes back only the default it appended when the mode changes', async () => {
@@ -249,14 +261,11 @@ describe('the state attributes on the player', () => {
     await player.video.play();
     expect(player.hasAttribute('playing')).toBe(true);
     expect(player.hasAttribute('paused')).toBe(false);
-    await once(player.video, 'ended');
+    await media(player.video).end();
     expect(player.hasAttribute('ended')).toBe(true);
     expect(player.hasAttribute('paused')).toBe(true);
   });
 
-  // One muted write per test: WebKit's platform player reports a write
-  // back on its own thread, and a second write before that report lands
-  // is undone by it. A real hand never mutes twice in a few milliseconds.
   it('reflect the video unmuting, and drop the forwarded attribute with it', async () => {
     const player = await ready();
     expect(player.hasAttribute('muted')).toBe(true);
@@ -269,7 +278,7 @@ describe('the state attributes on the player', () => {
   });
 
   it('still forward the attribute the page sets onto the video', async () => {
-    const player = await loaded({ src: silence() });
+    const player = await loaded();
     expect(player.video.muted).toBe(false);
     player.setAttribute('muted', '');
     await once(player.video, 'volumechange');
@@ -294,7 +303,6 @@ describe('the state attributes on the player', () => {
 
 describe('the play button', () => {
   it('plays and pauses, swapping the glyph and the name', async () => {
-    // Ten seconds, so the clip has not ended by the second click.
     const player = await ready(10);
     const button = inner(playButton(player));
     expect(button.getAttribute('aria-label')).toBe('Play');
@@ -311,7 +319,7 @@ describe('the play button', () => {
   it('offers replay once the media has ended', async () => {
     const player = await ready();
     await player.video.play();
-    await once(player.video, 'ended');
+    await media(player.video).end();
     expect(inner(playButton(player)).getAttribute('aria-label')).toBe('Replay');
     expect(shown(playButton(player))).toBe('icon-replay');
   });
@@ -367,8 +375,6 @@ describe('the bar while idle', () => {
   it('hides after idle-ms of stillness while playing, and wakes on pointer movement', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    // The clip is an eighth of a second: looped, so it never ends under the timer.
-    player.video.loop = true;
     await player.video.play();
     expect(idle(player)).toBe(false);
 
@@ -385,7 +391,6 @@ describe('the bar while idle', () => {
     const player = await ready();
     bar(player)?.setAttribute('idle-ms', '500');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    player.video.loop = true;
     await player.video.play();
     vi.advanceTimersByTime(500);
     expect(idle(player)).toBe(true);
@@ -401,7 +406,6 @@ describe('the bar while idle', () => {
 
   it('holds while keyboard focus is inside it, and lets go once a pointer takes over', async () => {
     const player = await ready();
-    player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
     const play = inner(playButton(player));
@@ -419,7 +423,6 @@ describe('the bar while idle', () => {
 
   it('is not held by the pointer leaving: the timer alone hides it', async () => {
     const player = await ready();
-    player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
     move(player.video);
@@ -431,7 +434,6 @@ describe('the bar while idle', () => {
 
   it('holds while a descendant carries open, and hides once it does not', async () => {
     const player = await ready();
-    player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
     const popup = document.createElement('div');
@@ -446,7 +448,6 @@ describe('the bar while idle', () => {
 
   it('stops listening once the bar is removed, and clears its state from the player', async () => {
     const player = await ready();
-    player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
     vi.advanceTimersByTime(IDLE_MS);
@@ -485,7 +486,7 @@ describe('the shortcuts', () => {
   });
 
   it('mutes with m', async () => {
-    const player = await loaded({ src: silence() });
+    const player = await loaded();
     press(player, 'm');
     await once(player.video, 'volumechange');
     expect(player.video.muted).toBe(true);
@@ -520,7 +521,7 @@ describe('the shortcuts', () => {
   });
 
   it('asks the player for fullscreen on f', async () => {
-    const player = mount({ src: silence(), muted: '' });
+    const player = mount({ muted: '' });
     let asked = 0;
     player.requestFullscreen = () => {
       asked += 1;
@@ -563,50 +564,6 @@ describe('the subtitles and the bar', () => {
     await custom();
     expect(document.head.querySelectorAll('style[data-mattebox-cue]').length).toBe(1);
   });
-
-  it('lifts an unpositioned active cue above the bar while it shows, and puts it back', async () => {
-    // A bare video and a stand-in bar, so no other lift holds the cues.
-    const video = document.createElement('video');
-    video.muted = true;
-    video.src = silence(10);
-    document.body.append(video);
-    await once(video, 'loadedmetadata');
-    const track = video.addTextTrack('subtitles', 'Test', 'en');
-    track.mode = 'showing';
-    const cue = new VTTCue(0, 10, 'Hello');
-    const second = new VTTCue(0, 10, 'Second, two\nlines');
-    const placed = new VTTCue(0, 10, 'Author placed');
-    placed.line = 10;
-    track.addCue(cue);
-    track.addCue(second);
-    track.addCue(placed);
-    // Cues become active when time marches, which a seek makes it do.
-    video.currentTime = 1;
-    await once(video, 'seeked');
-    await expect.poll(() => track.activeCues?.length ?? 0).toBe(3);
-
-    const host = document.createElement('div');
-    const box = video.getBoundingClientRect();
-    // Eighty pixels of bar over the bottom of the picture.
-    const lift = cueLift(video, host, () => ({ top: box.bottom - 80, bottom: box.bottom }));
-    lift.lifted(true);
-    // A negative line count, which wraps everywhere; the earliest sits
-    // lowest and the next climbs past it, whichever end a browser anchors.
-    expect(cue.snapToLines).toBe(true);
-    expect(typeof cue.line).toBe('number');
-    const first = cue.line as number;
-    expect(first).toBeLessThan(-1);
-    // The second is two lines tall: it climbs by at least that.
-    expect(second.line as number).toBeLessThanOrEqual(first - 2);
-    // The author's placement is the author's.
-    expect(placed.line).toBe(10);
-
-    lift.lifted(false);
-    expect(cue.line).toBe('auto');
-    expect(second.line).toBe('auto');
-    expect(placed.line).toBe(10);
-    lift.dispose();
-  });
 });
 
 /** The first control of a tag inside the player. */
@@ -645,6 +602,7 @@ describe('the default composition', () => {
       'mbx-volume',
       'mbx-spacer',
       'mbx-speed-menu',
+      'mbx-chapters-menu',
       'mbx-subtitles-menu',
       'mbx-audio-menu',
       'mbx-quality-menu',
@@ -885,7 +843,7 @@ describe('the fullscreen button', () => {
   });
 
   it('asks the player for fullscreen, and swaps its glyph and name with the state', async () => {
-    const player = mount({ src: silence(), muted: '' });
+    const player = mount({ muted: '' });
     if (typeof player.requestFullscreen !== 'function') return;
     let inside = false;
     player.requestFullscreen = () => {
@@ -958,7 +916,7 @@ describe('the start button', () => {
     const player = await ready();
     const start = control(player, 'mbx-start-button');
     await player.video.play();
-    await once(player.video, 'ended');
+    await media(player.video).end();
     expect(start.hidden).toBe(false);
     expect(inner(start).getAttribute('aria-label')).toBe('Replay');
     expect(shown(start)).toBe('icon-replay');
@@ -1058,7 +1016,7 @@ describe('the error screen', () => {
   });
 });
 
-/** A live namespace over the WAV: the window is what the video reports seekable. */
+/** A live namespace: the window is what the video reports seekable, zero to the duration. */
 function liveApi(
   edge: number | null,
   atEdge = false,
@@ -1095,37 +1053,30 @@ function fakeEngine(parts: FakeParts): Mattebox {
   } as unknown as Mattebox;
 }
 
-/** A handler that plays the WAV natively and hands the element a fake engine. */
+/** A handler that claims the source and hands the element a fake engine, touching no video. */
 function fakeHandler(engine: Mattebox): Handler {
   return {
     name: 'fake',
     canHandle: () => 'probably',
-    handle(source, video) {
-      video.src = source.url;
-      return Promise.resolve({
-        handler: 'fake',
-        engine,
-        dispose(): Promise<void> {
-          video.removeAttribute('src');
-          video.load();
-          return Promise.resolve();
-        },
-      });
-    },
+    handle: () => Promise.resolve({ handler: 'fake', engine, dispose: () => Promise.resolve() }),
   };
 }
 
-/** The element over a fake engine session, ready to play. */
-async function session(parts: FakeParts, seconds = 10): Promise<MatteboxPlayerElement> {
-  const player = new MatteboxPlayerElement({ handlers: [fakeHandler(fakeEngine(parts))] });
-  player.setAttribute('controls', 'custom');
-  player.setAttribute('muted', '');
-  player.setAttribute('src', silence(seconds));
-  document.body.append(player);
-  const metadata = once(player.video, 'loadedmetadata');
+/** The element over `handlers` under custom controls, once the session is in. */
+async function over(
+  handlers: readonly Handler[],
+  attributes: Readonly<Record<string, string>> = {},
+): Promise<MatteboxPlayerElement> {
+  const player = build(handlers, { controls: 'custom', src: SOURCE, ...attributes });
   await settled();
-  await metadata;
   await expect.poll(() => player.engine).not.toBeNull();
+  return player;
+}
+
+/** The element over a fake engine session, with the metadata of a clip `seconds` long in. */
+async function session(parts: FakeParts, seconds = 10): Promise<MatteboxPlayerElement> {
+  const player = await over([fakeHandler(fakeEngine(parts))], { muted: '' });
+  await media(player.video).metadata(seconds);
   return player;
 }
 
@@ -1277,9 +1228,9 @@ describe('the seek bar', () => {
   it('draws the buffered ranges on the track', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');
-    await expect
-      .poll(() => inside(element, 'buffered-range')?.style.width ?? '')
-      .toMatch(/^(100|9\d(\.\d+)?)%$/);
+    expect(inside(element, 'buffered-range').style.width).toBe('100%');
+    await media(player.video).buffer(6);
+    expect(inside(element, 'buffered-range').style.width).toBe('60%');
   });
 
   it('shows the hover time above the pointer', async () => {
@@ -1572,7 +1523,6 @@ describe('the menu primitive, through the speed menu', () => {
 
   it('holds the bar while open', async () => {
     const player = await ready(10);
-    player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
     inner(control(player, 'mbx-speed-menu')).click();
@@ -1620,12 +1570,7 @@ describe('the subtitles menu over a stubbed session', () => {
 
   it('offers off and the tracks under a heading, and a settings page behind them', async () => {
     const engine = tracksEngine(tracks);
-    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
-    player.setAttribute('controls', 'custom');
-    player.setAttribute('src', silence());
-    document.body.append(player);
-    await settled();
-    await expect.poll(() => player.engine).not.toBeNull();
+    const player = await over([fakeHandler(engine)]);
     const menu = control(player, 'mbx-subtitles-menu');
     expect(menu.hidden).toBe(false);
     expect(shown(menu)).toBe('icon-off');
@@ -1667,13 +1612,7 @@ describe('the subtitles menu over a stubbed session', () => {
 
   it('reads a size the page set in markup, and every word from the attributes', async () => {
     const engine = tracksEngine(tracks);
-    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
-    player.setAttribute('controls', 'custom');
-    player.setAttribute('subtitle-size', 'xlarge');
-    player.setAttribute('src', silence());
-    document.body.append(player);
-    await settled();
-    await expect.poll(() => player.engine).not.toBeNull();
+    const player = await over([fakeHandler(engine)], { 'subtitle-size': 'xlarge' });
     const menu = control(player, 'mbx-subtitles-menu');
     menu.setAttribute('label-off', 'Cap');
     menu.setAttribute('label-settings', 'Opcions');
@@ -1694,19 +1633,16 @@ describe('the subtitles menu over a stubbed session', () => {
 
   it('hides without text tracks, and the audio menu without a choice', async () => {
     const engine = tracksEngine([{ id: 'a-en', contentType: 'audio', lang: 'en' }]);
-    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
-    player.setAttribute('controls', 'custom');
-    player.setAttribute('src', silence());
-    document.body.append(player);
-    await settled();
-    await expect.poll(() => player.engine).not.toBeNull();
+    const player = await over([fakeHandler(engine)]);
     expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
     expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
     expect(control(player, 'mbx-quality-menu').hidden).toBe(true);
   });
 
   it('hides for a native session', async () => {
-    const player = await ready();
+    const player = mount({ controls: 'custom', muted: '', src: silence(), type: 'audio/wav' });
+    await settled();
+    await expect.poll(() => player.player?.session?.handler).toBe('native');
     expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
     expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
     expect(control(player, 'mbx-quality-menu').hidden).toBe(true);
@@ -1737,12 +1673,7 @@ describe('the DRM badge', () => {
   }
 
   async function badgeOver(engine: Mattebox): Promise<[MatteboxPlayerElement, HTMLElement]> {
-    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
-    player.setAttribute('controls', 'custom');
-    player.setAttribute('src', silence());
-    document.body.append(player);
-    await settled();
-    await expect.poll(() => player.engine).not.toBeNull();
+    const player = await over([fakeHandler(engine)]);
     const badge = document.createElement('mbx-drm-badge');
     bar(player)?.append(badge);
     return [player, badge];

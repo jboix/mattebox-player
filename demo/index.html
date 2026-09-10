@@ -51,6 +51,9 @@
         <input id="license-url" class="grow" placeholder="DRM license URL (for encrypted streams)" aria-label="License URL" />
         <input id="thumb-url" class="grow" placeholder="Thumbnail track URL (WebVTT sprite sheet, optional)" aria-label="Thumbnail track URL" />
       </div>
+      <div class="row">
+        <input id="chapters-url" class="grow" placeholder="Chapters track URL (WebVTT, optional)" aria-label="Chapters track URL" />
+      </div>
       <p id="stream-note" class="hint"></p>
     </div>
 
@@ -172,7 +175,16 @@
           <label class="field"><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
           <label class="field"><span>Live window, buffer goals</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
         </div>
-        <label class="field"><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
+        <div class="pair">
+          <label class="field"><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
+          <label class="field">
+            <span>Chapters on the seek bar</span>
+            <select data-knob="chapters">
+              <option value="on">divided, named in the preview</option>
+              <option value="none">none</option>
+            </select>
+          </label>
+        </div>
       </fieldset>
 
       <fieldset class="group" id="words">

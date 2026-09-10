@@ -12,6 +12,7 @@
 import { inferType } from '@mattebox/player-core';
 import '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
+import '@mattebox/player-diagnostics';
 import full from 'mattebox/presets/full';
 import emeCore from 'mattebox/stages/eme-core';
 // Imported, not referenced from the HTML: the file lives outside the demo
@@ -104,6 +105,7 @@ interface Choice {
   readonly type?: string;
   readonly licenseUrl?: string;
   readonly thumbnails?: string;
+  readonly chapters?: string;
   readonly poster?: string;
   readonly clearKeys?: Readonly<Record<string, string>>;
 }
@@ -124,6 +126,8 @@ function load(choice: Choice): void {
   else element.setAttribute('license-url', choice.licenseUrl);
   if (choice.thumbnails === undefined) element.removeAttribute('thumbnails');
   else element.setAttribute('thumbnails', choice.thumbnails);
+  if (choice.chapters === undefined) element.removeAttribute('chapters');
+  else element.setAttribute('chapters', choice.chapters);
   // A source that brings a poster fills the field; one that does not clears it.
   poster.value = choice.poster ?? '';
   attribute(element, 'poster', choice.poster ?? null);
@@ -137,12 +141,14 @@ const streamList = byId<HTMLOListElement>('stream-list');
 const streamUrl = byId<HTMLInputElement>('stream-url');
 const licenseUrl = byId<HTMLInputElement>('license-url');
 const thumbUrl = byId<HTMLInputElement>('thumb-url');
+const chaptersUrl = byId<HTMLInputElement>('chapters-url');
 const streamNote = byId<HTMLElement>('stream-note');
 
 function chooseStream(entry: StreamEntry): void {
   streamUrl.value = entry.url;
   licenseUrl.value = entry.licenseUrl ?? '';
   thumbUrl.value = entry.thumbnails ?? '';
+  chaptersUrl.value = entry.chapters ?? '';
   streamNote.textContent = entry.note ?? '';
   for (const item of streamList.querySelectorAll('li')) {
     item.classList.toggle('current', item.dataset.url === entry.url);
@@ -192,6 +198,7 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
   }
   const license = licenseUrl.value.trim();
   const thumbs = thumbUrl.value.trim();
+  const chapters = chaptersUrl.value.trim();
   // A hand-edited URL is its own entry: no keys, no note.
   const match = STREAMS.find((s) => s.url === url);
   streamNote.textContent = '';
@@ -200,6 +207,7 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
     url,
     ...(license !== '' ? { licenseUrl: license } : {}),
     ...(thumbs !== '' ? { thumbnails: thumbs } : {}),
+    ...(chapters !== '' ? { chapters } : {}),
     ...(match?.clearKeys !== undefined ? { clearKeys: match.clearKeys } : {}),
   });
 });
@@ -463,22 +471,34 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
   ['skip-forward', 'Skip forward', 'mbx-skip-button'],
   ['volume', 'Volume', 'mbx-volume'],
   ['speed', 'Speed', 'mbx-speed-menu'],
+  ['chapters', 'Chapters', 'mbx-chapters-menu'],
   ['subtitles', 'Subtitles', 'mbx-subtitles-menu'],
   ['audio', 'Audio', 'mbx-audio-menu'],
   ['quality', 'Quality', 'mbx-quality-menu'],
   ['drm', 'DRM lock', 'mbx-drm-badge'],
   ['pip', 'PiP', 'mbx-pip-button'],
   ['fullscreen', 'Fullscreen', 'mbx-fullscreen-button'],
+  ['diagnostics', 'Diagnostics', 'mbx-diagnostics'],
 ];
 const LABELS = new Map(CONTROLS.map(([name, label]) => [name, label]));
 const TAGS = new Map(CONTROLS.map(([name, , tag]) => [name, tag]));
 const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
   seek: ['current-time', 'seek-bar', 'duration', 'live'],
   left: ['skip-back', 'play', 'skip-forward', 'volume'],
-  right: ['speed', 'subtitles', 'audio', 'quality', 'drm', 'pip', 'fullscreen'],
+  right: [
+    'speed',
+    'chapters',
+    'subtitles',
+    'audio',
+    'quality',
+    'drm',
+    'pip',
+    'fullscreen',
+    'diagnostics',
+  ],
 };
-/** What the element composes on its own: everything but the lock. */
-const DEFAULT_OFF = new Set(['drm']);
+/** What the element composes on its own: everything but the lock and the diagnostics, which is a package of its own. */
+const DEFAULT_OFF = new Set(['drm', 'diagnostics']);
 const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'skip-back': '10',
   'skip-forward': '10',
@@ -487,6 +507,7 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'seek-page': '30',
   'live-window': '3',
   rates: '0.5 0.75 1 1.25 1.5 2',
+  chapters: 'on',
 };
 
 /** The layout as the page holds it: every control in one row, ticked when the bar carries it. */
@@ -558,6 +579,7 @@ function controlMarkup(name: string, row: Row): string {
     own.step = knob('seek-step');
     own.page = knob('seek-page');
     own['live-window'] = knob('live-window');
+    own.chapters = knob('chapters');
   }
   if (name === 'speed') own.rates = knob('rates');
   if (name === 'volume') {
@@ -640,6 +662,7 @@ function markupFor(element: MatteboxPlayerElement): string {
     'preset',
     'license-url',
     'thumbnails',
+    'chapters',
     'poster',
     'subtitle-size',
     'subtitle-background',
@@ -657,9 +680,14 @@ function markupFor(element: MatteboxPlayerElement): string {
           .map((line) => `  ${line}`)
           .join('\n')}\n`
       : '';
+  // The diagnostics element is a package of its own, so its import comes with it.
+  const extra =
+    controlsSelect.value === 'custom' && enabled.has('diagnostics')
+      ? "\n  import '@mattebox/player-diagnostics';"
+      : '';
   const script = scripted
     ? `<script type="module">
-  import { MatteboxPlayerElement } from '@mattebox/player';
+  import { MatteboxPlayerElement } from '@mattebox/player';${extra}
   import full from 'mattebox/presets/full';
   import emeCore from 'mattebox/stages/eme-core';
   // ClearKey keys are not an attribute: this entry needs a stage list.
@@ -668,7 +696,7 @@ function markupFor(element: MatteboxPlayerElement): string {
   });
 </script>`
     : `<script type="module">
-  import '@mattebox/player';
+  import '@mattebox/player';${extra}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
 }

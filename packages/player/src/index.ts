@@ -6,6 +6,7 @@
  */
 import type { MatteboxPlayerElement } from './element-entry.js';
 import type { MbxAudioMenu } from './entries/audio-menu.js';
+import type { MbxChaptersMenu } from './entries/chapters-menu.js';
 import type { MbxControlBar } from './entries/control-bar.js';
 import type { MbxCurrentTime } from './entries/current-time.js';
 import type { MbxDrmBadge } from './entries/drm-badge.js';
@@ -30,6 +31,7 @@ import type { MbxVolumeSlider } from './entries/volume-slider.js';
 export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
 export { MbxAudioMenu } from './entries/audio-menu.js';
+export { MbxChaptersMenu } from './entries/chapters-menu.js';
 export { MbxControlBar } from './entries/control-bar.js';
 export { MbxCurrentTime } from './entries/current-time.js';
 export { MbxDrmBadge } from './entries/drm-badge.js';
@@ -75,6 +77,7 @@ declare global {
     'mbx-audio-menu': MbxAudioMenu;
     'mbx-subtitles-menu': MbxSubtitlesMenu;
     'mbx-drm-badge': MbxDrmBadge;
+    'mbx-chapters-menu': MbxChaptersMenu;
     'mbx-panels': MbxPanels;
   }
 }

@@ -19,7 +19,7 @@
 
 import type { Handler, Player, PlayerError, Session, Source } from '@mattebox/player-core';
 import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import type { Mattebox, Stage } from 'mattebox';
+import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import { composeBar, composePanels } from './compose.js';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
@@ -30,10 +30,19 @@ import { errorSurface } from './surface.js';
 import { CONTROL_BAR, PANELS, PLAYER } from './tags.js';
 
 /** Attributes forwarded onto the video as attributes, never as properties. */
-const FORWARDED = ['autoplay', 'muted', 'poster'];
+const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
 /** Everything else the element watches. Changing any of them reloads. */
 const OWN = ['src', 'type', 'preset', 'license-url', 'thumbnails'];
+
+/**
+ * The chapters track URL. A `<track kind="chapters">` on the video, hidden
+ * so its cues load and nothing is drawn: chapters are the browser's own
+ * text track, which the seek bar and the chapters menu read, and which a
+ * page can also put there itself. Changing it swaps the track and never
+ * reloads the source.
+ */
+const CHAPTERS = 'chapters';
 
 /**
  * The one attribute whose meaning the element owns: `native` keeps the
@@ -87,6 +96,12 @@ export interface MatteboxPlayerOptions {
   readonly handlers?: readonly Handler[];
   /** Stages for the mattebox handler. Takes precedence over the `preset` attribute. */
   readonly stages?: readonly Stage[];
+  /**
+   * Kernel tuning for the engines the elements build, `traceCapacity` among
+   * it. A page decision, like the stages, so not an attribute. Ignored with
+   * `handlers`, which carry their own.
+   */
+  readonly config?: Partial<KernelConfig>;
 }
 
 /**
@@ -105,7 +120,7 @@ let defaults: MatteboxPlayerOptions = {};
 // biome-ignore lint/suspicious/noUnsafeDeclarationMerging: method overloads only, no properties
 export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   static get observedAttributes(): readonly string[] {
-    return [...FORWARDED, ...OWN, CONTROLS];
+    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS];
   }
 
   /**
@@ -136,6 +151,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
+  /** The chapters track element, while the `chapters` attribute names one. */
+  declare private track: HTMLTrackElement | null;
   declare private readonly options: MatteboxPlayerOptions;
   declare private core: Player | null;
   declare private current: Session | null;
@@ -154,6 +171,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.composed = [];
     this.settled = false;
     this.focusable = false;
+    this.track = null;
     this.core = null;
     this.current = null;
     this.failure = null;
@@ -263,6 +281,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.mode();
       return;
     }
+    if (name === CHAPTERS) {
+      this.chapters();
+      return;
+    }
     // The preset decides the chain, so it is the one attribute that rebuilds it.
     if (name === 'preset') this.enqueue(() => this.discard());
     this.reload();
@@ -297,6 +319,30 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.composed = custom ? composeBar() : composePanels();
       this.append(...this.composed);
     }
+  }
+
+  /** Keeps a hidden chapters track on the video for the `chapters` attribute, or none. */
+  private chapters(): void {
+    const url = this.getAttribute(CHAPTERS);
+    if (url === null) {
+      this.track?.remove();
+      this.track = null;
+      return;
+    }
+    const held = this.track;
+    if (held !== null && held.parentNode === this.media && held.getAttribute('src') === url) return;
+    // A new element each time: one removed mid-load, as the engine's attach
+    // does, stays in its error state, and neither a new `src` nor a second
+    // insertion starts it loading again.
+    held?.remove();
+    const track = document.createElement('track');
+    track.kind = 'chapters';
+    track.src = url;
+    this.track = track;
+    this.media.append(track);
+    // Set after the insertion: a track element's mode exists once it is in
+    // a media element, and `hidden` is what makes its cues load unseen.
+    track.track.mode = 'hidden';
   }
 
   private forward(name: string): void {
@@ -367,6 +413,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     this.current = session;
     this.configure(session);
+    // The engine's attach empties the media element to reset its resource
+    // selection (`kernel/mse.ts`), and the chapters track goes with the
+    // `<source>` children it means. Wanted: the track to survive attach.
+    // Had to: put it back once the session is in. The surface that would
+    // make it one call: an attach that removes `<source>` children alone.
+    this.chapters();
   }
 
   private async ensure(): Promise<Player> {
@@ -389,8 +441,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   private async chain(): Promise<readonly Handler[]> {
     if (this.options.handlers !== undefined) return this.options.handlers;
+    const config = this.options.config === undefined ? {} : { config: this.options.config };
     if (this.options.stages !== undefined) {
-      return [matteboxHandler({ stages: this.options.stages }), nativeHandler()];
+      return [matteboxHandler({ stages: this.options.stages, ...config }), nativeHandler()];
     }
     const name = this.getAttribute('preset') ?? DEFAULT_PRESET;
     const preset = await resolvePreset(name);
@@ -405,7 +458,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       });
       return [nativeHandler()];
     }
-    return [matteboxHandler({ preset, ...drmGuard() }), nativeHandler()];
+    return [matteboxHandler({ preset, ...config, ...drmGuard() }), nativeHandler()];
   }
 
   /** What the attributes ask of the session's namespaces, once there is one. */
