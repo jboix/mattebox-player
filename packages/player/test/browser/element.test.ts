@@ -73,23 +73,25 @@ function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlaye
   return player;
 }
 
-/** Hidden is inherited in practice: a child of a hidden panel is not on screen either. */
-function visible(node: Element): boolean {
-  let current: Element | null = node;
-  while (current !== null) {
-    if ((current as HTMLElement).hidden) return false;
-    current = current.parentElement;
-  }
-  return true;
+/** The composition arrives a microtask after the connect. */
+function settled(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** Every part name the element is currently showing. */
-function parts(player: MatteboxPlayerElement): string[] {
-  const root = player.shadowRoot;
-  if (root === null) return [];
-  return [...root.querySelectorAll('[part]')]
-    .filter(visible)
-    .flatMap((node) => (node.getAttribute('part') ?? '').split(' '));
+/** The panels row under the video, and the controls in it that are on screen, by tag. */
+function panels(player: MatteboxPlayerElement): { row: HTMLElement | null; shown: string[] } {
+  const row = player.querySelector('mbx-panels');
+  const shown = [...(row?.children ?? [])]
+    .filter((node) => !(node as HTMLElement).hidden)
+    .map((node) => node.localName);
+  return { row, shown };
+}
+
+/** Every item of a menu's popup, by text. */
+function texts(node: Element | null | undefined): string[] {
+  return [...(node?.shadowRoot?.querySelectorAll('[part~="popup"] button') ?? [])].map(
+    (item) => item.textContent ?? '',
+  );
 }
 
 afterEach(() => {
@@ -147,68 +149,87 @@ describe('<mattebox-player>', () => {
     }).not.toThrow();
   });
 
-  it('loads an engine source and shows the panels its namespaces support', async () => {
+  it('appends the panels row under native controls, and the menus its namespaces support', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
+    await settled();
+    const { row } = panels(player);
+    expect(row).not.toBeNull();
+    // In flow under the picture, in the stage's slot beside the video.
+    expect(row?.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
+    expect([...(row?.children ?? [])].map((node) => node.localName)).toEqual([
+      'mbx-quality-menu',
+      'mbx-audio-menu',
+      'mbx-subtitles-menu',
+      'mbx-live-button',
+      'mbx-drm-badge',
+    ]);
 
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    await expect.poll(() => parts(player)).toContain('quality');
-
-    const shown = parts(player);
-    expect(shown).toContain('quality-select');
+    await expect.poll(() => panels(player).shown).toContain('mbx-quality-menu');
     // The manifest declares one muxed track, so there is nothing to choose
-    // between and the tracks panel hides itself.
-    expect(shown).not.toContain('tracks');
-    // The stream is VOD, so the live badge has no namespace to read.
-    expect(shown).not.toContain('live');
-    // No key session opened, so the DRM indicator has nothing to say.
-    expect(shown).not.toContain('drm-key-system');
-    expect(shown).not.toContain('error');
+    // between; the stream is VOD, so there is no edge; no key session opened.
+    expect(panels(player).shown).toEqual(['mbx-quality-menu']);
+    expect(row?.hidden).toBe(false);
   });
 
   it('offers auto plus every rendition in the quality menu', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
+    await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-
-    const select = player.shadowRoot?.querySelector<HTMLSelectElement>('[part~="quality-select"]');
-    await expect.poll(() => select?.options.length ?? 0).toBe(3);
-    expect(select?.options[0]?.value).toBe('auto');
-    expect([...(select?.options ?? [])].map((option) => option.textContent)).toEqual([
-      'Auto',
-      '270p',
-      '720p',
-    ]);
+    const quality = player.querySelector('mbx-quality-menu');
+    await expect.poll(() => texts(quality)).toEqual(['Auto', '270p', '720p']);
   });
 
   it('shows the audio menu when the manifest carries alternate audio', async () => {
     const player = mount({ src: 'https://cdn.test/hls/alt.m3u8' });
+    await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-
-    await expect.poll(() => parts(player)).toContain('tracks');
-    const audio = player.shadowRoot?.querySelector<HTMLSelectElement>('[part~="audio-select"]');
-    expect([...(audio?.options ?? [])].map((option) => option.textContent)).toEqual([
-      'en · main',
-      'fr · alternate',
-    ]);
+    await expect.poll(() => panels(player).shown).toContain('mbx-audio-menu');
+    expect(texts(player.querySelector('mbx-audio-menu'))).toEqual(['en · main', 'fr · alternate']);
   });
 
-  it('shows no engine panels and no error for a native source', async () => {
+  it('hides the row and shows no error for a native source', async () => {
     const url = silence();
     const player = mount({ src: url, type: 'audio/wav' });
-
+    await settled();
     await expect.poll(() => player.player?.session?.handler).toBe('native');
     await expect.poll(() => player.video.readyState).toBeGreaterThan(0);
     expect(player.engine).toBeNull();
-    const shown = parts(player);
-    expect(shown).not.toContain('quality');
-    expect(shown).not.toContain('tracks');
-    expect(shown).not.toContain('error');
+    expect(panels(player).shown).toEqual([]);
+    expect(panels(player).row?.hidden).toBe(true);
+    expect(player.shadowRoot?.querySelector<HTMLElement>('[part~="error"]')?.hidden).toBe(true);
     URL.revokeObjectURL(url);
+  });
+
+  it('leaves a panels row the page wrote alone', async () => {
+    const player = new MatteboxPlayerElement({ handlers: chain() });
+    const own = document.createElement('mbx-panels');
+    own.append(document.createElement('mbx-quality-menu'));
+    player.append(own);
+    document.body.append(player);
+    await settled();
+    expect(player.querySelectorAll('mbx-panels').length).toBe(1);
+    expect(panels(player).row).toBe(own);
+  });
+
+  it('swaps the panels row for the bar and back as the mode changes', async () => {
+    const player = mount();
+    await settled();
+    expect(panels(player).row).not.toBeNull();
+    expect(player.querySelector('mbx-control-bar')).toBeNull();
+    player.setAttribute('controls', 'custom');
+    expect(panels(player).row).toBeNull();
+    expect(player.querySelector('mbx-control-bar')).not.toBeNull();
+    player.setAttribute('controls', 'none');
+    expect(panels(player).row).not.toBeNull();
+    expect(player.querySelector('mbx-control-bar')).toBeNull();
+    expect(player.video.hasAttribute('controls')).toBe(false);
   });
 
   it('shows the error surface with the code when no handler claims the source', async () => {
     const player = mount({ src: 'https://cdn.test/a.m3u8', type: 'application/x-nonsense' });
-
-    await expect.poll(() => parts(player)).toContain('error');
+    const surface = player.shadowRoot?.querySelector<HTMLElement>('[part~="error"]');
+    await expect.poll(() => surface?.hidden).toBe(false);
     const code = player.shadowRoot?.querySelector('[part~="error-code"]');
     expect(code?.textContent).toBe('MANIFEST_UNSUPPORTED');
     const category = player.shadowRoot?.querySelector('[part~="error-category"]');
@@ -278,64 +299,88 @@ describe('<mattebox-player>', () => {
   });
 });
 
-describe('the bar over an engine session', () => {
-  /** The first element of a part inside the shadow root. */
-  function part(player: MatteboxPlayerElement, name: string): HTMLElement | null {
-    return player.shadowRoot?.querySelector(`[part~="${name}"]`) ?? null;
+describe('the menus over an engine session', () => {
+  /** The composition arrives a microtask after the connect. */
+  function settled(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 0));
   }
 
-  function items(player: MatteboxPlayerElement, name: string): string[] {
-    return [...(part(player, `${name}-popup`)?.querySelectorAll('button') ?? [])].map(
-      (item) => item.textContent ?? '',
-    );
+  async function engineReady(url: string): Promise<MatteboxPlayerElement> {
+    const player = mount({ controls: 'custom', src: url });
+    await settled();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    return player;
+  }
+
+  function control<K extends keyof HTMLElementTagNameMap>(
+    player: MatteboxPlayerElement,
+    tag: K,
+  ): HTMLElementTagNameMap[K] {
+    const node = player.querySelector(tag);
+    if (node === null) throw new Error(`no ${tag}`);
+    return node;
+  }
+
+  function items(node: HTMLElement): HTMLButtonElement[] {
+    return [
+      ...(node.shadowRoot?.querySelectorAll<HTMLButtonElement>('[part~="popup"] button') ?? []),
+    ];
+  }
+
+  function texts(node: HTMLElement): string[] {
+    return items(node).map((item) => item.textContent ?? '');
+  }
+
+  function button(node: HTMLElement): HTMLButtonElement {
+    return node.shadowRoot?.querySelector('[part~="button"]') as HTMLButtonElement;
+  }
+
+  function popup(node: HTMLElement): HTMLElement {
+    return node.shadowRoot?.querySelector('[part~="popup"]') as HTMLElement;
   }
 
   it('hides the panels row and carries the quality menu instead', async () => {
-    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    expect(part(player, 'panels')?.hidden).toBe(true);
-    const quality = part(player, 'quality-menu');
-    expect(quality?.hidden).toBe(false);
-    expect(items(player, 'quality')).toEqual(['Auto', '270p', '720p']);
+    const player = await engineReady('https://cdn.test/hls/master.m3u8');
+    expect(player.querySelector('mbx-panels')).toBeNull();
+    const quality = control(player, 'mbx-quality-menu');
+    await expect.poll(() => quality.hidden).toBe(false);
+    expect(texts(quality)).toEqual(['Auto', '270p', '720p']);
     // One audio track is no choice, and there is no text.
-    expect(part(player, 'audio-menu')?.hidden).toBe(true);
-    expect(part(player, 'text-menu')?.hidden).toBe(true);
+    expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
   });
 
   it('opens the quality menu, pins a rendition on a choice, and closes', async () => {
-    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    const button = part(player, 'quality-button') as HTMLButtonElement;
-    const popup = part(player, 'quality-popup') as HTMLElement;
-    expect(popup.hidden).toBe(true);
-    expect(button.getAttribute('aria-expanded')).toBe('false');
+    const player = await engineReady('https://cdn.test/hls/master.m3u8');
+    const quality = control(player, 'mbx-quality-menu');
+    await expect.poll(() => quality.hidden).toBe(false);
+    expect(popup(quality).hidden).toBe(true);
+    expect(button(quality).getAttribute('aria-expanded')).toBe('false');
 
-    button.click();
-    expect(popup.hidden).toBe(false);
-    expect(button.getAttribute('aria-expanded')).toBe('true');
-    expect(part(player, 'quality-menu')?.getAttribute('part')?.split(' ')).toContain('open');
+    button(quality).click();
+    expect(popup(quality).hidden).toBe(false);
+    expect(button(quality).getAttribute('aria-expanded')).toBe('true');
+    expect(quality.hasAttribute('open')).toBe(true);
 
-    const choice = [...popup.querySelectorAll('button')].find(
-      (item) => item.textContent === '720p',
-    );
+    const choice = items(quality).find((item) => item.textContent === '720p');
     choice?.click();
-    expect(popup.hidden).toBe(true);
+    expect(popup(quality).hidden).toBe(true);
     expect(player.engine?.quality.pinned).toBe(choice?.value);
-    button.click();
-    const checked = popup.querySelector('[aria-checked="true"]');
+    button(quality).click();
+    const checked = popup(quality).querySelector('[aria-checked="true"]');
     expect(checked?.textContent).toBe('720p');
   });
 
   it('walks the quality menu with the arrows inside the shadow root', async () => {
-    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    (part(player, 'quality-button') as HTMLButtonElement).click();
-    const popup = part(player, 'quality-popup') as HTMLElement;
-    const options = [...popup.querySelectorAll('button')];
-    const focused = () => player.shadowRoot?.activeElement ?? null;
+    const player = await engineReady('https://cdn.test/hls/master.m3u8');
+    const quality = control(player, 'mbx-quality-menu');
+    await expect.poll(() => quality.hidden).toBe(false);
+    button(quality).click();
+    const options = items(quality);
+    const focused = () => quality.shadowRoot?.activeElement ?? null;
     expect(focused()).toBe(options[0]);
     const press = (key: string) =>
-      popup.dispatchEvent(
+      popup(quality).dispatchEvent(
         new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }),
       );
     press('ArrowDown');
@@ -345,28 +390,26 @@ describe('the bar over an engine session', () => {
     press('ArrowUp');
     expect(focused()).toBe(options[1]);
     press('Escape');
-    expect(popup.hidden).toBe(true);
-    expect(focused()).toBe(part(player, 'quality-button'));
+    expect(popup(quality).hidden).toBe(true);
+    expect(focused()).toBe(button(quality));
   });
 
   it('shows the audio menu when the manifest carries alternate audio', async () => {
-    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/alt.m3u8' });
-    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    expect(part(player, 'audio-menu')?.hidden).toBe(false);
-    expect(items(player, 'audio')).toEqual(['en · main', 'fr · alternate']);
+    const player = await engineReady('https://cdn.test/hls/alt.m3u8');
+    const audio = control(player, 'mbx-audio-menu');
+    await expect.poll(() => audio.hidden).toBe(false);
+    expect(texts(audio)).toEqual(['en · main', 'fr · alternate']);
   });
 
-  it('drops the menus with the session', async () => {
-    const player = mount({ controls: 'custom', src: 'https://cdn.test/hls/master.m3u8' });
-    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    expect(part(player, 'quality-menu')).not.toBeNull();
+  it('hides the menus with the session', async () => {
+    const player = await engineReady('https://cdn.test/hls/master.m3u8');
+    const quality = control(player, 'mbx-quality-menu');
+    await expect.poll(() => quality.hidden).toBe(false);
     // Typed, so the chain sends it straight to native instead of asking the
     // engine to sniff a blob the stubbed transport cannot serve.
     player.setAttribute('type', 'audio/wav');
     player.setAttribute('src', silence());
     await expect.poll(() => player.player?.session?.handler).toBe('native');
-    expect(part(player, 'quality-menu')).toBeNull();
-    expect(part(player, 'quality-menu')).toBeNull();
-    expect(part(player, 'quality-slot')?.childElementCount).toBe(0);
+    expect(quality.hidden).toBe(true);
   });
 });

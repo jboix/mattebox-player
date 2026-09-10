@@ -1,6 +1,6 @@
 /**
- * The demo page: a player, two ways of loading content, and the bar's
- * knobs on the side, with the markup that reproduces what is on screen.
+ * The demo page: a player, two ways of loading content, and the element's
+ * options on the side, with the markup that reproduces what is on screen.
  *
  * Content comes the way the engine's playground offers it: a list of demo
  * streams with a URL, a license and a thumbnail track to edit, or SRG SSR
@@ -11,7 +11,7 @@
  */
 import { inferType } from '@mattebox/player-core';
 import '@mattebox/player';
-import { LAYOUT, MatteboxPlayerElement } from '@mattebox/player';
+import { MatteboxPlayerElement } from '@mattebox/player';
 import full from 'mattebox/presets/full';
 import emeCore from 'mattebox/stages/eme-core';
 // Imported, not referenced from the HTML: the file lives outside the demo
@@ -28,6 +28,7 @@ import {
   searchMedia,
   tokenize,
 } from './srgssr.js';
+import { attributesFor, LANGUAGES } from './words.js';
 
 function byId<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -412,22 +413,54 @@ for (const tab of document.querySelectorAll<HTMLButtonElement>('[data-route]')) 
   });
 }
 
-// ---- the bar: controls mode, layout, knobs, and the markup they make -----------
+// ---- the options: controls mode, media flags, and the markup they make ---------
 
-const CONTROLS: ReadonlyArray<readonly [string, string]> = [
-  ['skip-back', 'Skip back'],
-  ['play', 'Play / pause'],
-  ['skip-forward', 'Skip forward'],
-  ['volume', 'Volume'],
-  ['speed', 'Speed'],
-  ['subtitles', 'Subtitles'],
-  ['audio', 'Audio'],
-  ['quality', 'Quality'],
-  ['drm', 'DRM lock'],
-  ['pip', 'PiP'],
-  ['fullscreen', 'Fullscreen'],
+const controlsSelect = byId<HTMLSelectElement>('controls');
+const flags = [...document.querySelectorAll<HTMLInputElement>('[data-flag]')];
+const looks = [...document.querySelectorAll<HTMLSelectElement>('[data-look]')];
+const poster = byId<HTMLInputElement>('poster');
+const preset = byId<HTMLSelectElement>('preset');
+const markup = byId<HTMLPreElement>('markup');
+const screens = [...document.querySelectorAll<HTMLInputElement>('[data-screen]')];
+const knobInputs = [...document.querySelectorAll<HTMLInputElement>('[data-knob]')];
+const language = byId<HTMLSelectElement>('language');
+const lists = {
+  seek: byId<HTMLUListElement>('layout-seek'),
+  left: byId<HTMLUListElement>('layout-left'),
+  right: byId<HTMLUListElement>('layout-right'),
+};
+type Row = keyof typeof lists;
+const ROWS: readonly Row[] = ['seek', 'left', 'right'];
+
+// ---- the composition: the rows, the ticks and the knobs, as markup -------------
+
+/** Every control the bar can carry, by the name the lists know it by, with its tag. */
+const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
+  ['current-time', 'Current time', 'mbx-current-time'],
+  ['seek-bar', 'Seek bar', 'mbx-seek-bar'],
+  ['duration', 'Duration', 'mbx-duration'],
+  ['live', 'Live', 'mbx-live-button'],
+  ['skip-back', 'Skip back', 'mbx-skip-button'],
+  ['play', 'Play / pause', 'mbx-play-button'],
+  ['skip-forward', 'Skip forward', 'mbx-skip-button'],
+  ['volume', 'Volume', 'mbx-volume'],
+  ['speed', 'Speed', 'mbx-speed-menu'],
+  ['subtitles', 'Subtitles', 'mbx-subtitles-menu'],
+  ['audio', 'Audio', 'mbx-audio-menu'],
+  ['quality', 'Quality', 'mbx-quality-menu'],
+  ['drm', 'DRM lock', 'mbx-drm-badge'],
+  ['pip', 'PiP', 'mbx-pip-button'],
+  ['fullscreen', 'Fullscreen', 'mbx-fullscreen-button'],
 ];
-const LABELS = new Map(CONTROLS);
+const LABELS = new Map(CONTROLS.map(([name, label]) => [name, label]));
+const TAGS = new Map(CONTROLS.map(([name, , tag]) => [name, tag]));
+const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
+  seek: ['current-time', 'seek-bar', 'duration', 'live'],
+  left: ['skip-back', 'play', 'skip-forward', 'volume'],
+  right: ['speed', 'subtitles', 'audio', 'quality', 'drm', 'pip', 'fullscreen'],
+};
+/** What the element composes on its own: everything but the lock. */
+const DEFAULT_OFF = new Set(['drm']);
 const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'skip-back': '10',
   'skip-forward': '10',
@@ -435,56 +468,126 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'seek-step': '5',
   'seek-page': '30',
   'live-window': '3',
+  rates: '0.5 0.75 1 1.25 1.5 2',
 };
 
-const controlsSelect = byId<HTMLSelectElement>('controls');
-const flags = [...document.querySelectorAll<HTMLInputElement>('[data-flag]')];
-const looks = [...document.querySelectorAll<HTMLSelectElement>('[data-look]')];
-const poster = byId<HTMLInputElement>('poster');
-const preset = byId<HTMLSelectElement>('preset');
-const lists = {
-  left: byId<HTMLUListElement>('layout-left'),
-  right: byId<HTMLUListElement>('layout-right'),
-};
-const knobInputs = [...document.querySelectorAll<HTMLInputElement>('[data-knob]')];
-/** Knobs that are a tick: on is the default and needs no attribute, off is the attribute at zero. */
-const knobFlags = [...document.querySelectorAll<HTMLInputElement>('[data-knob-flag]')];
-const markup = byId<HTMLPreElement>('markup');
-
-/** The layout as the page holds it: every control on one side or the other, ticked when the default carries it. */
-const sides: { left: string[]; right: string[] } = { left: [], right: [] };
+/** The layout as the page holds it: every control in one row, ticked when the bar carries it. */
+const rows: Record<Row, string[]> = { seek: [], left: [], right: [] };
 const enabled = new Set<string>();
 
 /** Every field and list back to the defaults the markup carries. */
 function defaults(): void {
-  const names = CONTROLS.map(([name]) => name);
-  sides.left = names.slice(0, 4);
-  sides.right = names.slice(4);
+  for (const row of ROWS) rows[row] = [...DEFAULT_ROWS[row]];
   enabled.clear();
-  for (const name of LAYOUT.split(/[\s|]+/)) if (name !== '') enabled.add(name);
+  for (const [name] of CONTROLS) if (!DEFAULT_OFF.has(name)) enabled.add(name);
   for (const flag of flags) flag.checked = flag.defaultChecked;
+  for (const screen of screens) screen.checked = screen.defaultChecked;
   poster.value = '';
   preset.value = 'full';
   for (const look of looks) look.value = look.dataset.look === 'subtitle-size' ? 'medium' : 'dark';
   controlsSelect.value = 'custom';
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
-  for (const tick of knobFlags) tick.checked = tick.defaultChecked;
+  language.value = 'en';
 }
 defaults();
 
-function layoutValue(): string {
-  const on = (names: string[]) => names.filter((n) => enabled.has(n)).join(' ');
-  return `${on(sides.left)} | ${on(sides.right)}`;
+/** A knob's value, or null where it is empty or the default and needs no attribute. */
+function knob(name: string): string | null {
+  const input = knobInputs.find((k) => k.dataset.knob === name);
+  const value = input?.value.trim() ?? '';
+  return value === '' || value === KNOB_DEFAULTS[name] ? null : value;
 }
 
-/** Sets or removes an attribute, only where that changes it: every one of these rebuilds the bar. */
+/** One element as markup: the tag, then the attributes in the order given. */
+function tag(name: string, attributes: Readonly<Record<string, string | null>>): string {
+  const text = Object.entries(attributes)
+    .filter((entry): entry is [string, string] => entry[1] !== null)
+    .map(([key, value]) => ` ${key}="${value}"`)
+    .join('');
+  return `<${name}${text}></${name}>`;
+}
+
+/** The words a control takes in the chosen language, none in English: English is the default. */
+function words(tagName: string, name: string): Record<string, string | null> {
+  const chosen = LANGUAGES[language.value];
+  if (chosen === undefined) return {};
+  const out: Record<string, string | null> = { ...attributesFor(tagName, chosen.words) };
+  if (name === 'skip-back') out.label = chosen.words.skipBack;
+  if (name === 'skip-forward') out.label = chosen.words.skipForward;
+  return out;
+}
+
+/** A control's markup: its tag, its knobs, and its words. */
+function controlMarkup(name: string, row: Row): string {
+  const tagName = TAGS.get(name) ?? name;
+  const own: Record<string, string | null> = {};
+  const seekRow = ['current-time', 'seek-bar', 'duration', 'live'];
+  if (row === 'seek' && !seekRow.includes(name)) own.slot = 'seek';
+  if (row !== 'seek' && seekRow.includes(name)) own.slot = '';
+  if (name === 'skip-back') own.seconds = `-${knob('skip-back') ?? '10'}`;
+  if (name === 'skip-forward') own.seconds = knob('skip-forward') ?? '10';
+  if (name === 'seek-bar') {
+    own.step = knob('seek-step');
+    own.page = knob('seek-page');
+    own['live-window'] = knob('live-window');
+  }
+  if (name === 'speed') own.rates = knob('rates');
+  if (name === 'volume') {
+    // The group's two parts, written out so their words can be set.
+    const inner = [
+      tag('mbx-mute-button', words('mbx-mute-button', 'mute')),
+      tag('mbx-volume-slider', words('mbx-volume-slider', 'volume')),
+    ];
+    const open = tag(tagName, own);
+    return `${open.slice(0, open.indexOf('></') + 1)}\n    ${inner.join('\n    ')}\n  </${tagName}>`;
+  }
+  return tag(tagName, { ...own, ...words(tagName, name) });
+}
+
+/** The whole composition: the screens, and the bar with its rows. */
+function composition(): string {
+  const lines: string[] = [];
+  for (const screen of screens) {
+    if (!screen.checked) continue;
+    const tagName = screen.dataset.screen === 'start' ? 'mbx-start-button' : 'mbx-error-screen';
+    lines.push(tag(tagName, words(tagName, '')));
+  }
+  const on = (row: Row) => rows[row].filter((name) => enabled.has(name));
+  const inner = [
+    ...on('seek').map((name) => controlMarkup(name, 'seek')),
+    ...on('left').map((name) => controlMarkup(name, 'left')),
+    ...(on('right').length > 0 ? ['<mbx-spacer></mbx-spacer>'] : []),
+    ...on('right').map((name) => controlMarkup(name, 'right')),
+  ];
+  const bar = tag('mbx-control-bar', {
+    'idle-ms': knob('idle-ms'),
+    'seek-step': knob('seek-step'),
+  });
+  const open = bar.slice(0, bar.indexOf('></') + 1);
+  lines.push(open, ...inner.map((line) => `  ${line}`), '</mbx-control-bar>');
+  return lines.join('\n');
+}
+
+/** What each element on the page carries, so an unchanged composition is left alone. */
+const applied = new WeakMap<HTMLElement, string>();
+
+/** Replaces the controls inside `element` with the composition, under custom controls. */
+function applyComposition(element: MatteboxPlayerElement): void {
+  const wanted = controlsSelect.value === 'custom' ? composition() : '';
+  if (applied.get(element) === wanted) return;
+  applied.set(element, wanted);
+  for (const child of [...element.children]) if (child.localName !== 'video') child.remove();
+  if (wanted !== '') element.insertAdjacentHTML('beforeend', wanted);
+}
+
+/** Sets or removes an attribute, only where that changes it. */
 function attribute(element: HTMLElement, name: string, value: string | null): void {
   if (element.getAttribute(name) === value) return;
   if (value === null) element.removeAttribute(name);
   else element.setAttribute(name, value);
 }
 
-/** Applies every choice on the side to an element: the media, the mode, the layout, the knobs. */
+/** Applies every choice on the side to an element: the media and the mode. */
 function applyElement(element: MatteboxPlayerElement): void {
   for (const flag of flags)
     attribute(element, flag.dataset.flag as string, flag.checked ? '' : null);
@@ -496,15 +599,7 @@ function applyElement(element: MatteboxPlayerElement): void {
     attribute(element, name, look.value === fallback ? null : look.value);
   }
   attribute(element, 'controls', controlsSelect.value === 'native' ? null : controlsSelect.value);
-  attribute(element, 'layout', layoutValue());
-  for (const input of knobInputs) {
-    const name = input.dataset.knob as string;
-    const off = input.value === '' || input.value === KNOB_DEFAULTS[name];
-    attribute(element, name, off ? null : input.value);
-  }
-  for (const tick of knobFlags) {
-    attribute(element, tick.dataset.knobFlag as string, tick.checked ? null : '0');
-  }
+  applyComposition(element);
 }
 
 /** The markup that reproduces the element on screen, attributes at their non-defaults only. */
@@ -526,19 +621,14 @@ function markupFor(element: MatteboxPlayerElement): string {
   }
   for (const flag of flags) if (flag.checked) attributes.push(flag.dataset.flag as string);
   if (controlsSelect.value !== 'native') attributes.push(`controls="${controlsSelect.value}"`);
-  if (controlsSelect.value === 'custom') {
-    const layout = layoutValue();
-    if (layout !== LAYOUT) attributes.push(`layout="${layout}"`);
-    for (const input of knobInputs) {
-      const name = input.dataset.knob as string;
-      if (input.value !== '' && input.value !== KNOB_DEFAULTS[name]) {
-        attributes.push(`${name}="${input.value}"`);
-      }
-    }
-    for (const tick of knobFlags)
-      if (!tick.checked) attributes.push(`${tick.dataset.knobFlag}="0"`);
-  }
   const inner = attributes.map((a) => `\n  ${a}`).join('');
+  const children =
+    controlsSelect.value === 'custom'
+      ? `\n${composition()
+          .split('\n')
+          .map((line) => `  ${line}`)
+          .join('\n')}\n`
+      : '';
   const script = scripted
     ? `<script type="module">
   import { MatteboxPlayerElement } from '@mattebox/player';
@@ -552,7 +642,7 @@ function markupFor(element: MatteboxPlayerElement): string {
     : `<script type="module">
   import '@mattebox/player';
 </script>`;
-  return `<mattebox-player${inner}\n></mattebox-player>\n\n${script}`;
+  return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
 }
 
 function render(): void {
@@ -571,10 +661,11 @@ interface Preferences {
   readonly preset: string;
   readonly looks: Record<string, string>;
   readonly controls: string;
-  readonly sides: { left: string[]; right: string[] };
+  readonly rows: Record<Row, string[]>;
   readonly enabled: string[];
+  readonly screens: Record<string, boolean>;
   readonly knobs: Record<string, string>;
-  readonly knobFlags: Record<string, boolean>;
+  readonly language: string;
 }
 
 function savePreferences(): void {
@@ -584,10 +675,11 @@ function savePreferences(): void {
     preset: preset.value,
     looks: Object.fromEntries(looks.map((l) => [l.dataset.look as string, l.value])),
     controls: controlsSelect.value,
-    sides,
+    rows,
     enabled: [...enabled],
+    screens: Object.fromEntries(screens.map((s) => [s.dataset.screen as string, s.checked])),
     knobs: Object.fromEntries(knobInputs.map((k) => [k.dataset.knob as string, k.value])),
-    knobFlags: Object.fromEntries(knobFlags.map((k) => [k.dataset.knobFlag as string, k.checked])),
+    language: language.value,
   };
   try {
     localStorage.setItem(PREFERENCES, JSON.stringify(prefs));
@@ -596,7 +688,7 @@ function savePreferences(): void {
   }
 }
 
-/** Puts what was saved back into the fields and the lists. Anything malformed is ignored. */
+/** Puts what was saved back into the fields. Anything malformed is ignored. */
 function loadPreferences(): void {
   let prefs: Partial<Preferences>;
   try {
@@ -628,26 +720,28 @@ function loadPreferences(): void {
     Array.isArray(names)
       ? names.filter((n): n is string => typeof n === 'string' && LABELS.has(n))
       : [];
-  const left = known(prefs.sides?.left);
-  const right = known(prefs.sides?.right);
-  if (
-    left.length + right.length === CONTROLS.length &&
-    new Set([...left, ...right]).size === CONTROLS.length
-  ) {
-    sides.left = left;
-    sides.right = right;
+  const saved = ROWS.map((row) => known(prefs.rows?.[row]));
+  const all = saved.flat();
+  if (all.length === CONTROLS.length && new Set(all).size === CONTROLS.length) {
+    for (const [i, row] of ROWS.entries()) rows[row] = saved[i] ?? [];
   }
   if (Array.isArray(prefs.enabled)) {
     enabled.clear();
     for (const name of known(prefs.enabled)) enabled.add(name);
   }
-  for (const k of knobInputs) {
-    const saved = prefs.knobs?.[k.dataset.knob as string];
-    if (typeof saved === 'string') k.value = saved;
+  for (const s of screens) {
+    const value = prefs.screens?.[s.dataset.screen as string];
+    if (typeof value === 'boolean') s.checked = value;
   }
-  for (const k of knobFlags) {
-    const saved = prefs.knobFlags?.[k.dataset.knobFlag as string];
-    if (typeof saved === 'boolean') k.checked = saved;
+  for (const k of knobInputs) {
+    const value = prefs.knobs?.[k.dataset.knob as string];
+    if (typeof value === 'string') k.value = value;
+  }
+  if (
+    typeof prefs.language === 'string' &&
+    (prefs.language === 'en' || prefs.language in LANGUAGES)
+  ) {
+    language.value = prefs.language;
   }
 }
 
@@ -702,28 +796,28 @@ function layoutItem(name: string): HTMLLIElement {
 }
 
 function renderLists(): void {
-  for (const side of ['left', 'right'] as const) {
-    lists[side].replaceChildren();
-    for (const name of sides[side]) lists[side].append(layoutItem(name));
+  for (const row of ROWS) {
+    lists[row].replaceChildren();
+    for (const name of rows[row]) lists[row].append(layoutItem(name));
   }
 }
 
-/** Moves a name to a side and index, out of wherever it was. */
-function move(name: string, side: 'left' | 'right', index: number): void {
-  for (const other of ['left', 'right'] as const) {
-    const at = sides[other].indexOf(name);
+/** Moves a name to a row and index, out of wherever it was. */
+function move(name: string, row: Row, index: number): void {
+  for (const other of ROWS) {
+    const at = rows[other].indexOf(name);
     if (at >= 0) {
-      sides[other].splice(at, 1);
-      if (other === side && at < index) index -= 1;
+      rows[other].splice(at, 1);
+      if (other === row && at < index) index -= 1;
     }
   }
-  sides[side].splice(index, 0, name);
+  rows[row].splice(index, 0, name);
   renderLists();
   render();
 }
 
-for (const side of ['left', 'right'] as const) {
-  const list = lists[side];
+for (const row of ROWS) {
+  const list = lists[row];
   list.addEventListener('dragover', (event) => {
     event.preventDefault();
     if (event.dataTransfer !== null) event.dataTransfer.dropEffect = 'move';
@@ -742,13 +836,20 @@ for (const side of ['left', 'right'] as const) {
         break;
       }
     }
-    move(name, side, index);
+    move(name, row, index);
   });
 }
 
+for (const [code, { name }] of Object.entries(LANGUAGES)) {
+  const option = document.createElement('option');
+  option.value = code;
+  option.textContent = name;
+  language.append(option);
+}
 controlsSelect.addEventListener('change', render);
+for (const screen of screens) screen.addEventListener('change', render);
 for (const input of knobInputs) input.addEventListener('input', render);
-for (const tick of knobFlags) tick.addEventListener('change', render);
+language.addEventListener('change', render);
 for (const flag of flags) flag.addEventListener('change', render);
 for (const look of looks) look.addEventListener('change', render);
 poster.addEventListener('change', render);
@@ -816,8 +917,8 @@ byId<HTMLButtonElement>('reset-options').addEventListener('click', () => {
   renderLists();
   render();
 });
-
 renderLists();
+
 wire(player);
 render();
 

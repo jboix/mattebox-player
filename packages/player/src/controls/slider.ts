@@ -12,24 +12,27 @@
  * The track and the thumb sit on a rail inset from the root's edges by half
  * a thumb, so the thumb at either end is whole and not clipped, and every
  * fraction is measured against the rail.
+ *
+ * The steps are read on every key, so an element can take them from its
+ * attributes as they change.
  */
-import { el, state } from '../dom.js';
+import { el } from '../dom.js';
 
 export interface SliderOptions {
-  /** The part prefix: `seek`, `volume`. */
-  readonly name: string;
-  /** The accessible name. */
-  readonly label: string;
   /** What an arrow key moves the value by. */
-  readonly step: number;
+  readonly step: () => number;
   /** What Page Up and Page Down move it by. */
-  readonly page: number;
+  readonly page: () => number;
   /** The value the pointer or a key asked for, clamped to the range. */
   readonly onInput: (value: number) => void;
+  /** A pointer took the thumb, or let it go. The element carries it as `dragging`. */
+  readonly onDrag: (on: boolean) => void;
 }
 
 export interface Slider {
   readonly root: HTMLElement;
+  /** The accessible name. */
+  label(text: string): void;
   /** The bar the fill sits on. A caller lays extra layers on it. */
   readonly track: HTMLElement;
   /** What fractions are measured against: the track's extent, inset from the root. */
@@ -48,15 +51,14 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function slider(options: SliderOptions): Slider {
-  const { name, onInput } = options;
-  const root = el('div', `slider ${name}`);
+  const { onInput } = options;
+  const root = el('div', 'slider');
   root.setAttribute('role', 'slider');
-  root.setAttribute('aria-label', options.label);
   root.tabIndex = 0;
-  const rail = el('div', `rail ${name}-rail`);
-  const track = el('div', `track ${name}-track`);
-  const fill = el('div', `fill ${name}-fill`);
-  const thumb = el('div', `thumb ${name}-thumb`);
+  const rail = el('div', 'rail');
+  const track = el('div', 'track');
+  const fill = el('div', 'fill');
+  const thumb = el('div', 'thumb');
   track.append(fill);
   rail.append(track, thumb);
   root.append(rail);
@@ -82,7 +84,7 @@ export function slider(options: SliderOptions): Slider {
 
   function hold(on: boolean): void {
     held = on;
-    state(root, `slider ${name}`, { dragging: on });
+    options.onDrag(on);
   }
 
   function down(event: PointerEvent): void {
@@ -117,17 +119,17 @@ export function slider(options: SliderOptions): Slider {
     switch (event.key) {
       case 'ArrowRight':
       case 'ArrowUp':
-        next = value + options.step;
+        next = value + options.step();
         break;
       case 'ArrowLeft':
       case 'ArrowDown':
-        next = value - options.step;
+        next = value - options.step();
         break;
       case 'PageUp':
-        next = value + options.page;
+        next = value + options.page();
         break;
       case 'PageDown':
-        next = value - options.page;
+        next = value - options.page();
         break;
       case 'Home':
         next = min;
@@ -152,6 +154,9 @@ export function slider(options: SliderOptions): Slider {
     root,
     track,
     rail,
+    label(text: string): void {
+      root.setAttribute('aria-label', text);
+    },
     dragging(): boolean {
       return held;
     },

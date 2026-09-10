@@ -262,7 +262,7 @@ mattebox-player[fullscreen] > video {
   height: 100%;
 }
 
-mattebox-player::part(panels),
+mattebox-player > mbx-panels,
 mattebox-player::part(error) {
   gap: calc(var(--step) * 1.5);
   padding: 0.55rem var(--step);
@@ -275,34 +275,6 @@ mattebox-player::part(error) {
   border-top: 1px solid #2c3236;
   color: #f0b5a8;
 }
-
-mattebox-player::part(text) {
-  color: #9aa09c;
-}
-
-mattebox-player::part(value) {
-  font-family: var(--mono);
-  font-weight: 500;
-  color: #7fd0b4;
-}
-
-mattebox-player::part(select),
-mattebox-player::part(button) {
-  border-radius: 0;
-  border: 1px solid #3a4145;
-  background: #23282c;
-  padding: 0.2rem 0.45rem;
-  color: inherit;
-  font: inherit;
-}
-
-mattebox-player::part(live-badge) {
-  padding: 0.1rem 0.4rem;
-  background: var(--tally);
-  color: #fff;
-  font-weight: 600;
-}
-
 .status {
   margin: 0.5rem 0 0;
   min-height: 1.4em;
@@ -614,6 +586,10 @@ button:hover {
 
 .sides > div {
   min-width: 0;
+}
+
+.layout-list + .pair {
+  margin-top: 0.75rem;
 }
 
 .layout-list {

@@ -1,9 +1,7 @@
 // One budget per package, min+brotli. kB is 1000 bytes. Needs `npm run build`.
-// The core's budget is the number the design fixed. The element's was set at
-// its first real measurement, 5.28 kB with the six panels, and moves only
-// with the bar. While the bar is being built it sits at 30 kB and is set
-// for real once the bar is complete. Raise either only with a reason in the
-// commit body.
+// The core's budget is the number the design fixed. The element's was set
+// at 30 kB for the bar, and v3 measured 23.9 kB with every control as an
+// element, so it holds. Raise either only with a reason in the commit body.
 module.exports = [
   {
     name: '@mattebox/player-core',

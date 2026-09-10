@@ -1,18 +1,16 @@
+import type { MbxControlBar, MbxPlayButton } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
+import type { Handler } from '@mattebox/player-core';
 import { nativeHandler } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import type { ThumbnailsApi } from 'mattebox/stages/thumbnails';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fullscreenButton, pipButton } from '../../src/controls/buttons.js';
 import { cueLift } from '../../src/controls/cues.js';
-import { liveButton } from '../../src/controls/live.js';
-import { menu } from '../../src/controls/menu.js';
-import { drmBadge, textMenu } from '../../src/controls/menus.js';
-import { DEFAULTS } from '../../src/controls/options.js';
-import { seekBar } from '../../src/controls/seek.js';
-import { clock } from '../../src/controls/time.js';
-import type { LiveApi } from '../../src/namespaces.js';
+import { icon } from '../../src/controls/icons.js';
+import type { LiveApi, PdtApi } from '../../src/namespaces.js';
 import { once, silence } from './helpers.js';
+
+const IDLE_MS = 3000;
 
 /** The element over the native handler alone: nothing here needs an engine. */
 function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlayerElement {
@@ -22,22 +20,65 @@ function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlaye
   return player;
 }
 
-function bar(player: MatteboxPlayerElement): HTMLElement | null {
-  return player.shadowRoot?.querySelector('[part~="controls"]') ?? null;
+/** The default composition arrives a microtask after the connect. */
+function settled(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+/** The element under custom controls, with its default bar in. */
+async function custom(
+  attributes: Readonly<Record<string, string>> = {},
+): Promise<MatteboxPlayerElement> {
+  const player = mount({ controls: 'custom', ...attributes });
+  await settled();
+  return player;
+}
+
+/**
+ * The element under custom controls with a source loaded: the metadata
+ * listener goes on before the composition settles, because a blob WAV can
+ * load inside that wait.
+ */
+async function loaded(
+  attributes: Readonly<Record<string, string>> = {},
+): Promise<MatteboxPlayerElement> {
+  const player = mount({ controls: 'custom', ...attributes });
+  const metadata = once(player.video, 'loadedmetadata');
+  await settled();
+  await metadata;
+  return player;
+}
+
+/** The element ready to play: a native session over the WAV, muted so the autoplay policy allows it. */
+function ready(seconds?: number): Promise<MatteboxPlayerElement> {
+  return loaded({ src: silence(seconds), muted: '' });
+}
+
+function bar(player: MatteboxPlayerElement): MbxControlBar | null {
+  return player.querySelector('mbx-control-bar');
+}
+
+function playButton(player: MatteboxPlayerElement): MbxPlayButton {
+  const button = player.querySelector('mbx-play-button');
+  if (button === null) throw new Error('no play button');
+  return button;
+}
+
+/** The real button inside a control's shadow root. */
+function inner(control: HTMLElement): HTMLButtonElement {
+  const button = control.shadowRoot?.querySelector('button');
+  if (button === null || button === undefined) throw new Error('no button inside');
+  return button;
+}
+
+/** The glyph slot a button shows, by its state. */
+function shown(control: HTMLElement): string {
+  const slots = [...(control.shadowRoot?.querySelectorAll('slot[name^="icon-"]') ?? [])];
+  return slots.find((slot) => !(slot as HTMLSlotElement).hidden)?.getAttribute('name') ?? '';
 }
 
 function idle(player: MatteboxPlayerElement): boolean {
-  return bar(player)?.getAttribute('part')?.split(' ').includes('idle') ?? false;
-}
-
-function part(player: MatteboxPlayerElement, name: string): HTMLElement | null {
-  return player.shadowRoot?.querySelector(`[part~="${name}"]`) ?? null;
-}
-
-/** The glyph a button shows, by its part name. */
-function shown(button: HTMLElement | null): string {
-  const names = button?.firstElementChild?.getAttribute('part')?.split(' ') ?? [];
-  return names.find((name) => name.endsWith('-icon')) ?? '';
+  return bar(player)?.hasAttribute('idle') ?? false;
 }
 
 /** A key as the browser sends it: cancelable, so a control's preventDefault reaches the host's listener. */
@@ -45,13 +86,6 @@ function press(target: EventTarget, key: string): void {
   target.dispatchEvent(
     new KeyboardEvent('keydown', { key, bubbles: true, composed: true, cancelable: true }),
   );
-}
-
-/** The element ready to play: a native session over the WAV, muted so the autoplay policy allows it. */
-async function ready(seconds?: number): Promise<MatteboxPlayerElement> {
-  const player = mount({ controls: 'custom', src: silence(seconds), muted: '' });
-  await once(player.video, 'loadedmetadata');
-  return player;
 }
 
 function move(target: EventTarget): void {
@@ -64,33 +98,74 @@ afterEach(() => {
 });
 
 describe('the controls attribute', () => {
-  it('keeps native controls on the video and draws no bar by default', () => {
+  it('keeps native controls on the video and draws no bar by default', async () => {
     const player = mount();
+    await settled();
     expect(player.video.hasAttribute('controls')).toBe(true);
     expect(bar(player)).toBeNull();
   });
 
-  it('keeps native controls with controls="native"', () => {
+  it('keeps native controls with controls="native"', async () => {
     const player = mount({ controls: 'native' });
+    await settled();
     expect(player.video.hasAttribute('controls')).toBe(true);
     expect(bar(player)).toBeNull();
   });
 
-  it('removes native controls and draws the bar over the stage with controls="custom"', () => {
+  it('removes native controls and appends the default composition with controls="custom"', async () => {
     const player = mount({ controls: 'custom' });
     expect(player.video.hasAttribute('controls')).toBe(false);
+    // Not yet: the page's own children may still be on their way.
+    expect(bar(player)).toBeNull();
+    await settled();
     const root = bar(player);
     expect(root).not.toBeNull();
-    expect(root?.parentElement?.getAttribute('part')).toBe('stage');
+    expect(root?.parentElement).toBe(player);
+    expect(root?.querySelector('mbx-play-button')).not.toBeNull();
+    // Beside the video, and slotted into the stage over it.
+    expect(root?.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
   });
 
-  it('removes native controls and draws no bar with controls="none"', () => {
+  it('removes native controls and draws no bar with controls="none"', async () => {
     const player = mount({ controls: 'none' });
+    await settled();
     expect(player.video.hasAttribute('controls')).toBe(false);
     expect(bar(player)).toBeNull();
   });
 
-  it('swaps the bar in and out as the attribute changes, without reloading the source', async () => {
+  it('leaves a bar the page wrote alone, and appends nothing beside it', async () => {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    const own = document.createElement('mbx-control-bar');
+    player.append(own);
+    document.body.append(player);
+    await settled();
+    expect(player.querySelectorAll('mbx-control-bar').length).toBe(1);
+    expect(bar(player)).toBe(own);
+    expect(own.querySelector('mbx-play-button')).toBeNull();
+  });
+
+  it('sees a bar appended in the same task as the connect', async () => {
+    const player = mount({ controls: 'custom' });
+    const own = document.createElement('mbx-control-bar');
+    player.append(own);
+    await settled();
+    expect(player.querySelectorAll('mbx-control-bar').length).toBe(1);
+    expect(bar(player)).toBe(own);
+  });
+
+  it('upgrades a whole tree from markup, the player first, with every control attached', async () => {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML =
+      '<mattebox-player controls="custom"><mbx-control-bar><mbx-play-button></mbx-play-button></mbx-control-bar></mattebox-player>';
+    document.body.append(wrapper);
+    const player = wrapper.firstElementChild as MatteboxPlayerElement;
+    await settled();
+    expect(player.querySelectorAll('mbx-control-bar').length).toBe(1);
+    expect(inner(playButton(player)).getAttribute('aria-label')).toBe('Play');
+  });
+
+  it('swaps the default bar in and out as the attribute changes, without reloading the source', async () => {
     const player = mount({ src: silence(), muted: '' });
     let changes = 0;
     player.addEventListener('sourcechange', () => {
@@ -112,184 +187,575 @@ describe('the controls attribute', () => {
     expect(changes).toBe(1);
     expect(player.video.currentSrc).toBe(loaded);
   });
-});
 
-describe('the bar while idle', () => {
-  it('hides after DEFAULTS.idleMs of stillness while playing, and wakes on pointer movement', async () => {
-    const player = mount({ controls: 'custom', src: silence(), muted: '' });
-    await once(player, 'sourcechange');
-    await once(player.video, 'loadedmetadata');
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    // The clip is an eighth of a second: looped, so it never ends under the timer.
-    player.video.loop = true;
-    await player.video.play();
-    expect(idle(player)).toBe(false);
-
-    vi.advanceTimersByTime(DEFAULTS.idleMs);
-    expect(idle(player)).toBe(true);
-
-    move(player.video);
-    expect(idle(player)).toBe(false);
-  });
-
-  it('never hides while paused', () => {
-    const player = mount({ controls: 'custom' });
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    move(player.video);
-    vi.advanceTimersByTime(DEFAULTS.idleMs * 2);
-    expect(idle(player)).toBe(false);
-  });
-
-  it('holds while keyboard focus is inside it, and lets go once a pointer takes over', async () => {
-    const player = mount({ controls: 'custom', src: silence(), muted: '' });
-    await once(player, 'sourcechange');
-    await once(player.video, 'loadedmetadata');
-    // The clip is an eighth of a second: looped, so it never ends under the timer.
-    player.video.loop = true;
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
-    const play = part(player, 'play-button') as HTMLElement;
-    // A key, then focus inside: a keyboard user reading the bar.
-    player.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-    play.focus();
-    vi.advanceTimersByTime(DEFAULTS.idleMs * 2);
-    expect(idle(player)).toBe(false);
-
-    // A pointer press, with focus still on the button: a mouse user who clicked it.
-    play.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
-    vi.advanceTimersByTime(DEFAULTS.idleMs);
-    expect(idle(player)).toBe(true);
-  });
-
-  it('is not held by the pointer leaving: the timer alone hides it', async () => {
-    const player = mount({ controls: 'custom', src: silence(), muted: '' });
-    await once(player, 'sourcechange');
-    await once(player.video, 'loadedmetadata');
-    player.video.loop = true;
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
-    const stage = player.shadowRoot?.querySelector('[part~="stage"]') as HTMLElement;
-    move(player.video);
-    stage.dispatchEvent(new PointerEvent('pointerleave'));
-    expect(idle(player)).toBe(false);
-    vi.advanceTimersByTime(DEFAULTS.idleMs);
-    expect(idle(player)).toBe(true);
-  });
-
-  it('holds while a menu is open, and hides once it closes', async () => {
-    const player = mount({ controls: 'custom', src: silence(), muted: '' });
-    await once(player, 'sourcechange');
-    await once(player.video, 'loadedmetadata');
-    player.video.loop = true;
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
-    (part(player, 'speed-button') as HTMLButtonElement).click();
-    vi.advanceTimersByTime(DEFAULTS.idleMs * 2);
-    expect(idle(player)).toBe(false);
-    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    vi.advanceTimersByTime(DEFAULTS.idleMs);
-    expect(idle(player)).toBe(true);
-  });
-
-  it('stops listening once the bar is removed', () => {
-    const player = mount({ controls: 'custom' });
-    const root = bar(player);
-    player.removeAttribute('controls');
-    move(player.video);
-    expect(root?.isConnected).toBe(false);
+  it('takes back only the default it appended when the mode changes', async () => {
+    const player = await custom();
+    const own = document.createElement('mbx-play-button');
+    player.append(own);
+    player.setAttribute('controls', 'native');
+    expect(bar(player)).toBeNull();
+    expect(own.isConnected).toBe(true);
   });
 });
 
-describe('the buttons row', () => {
-  it('plays and pauses from the play button, swapping the glyph and the name', async () => {
+describe('a control and its player', () => {
+  it('is inert outside a player, and attaches once inside one', async () => {
+    const button = document.createElement('mbx-play-button');
+    document.body.append(button);
+    expect(inner(button).getAttribute('aria-label')).toBeNull();
+    const player = await custom();
+    bar(player)?.append(button);
+    expect(inner(button).getAttribute('aria-label')).toBe('Play');
+  });
+
+  it('lets go of the video when it is removed', async () => {
     const player = await ready();
-    player.video.loop = true;
-    const play = part(player, 'play-button');
-    expect(play?.getAttribute('aria-label')).toBe('Play');
-    expect(shown(play)).toBe('play-icon');
+    const button = playButton(player);
+    button.remove();
+    await player.video.play();
+    expect(inner(button).getAttribute('aria-label')).toBe('Play');
+  });
 
-    play?.click();
+  it('follows the player it is moved to', async () => {
+    const first = await ready(10);
+    const second = await custom();
+    const button = playButton(first);
+    await first.video.play();
+    expect(inner(button).getAttribute('aria-label')).toBe('Pause');
+    bar(second)?.append(button);
+    expect(inner(button).getAttribute('aria-label')).toBe('Play');
+    // The first video's events no longer reach it.
+    first.video.pause();
+    await first.video.play();
+    expect(inner(button).getAttribute('aria-label')).toBe('Play');
+  });
+
+  it('finds its player through a shadow root in between', async () => {
+    const player = await custom();
+    const wrap = document.createElement('div');
+    const shadow = wrap.attachShadow({ mode: 'open' });
+    const button = document.createElement('mbx-play-button');
+    shadow.append(button);
+    bar(player)?.append(wrap);
+    expect(inner(button).getAttribute('aria-label')).toBe('Play');
+  });
+});
+
+describe('the state attributes on the player', () => {
+  it('reflect paused, playing and ended', async () => {
+    const player = await ready();
+    expect(player.hasAttribute('paused')).toBe(true);
+    expect(player.hasAttribute('playing')).toBe(false);
+    await player.video.play();
+    expect(player.hasAttribute('playing')).toBe(true);
+    expect(player.hasAttribute('paused')).toBe(false);
+    await once(player.video, 'ended');
+    expect(player.hasAttribute('ended')).toBe(true);
+    expect(player.hasAttribute('paused')).toBe(true);
+  });
+
+  // One muted write per test: WebKit's platform player reports a write
+  // back on its own thread, and a second write before that report lands
+  // is undone by it. A real hand never mutes twice in a few milliseconds.
+  it('reflect the video unmuting, and drop the forwarded attribute with it', async () => {
+    const player = await ready();
+    expect(player.hasAttribute('muted')).toBe(true);
+    player.video.muted = false;
+    await once(player.video, 'volumechange');
+    expect(player.hasAttribute('muted')).toBe(false);
+    // Reflection never writes to the video: its own attribute is the page's.
+    expect(player.video.hasAttribute('muted')).toBe(true);
+    expect(player.video.muted).toBe(false);
+  });
+
+  it('still forward the attribute the page sets onto the video', async () => {
+    const player = await loaded({ src: silence() });
+    expect(player.video.muted).toBe(false);
+    player.setAttribute('muted', '');
+    await once(player.video, 'volumechange');
+    expect(player.video.muted).toBe(true);
+    expect(player.video.hasAttribute('muted')).toBe(true);
+  });
+
+  it('still forward the attribute the page removes', async () => {
+    const player = await ready();
+    player.removeAttribute('muted');
+    await once(player.video, 'volumechange');
+    expect(player.video.muted).toBe(false);
+    expect(player.hasAttribute('muted')).toBe(false);
+  });
+
+  it('are there under native controls too', async () => {
+    const player = mount();
+    await settled();
+    expect(player.hasAttribute('paused')).toBe(true);
+  });
+});
+
+describe('the play button', () => {
+  it('plays and pauses, swapping the glyph and the name', async () => {
+    // Ten seconds, so the clip has not ended by the second click.
+    const player = await ready(10);
+    const button = inner(playButton(player));
+    expect(button.getAttribute('aria-label')).toBe('Play');
+    expect(shown(playButton(player))).toBe('icon-play');
+    button.click();
     await once(player.video, 'play');
-    expect(player.video.paused).toBe(false);
-    expect(play?.getAttribute('aria-label')).toBe('Pause');
-    expect(shown(play)).toBe('pause-icon');
-    expect(bar(player)?.getAttribute('part')?.split(' ')).toContain('playing');
-
-    play?.click();
+    expect(button.getAttribute('aria-label')).toBe('Pause');
+    expect(shown(playButton(player))).toBe('icon-pause');
+    button.click();
     await once(player.video, 'pause');
-    expect(player.video.paused).toBe(true);
-    expect(shown(play)).toBe('play-icon');
+    expect(button.getAttribute('aria-label')).toBe('Play');
   });
 
   it('offers replay once the media has ended', async () => {
     const player = await ready();
     await player.video.play();
     await once(player.video, 'ended');
-    const play = part(player, 'play-button');
-    expect(play?.getAttribute('aria-label')).toBe('Replay');
-    expect(shown(play)).toBe('replay-icon');
+    expect(inner(playButton(player)).getAttribute('aria-label')).toBe('Replay');
+    expect(shown(playButton(player))).toBe('icon-replay');
   });
 
-  it('mutes and unmutes from the mute button, with the pressed state', async () => {
-    const player = mount({ controls: 'custom' });
-    const mute = part(player, 'mute-button');
-    expect(mute?.getAttribute('aria-pressed')).toBe('false');
-    expect(mute?.getAttribute('aria-label')).toBe('Mute');
+  it('takes its names from the label attributes, and follows a change', async () => {
+    const player = await ready();
+    const control = playButton(player);
+    control.setAttribute('label-play', 'Reproduir');
+    control.setAttribute('label-pause', 'Pausa');
+    expect(inner(control).getAttribute('aria-label')).toBe('Reproduir');
+    await player.video.play();
+    expect(inner(control).getAttribute('aria-label')).toBe('Pausa');
+    control.removeAttribute('label-pause');
+    expect(inner(control).getAttribute('aria-label')).toBe('Pause');
+  });
 
-    mute?.click();
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(true);
-    expect(mute?.getAttribute('aria-pressed')).toBe('true');
-    expect(mute?.getAttribute('aria-label')).toBe('Unmute');
-    expect(shown(mute)).toBe('mute-icon');
-    expect(bar(player)?.getAttribute('part')?.split(' ')).toContain('muted');
+  it('takes a glyph the page slots in, and hides its own from the accessibility tree', async () => {
+    const player = await custom();
+    const control = playButton(player);
+    const own = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    own.setAttribute('slot', 'icon-play');
+    control.append(own);
+    const slot = control.shadowRoot?.querySelector('slot[name="icon-play"]') as HTMLSlotElement;
+    expect(slot.assignedElements()).toEqual([own]);
+    for (const svg of control.shadowRoot?.querySelectorAll('svg') ?? []) {
+      expect(svg.getAttribute('aria-hidden')).toBe('true');
+      expect(svg.getAttribute('part')).toBe('icon');
+    }
+  });
+});
 
-    mute?.click();
+describe('the rows of the bar', () => {
+  it('puts a child with slot="seek" in the seek row and the rest in the buttons row, in order', async () => {
+    const player = await custom();
+    const root = bar(player) as MbxControlBar;
+    const seek = document.createElement('div');
+    seek.slot = 'seek';
+    const spacer = document.createElement('mbx-spacer');
+    const other = document.createElement('div');
+    root.append(seek, spacer, other);
+    const slots = root.shadowRoot?.querySelectorAll('slot') ?? [];
+    const named = [...slots].find((slot) => slot.name === 'seek') as HTMLSlotElement;
+    const rest = [...slots].find((slot) => slot.name === '') as HTMLSlotElement;
+    expect(named.assignedElements().slice(-1)).toEqual([seek]);
+    const buttons = rest.assignedElements();
+    expect(buttons).toContain(playButton(player));
+    expect(buttons.slice(-2)).toEqual([spacer, other]);
+    expect(getComputedStyle(spacer).flexGrow).toBe('1');
+  });
+});
+
+describe('the bar while idle', () => {
+  it('hides after idle-ms of stillness while playing, and wakes on pointer movement', async () => {
+    const player = await ready();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // The clip is an eighth of a second: looped, so it never ends under the timer.
+    player.video.loop = true;
+    await player.video.play();
+    expect(idle(player)).toBe(false);
+
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(idle(player)).toBe(true);
+    expect(player.hasAttribute('idle')).toBe(true);
+
+    move(player.video);
+    expect(idle(player)).toBe(false);
+    expect(player.hasAttribute('idle')).toBe(false);
+  });
+
+  it('takes the delay from its idle-ms attribute', async () => {
+    const player = await ready();
+    bar(player)?.setAttribute('idle-ms', '500');
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    player.video.loop = true;
+    await player.video.play();
+    vi.advanceTimersByTime(500);
+    expect(idle(player)).toBe(true);
+  });
+
+  it('never hides while paused', async () => {
+    const player = await custom();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    move(player.video);
+    vi.advanceTimersByTime(IDLE_MS * 2);
+    expect(idle(player)).toBe(false);
+  });
+
+  it('holds while keyboard focus is inside it, and lets go once a pointer takes over', async () => {
+    const player = await ready();
+    player.video.loop = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    await player.video.play();
+    const play = inner(playButton(player));
+    // A key, then focus inside: a keyboard user reading the bar.
+    player.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    play.focus();
+    vi.advanceTimersByTime(IDLE_MS * 2);
+    expect(idle(player)).toBe(false);
+
+    // A pointer press, with focus still on the button: a mouse user who clicked it.
+    play.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(idle(player)).toBe(true);
+  });
+
+  it('is not held by the pointer leaving: the timer alone hides it', async () => {
+    const player = await ready();
+    player.video.loop = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    await player.video.play();
+    move(player.video);
+    player.dispatchEvent(new PointerEvent('pointerleave'));
+    expect(idle(player)).toBe(false);
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(idle(player)).toBe(true);
+  });
+
+  it('holds while a descendant carries open, and hides once it does not', async () => {
+    const player = await ready();
+    player.video.loop = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    await player.video.play();
+    const popup = document.createElement('div');
+    popup.setAttribute('open', '');
+    bar(player)?.append(popup);
+    vi.advanceTimersByTime(IDLE_MS * 2);
+    expect(idle(player)).toBe(false);
+    popup.removeAttribute('open');
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(idle(player)).toBe(true);
+  });
+
+  it('stops listening once the bar is removed, and clears its state from the player', async () => {
+    const player = await ready();
+    player.video.loop = true;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    await player.video.play();
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(player.hasAttribute('idle')).toBe(true);
+    const root = bar(player) as MbxControlBar;
+    root.remove();
+    expect(player.hasAttribute('idle')).toBe(false);
+    move(player.video);
+    expect(root.hasAttribute('idle')).toBe(false);
+  });
+});
+
+describe('the shortcuts', () => {
+  it('gives the element a tabindex under custom controls, and takes it back', async () => {
+    const player = mount();
+    await settled();
+    expect(player.hasAttribute('tabindex')).toBe(false);
+    player.setAttribute('controls', 'custom');
+    expect(player.getAttribute('tabindex')).toBe('0');
+    player.setAttribute('controls', 'native');
+    expect(player.hasAttribute('tabindex')).toBe(false);
+    player.setAttribute('tabindex', '-1');
+    player.setAttribute('controls', 'custom');
+    expect(player.getAttribute('tabindex')).toBe('-1');
+  });
+
+  it('toggles play with k and Space, and unmutes with m, from anywhere inside', async () => {
+    const player = await ready(10);
+    press(player, 'k');
+    await once(player.video, 'play');
+    press(player.video, ' ');
+    await once(player.video, 'pause');
+    press(player, 'm');
     await once(player.video, 'volumechange');
     expect(player.video.muted).toBe(false);
   });
 
-  it('draws the level in the mute glyph', async () => {
-    const player = mount({ controls: 'custom' });
-    const mute = part(player, 'mute-button');
-    expect(shown(mute)).toBe('volume-high-icon');
+  it('mutes with m', async () => {
+    const player = await loaded({ src: silence() });
+    press(player, 'm');
+    await once(player.video, 'volumechange');
+    expect(player.video.muted).toBe(true);
+  });
+
+  it('leaves Space to a focused button', async () => {
+    const player = await ready();
+    const button = inner(playButton(player));
+    button.focus();
+    press(button, ' ');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(player.video.paused).toBe(true);
+  });
+
+  it('seeks by the step with the arrows, from seek-step on the bar', async () => {
+    const player = await ready(30);
+    press(player, 'ArrowRight');
+    expect(player.video.currentTime).toBe(5);
+    bar(player)?.setAttribute('seek-step', '10');
+    press(player, 'ArrowRight');
+    expect(player.video.currentTime).toBe(15);
+    press(player, 'ArrowLeft');
+    expect(player.video.currentTime).toBe(5);
+  });
+
+  it('ignores keys with a modifier, and keys pressed outside the element', async () => {
+    const player = await ready();
+    player.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+    press(document.body, 'k');
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(player.video.paused).toBe(true);
+  });
+
+  it('asks the player for fullscreen on f', async () => {
+    const player = mount({ src: silence(), muted: '' });
+    let asked = 0;
+    player.requestFullscreen = () => {
+      asked += 1;
+      return Promise.resolve();
+    };
+    player.setAttribute('controls', 'custom');
+    await settled();
+    press(player, 'f');
+    expect(asked).toBe(1);
+  });
+
+  it('toggles play on a click on the video, and not on a click on the bar', async () => {
+    const player = await ready(10);
+    player.video.click();
+    await once(player.video, 'play');
+    (bar(player) as MbxControlBar).click();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(player.video.paused).toBe(false);
+    player.video.click();
+    await once(player.video, 'pause');
+  });
+});
+
+describe('the subtitles and the bar', () => {
+  it('puts the cue rules in the document once, one per look the attributes can take', async () => {
+    await custom();
+    const styles = document.head.querySelectorAll('style[data-mattebox-cue]');
+    expect(styles.length).toBe(1);
+    const text = styles[0]?.textContent ?? '';
+    expect(text).toContain('mattebox-player[subtitle-size="large"] > video::cue');
+    // The background goes on the cue and on the backdrop Chromium and WebKit paint, both.
+    expect(text).toContain(
+      'mattebox-player[subtitle-background="none"] > video::-webkit-media-text-track-display-backdrop',
+    );
+    expect(text).toContain('mattebox-player[subtitle-background="none"] > video::cue');
+    expect(text).not.toContain('@supports');
+    // Percentages of the browser's own cue size, which follows the video's height.
+    expect(text).toMatch(/subtitle-size="large"[^}]*font-size: 150%/);
+    expect(text).not.toContain('var(');
+    await custom();
+    expect(document.head.querySelectorAll('style[data-mattebox-cue]').length).toBe(1);
+  });
+
+  it('lifts an unpositioned active cue above the bar while it shows, and puts it back', async () => {
+    // A bare video and a stand-in bar, so no other lift holds the cues.
+    const video = document.createElement('video');
+    video.muted = true;
+    video.src = silence(10);
+    document.body.append(video);
+    await once(video, 'loadedmetadata');
+    const track = video.addTextTrack('subtitles', 'Test', 'en');
+    track.mode = 'showing';
+    const cue = new VTTCue(0, 10, 'Hello');
+    const second = new VTTCue(0, 10, 'Second, two\nlines');
+    const placed = new VTTCue(0, 10, 'Author placed');
+    placed.line = 10;
+    track.addCue(cue);
+    track.addCue(second);
+    track.addCue(placed);
+    // Cues become active when time marches, which a seek makes it do.
+    video.currentTime = 1;
+    await once(video, 'seeked');
+    await expect.poll(() => track.activeCues?.length ?? 0).toBe(3);
+
+    const host = document.createElement('div');
+    const box = video.getBoundingClientRect();
+    // Eighty pixels of bar over the bottom of the picture.
+    const lift = cueLift(video, host, () => ({ top: box.bottom - 80, bottom: box.bottom }));
+    lift.lifted(true);
+    // A negative line count, which wraps everywhere; the earliest sits
+    // lowest and the next climbs past it, whichever end a browser anchors.
+    expect(cue.snapToLines).toBe(true);
+    expect(typeof cue.line).toBe('number');
+    const first = cue.line as number;
+    expect(first).toBeLessThan(-1);
+    // The second is two lines tall: it climbs by at least that.
+    expect(second.line as number).toBeLessThanOrEqual(first - 2);
+    // The author's placement is the author's.
+    expect(placed.line).toBe(10);
+
+    lift.lifted(false);
+    expect(cue.line).toBe('auto');
+    expect(second.line).toBe('auto');
+    expect(placed.line).toBe(10);
+    lift.dispose();
+  });
+});
+
+/** The first control of a tag inside the player. */
+function control<K extends keyof HTMLElementTagNameMap>(
+  player: MatteboxPlayerElement,
+  tag: K,
+): HTMLElementTagNameMap[K] {
+  const node = player.querySelector(tag);
+  if (node === null) throw new Error(`no ${tag}`);
+  return node;
+}
+
+/** The path data of the glyph a slot falls back to. */
+function fallbackGlyph(node: HTMLElement, slot: string): string {
+  return node.shadowRoot?.querySelector(`slot[name="${slot}"] svg path`)?.getAttribute('d') ?? '';
+}
+
+describe('the default composition', () => {
+  it('carries the screens and the bar with every button, in order', async () => {
+    const player = await custom();
+    expect([...player.children].map((node) => node.localName)).toEqual([
+      'video',
+      'mbx-start-button',
+      'mbx-error-screen',
+      'mbx-control-bar',
+    ]);
+    const root = bar(player) as MbxControlBar;
+    expect([...root.children].map((node) => node.localName)).toEqual([
+      'mbx-current-time',
+      'mbx-seek-bar',
+      'mbx-duration',
+      'mbx-live-button',
+      'mbx-skip-button',
+      'mbx-play-button',
+      'mbx-skip-button',
+      'mbx-volume',
+      'mbx-spacer',
+      'mbx-speed-menu',
+      'mbx-subtitles-menu',
+      'mbx-audio-menu',
+      'mbx-quality-menu',
+      'mbx-pip-button',
+      'mbx-fullscreen-button',
+    ]);
+    expect(root.children[4]?.getAttribute('seconds')).toBe('-10');
+    expect(root.children[6]?.getAttribute('seconds')).toBe('10');
+  });
+
+  it('names every button, and hides every glyph from the accessibility tree', async () => {
+    const player = await custom();
+    for (const node of player.querySelectorAll('*')) {
+      const shadow = node.shadowRoot;
+      if (shadow === null) continue;
+      for (const button of shadow.querySelectorAll('button')) {
+        expect(button.getAttribute('aria-label') ?? button.textContent).not.toBe('');
+      }
+      for (const svg of shadow.querySelectorAll('svg')) {
+        expect(svg.getAttribute('aria-hidden')).toBe('true');
+        expect(svg.getAttribute('part')).toBe('icon');
+      }
+    }
+  });
+});
+
+describe('the mute button', () => {
+  it('mutes and unmutes, with the pressed state, the name and the glyph', async () => {
+    const player = await custom();
+    const mute = control(player, 'mbx-mute-button');
+    const button = inner(mute);
+    expect(button.getAttribute('aria-pressed')).toBe('false');
+    expect(button.getAttribute('aria-label')).toBe('Mute');
+    expect(shown(mute)).toBe('icon-high');
+
+    button.click();
+    await once(player.video, 'volumechange');
+    expect(player.video.muted).toBe(true);
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(button.getAttribute('aria-label')).toBe('Unmute');
+    expect(shown(mute)).toBe('icon-mute');
+    expect(player.hasAttribute('muted')).toBe(true);
+  });
+
+  it('draws the level in the glyph', async () => {
+    const player = await custom();
+    const mute = control(player, 'mbx-mute-button');
     player.video.volume = 0.3;
     await once(player.video, 'volumechange');
-    expect(shown(mute)).toBe('volume-low-icon');
+    expect(shown(mute)).toBe('icon-low');
     player.video.volume = 0;
     await once(player.video, 'volumechange');
-    expect(shown(mute)).toBe('mute-icon');
+    expect(shown(mute)).toBe('icon-mute');
+    expect(inner(mute).getAttribute('aria-label')).toBe('Unmute');
   });
 
-  it('moves the volume with the keys and reads it back', async () => {
-    const player = mount({ controls: 'custom' });
-    const volume = part(player, 'volume');
-    expect(volume?.getAttribute('role')).toBe('slider');
-    expect(volume?.getAttribute('aria-valuenow')).toBe('1');
+  it('brings the volume up when unmuting at zero', async () => {
+    const player = await custom({ muted: '' });
+    player.video.volume = 0;
+    await once(player.video, 'volumechange');
+    inner(control(player, 'mbx-mute-button')).click();
+    await once(player.video, 'volumechange');
+    expect(player.video.muted).toBe(false);
+    expect(player.video.volume).toBe(1);
+  });
 
-    press(volume as EventTarget, 'ArrowLeft');
+  it('takes its names from the label attributes', async () => {
+    const player = await custom();
+    const mute = control(player, 'mbx-mute-button');
+    mute.setAttribute('label-mute', 'Silenciar');
+    expect(inner(mute).getAttribute('aria-label')).toBe('Silenciar');
+  });
+});
+
+describe('the volume slider', () => {
+  it('moves the volume with the keys and reads it back', async () => {
+    const player = await custom();
+    const volume = control(player, 'mbx-volume-slider');
+    const knob = volume.shadowRoot?.querySelector('[role="slider"]') as HTMLElement;
+    expect(knob.getAttribute('aria-label')).toBe('Volume');
+    expect(knob.getAttribute('aria-valuenow')).toBe('1');
+
+    press(knob, 'ArrowLeft');
     await once(player.video, 'volumechange');
     expect(player.video.volume).toBeCloseTo(0.95, 5);
-    expect(volume?.getAttribute('aria-valuenow')).toBe('0.95');
-    expect(volume?.getAttribute('aria-valuetext')).toBe('95%');
+    expect(knob.getAttribute('aria-valuenow')).toBe('0.95');
+    expect(knob.getAttribute('aria-valuetext')).toBe('95%');
 
-    press(volume as EventTarget, 'Home');
+    press(knob, 'Home');
     await once(player.video, 'volumechange');
     expect(player.video.volume).toBe(0);
-    press(volume as EventTarget, 'PageUp');
+    press(knob, 'PageUp');
     await once(player.video, 'volumechange');
     expect(player.video.volume).toBeCloseTo(0.2, 5);
+
+    volume.setAttribute('step', '0.5');
+    press(knob, 'ArrowRight');
+    await once(player.video, 'volumechange');
+    expect(player.video.volume).toBeCloseTo(0.7, 5);
   });
 
-  it('sets the volume where the pointer lands, and unmutes', async () => {
-    const player = mount({ controls: 'custom', muted: '' });
+  it('sets the volume where the pointer lands, unmutes, and carries dragging meanwhile', async () => {
+    const player = await custom({ muted: '' });
+    const volume = control(player, 'mbx-volume-slider');
+    const knob = volume.shadowRoot?.querySelector('[role="slider"]') as HTMLElement;
+    const rail = volume.shadowRoot?.querySelector('[part~="rail"]') as HTMLElement;
     // The slider unfolds from its group under the pointer or focus.
-    (part(player, 'mute-button') as HTMLElement).focus();
-    const volume = part(player, 'volume') as HTMLElement;
-    const rail = part(player, 'volume-rail') as HTMLElement;
+    inner(control(player, 'mbx-mute-button')).focus();
     await expect.poll(() => rail.getBoundingClientRect().width).toBeGreaterThan(40);
     const rect = rail.getBoundingClientRect();
-    volume.dispatchEvent(
+    knob.dispatchEvent(
       new PointerEvent('pointerdown', {
         bubbles: true,
         button: 0,
@@ -297,83 +763,493 @@ describe('the buttons row', () => {
         clientY: rect.top + rect.height / 2,
       }),
     );
+    expect(volume.hasAttribute('dragging')).toBe(true);
     await once(player.video, 'volumechange');
     expect(player.video.volume).toBeCloseTo(0.25, 1);
     expect(player.video.muted).toBe(false);
+    knob.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: rect.left }));
+    expect(volume.hasAttribute('dragging')).toBe(false);
   });
 
-  it('shows the time against the duration once the metadata is in', async () => {
-    const player = await ready();
-    expect(part(player, 'current-time')?.textContent).toBe('0:00');
-    expect(part(player, 'duration')?.textContent).toBe('0:00');
-    expect(part(player, 'duration')?.hidden).toBe(false);
+  it('shows zero while muted, and takes its name from the label attribute', async () => {
+    const player = await custom({ muted: '' });
+    const volume = control(player, 'mbx-volume-slider');
+    const knob = volume.shadowRoot?.querySelector('[role="slider"]') as HTMLElement;
+    expect(knob.getAttribute('aria-valuenow')).toBe('0');
+    volume.setAttribute('label', 'Volum');
+    expect(knob.getAttribute('aria-label')).toBe('Volum');
+  });
+});
+
+describe('the volume group', () => {
+  it('fills itself with the mute button and the slider, and unfolds the slider on focus', async () => {
+    const player = await custom();
+    const group = control(player, 'mbx-volume');
+    expect([...group.children].map((node) => node.localName)).toEqual([
+      'mbx-mute-button',
+      'mbx-volume-slider',
+    ]);
+    const slider = control(player, 'mbx-volume-slider');
+    await expect.poll(() => slider.getBoundingClientRect().width).toBe(0);
+    inner(control(player, 'mbx-mute-button')).focus();
+    await expect.poll(() => slider.getBoundingClientRect().width).toBeGreaterThan(40);
+    inner(control(player, 'mbx-mute-button')).blur();
+    await expect.poll(() => slider.getBoundingClientRect().width).toBe(0);
   });
 
-  it('shows the fullscreen button exactly when an API exists', () => {
-    const player = mount({ controls: 'custom' });
-    const button = part(player, 'fullscreen-button');
+  it('stays folded after a click on the mute button, and unfolds again for the keyboard', async () => {
+    const player = await custom();
+    const mute = inner(control(player, 'mbx-mute-button'));
+    const slider = control(player, 'mbx-volume-slider');
+    // A click: the press, then the focus the browser gives the button.
+    mute.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
+    mute.focus();
+    mute.click();
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(slider.getBoundingClientRect().width).toBe(0);
+    // A key with focus still inside: a keyboard user, and the slider is theirs to reach.
+    mute.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, composed: true }));
+    await expect.poll(() => slider.getBoundingClientRect().width).toBeGreaterThan(40);
+    mute.blur();
+    await expect.poll(() => slider.getBoundingClientRect().width).toBe(0);
+  });
+
+  it('leaves the parts a page wrote alone', async () => {
+    const player = await custom();
+    const group = document.createElement('mbx-volume');
+    const own = document.createElement('mbx-volume-slider');
+    own.setAttribute('label', 'Volum');
+    group.append(own);
+    bar(player)?.append(group);
+    expect([...group.children]).toEqual([own]);
+  });
+});
+
+describe('the skip buttons', () => {
+  it('move the playhead by their seconds, back and forward', async () => {
+    const player = await ready(30);
+    const [back, forward] = [...player.querySelectorAll('mbx-skip-button')];
+    expect(inner(back as HTMLElement).getAttribute('aria-label')).toBe('Back 10 seconds');
+    expect(inner(forward as HTMLElement).getAttribute('aria-label')).toBe('Forward 10 seconds');
+    inner(forward as HTMLElement).click();
+    expect(player.video.currentTime).toBe(10);
+    inner(forward as HTMLElement).click();
+    expect(player.video.currentTime).toBe(20);
+    inner(back as HTMLElement).click();
+    expect(player.video.currentTime).toBe(10);
+    // Never past the ends.
+    inner(back as HTMLElement).click();
+    inner(back as HTMLElement).click();
+    expect(player.video.currentTime).toBe(0);
+  });
+
+  it('take the amount from the attribute, with a plain arrow for an amount the set has no glyph for', async () => {
+    const player = await ready(30);
+    const forward = player.querySelectorAll('mbx-skip-button')[1] as HTMLElement;
+    expect(fallbackGlyph(forward, 'icon')).toBe(
+      icon('seek-forward-10').firstElementChild?.getAttribute('d'),
+    );
+    forward.setAttribute('seconds', '30');
+    expect(fallbackGlyph(forward, 'icon')).toBe(
+      icon('seek-forward-30').firstElementChild?.getAttribute('d'),
+    );
+    expect(inner(forward).getAttribute('aria-label')).toBe('Forward 30 seconds');
+    forward.setAttribute('seconds', '15');
+    expect(fallbackGlyph(forward, 'icon')).toBe(
+      icon('seek-forward').firstElementChild?.getAttribute('d'),
+    );
+    inner(forward).click();
+    expect(player.video.currentTime).toBe(15);
+  });
+
+  it('fill the amount into a label the page wrote', async () => {
+    const player = await custom();
+    const back = control(player, 'mbx-skip-button');
+    back.setAttribute('label', 'Enrere {seconds} segons');
+    expect(inner(back).getAttribute('aria-label')).toBe('Enrere 10 segons');
+  });
+});
+
+describe('the fullscreen button', () => {
+  it('shows exactly when an API exists, and is named', async () => {
+    const player = await custom();
+    const button = control(player, 'mbx-fullscreen-button');
     const host: object = player;
     const video: object = player.video;
     const supported =
       'requestFullscreen' in host ||
       'webkitRequestFullscreen' in host ||
       'webkitEnterFullscreen' in video;
-    expect(button?.hidden).toBe(!supported);
-    expect(button?.getAttribute('aria-label')).toBe('Enter fullscreen');
+    expect(button.hidden).toBe(!supported);
+    expect(inner(button).getAttribute('aria-label')).toBe('Enter fullscreen');
   });
 
-  it('names every element in the bar, and hides every glyph from the accessibility tree', () => {
-    const player = mount({ controls: 'custom' });
-    // The path inside a glyph is its geometry, not an element of its own:
-    // `::part(icon)` styles the glyph whole.
-    const nodes = [...(bar(player)?.querySelectorAll('*') ?? [])].filter(
-      (node) => node.tagName !== 'path',
-    );
-    expect(nodes.length).toBeGreaterThan(5);
-    for (const node of nodes) expect(node.getAttribute('part')).not.toBeNull();
-    for (const svg of bar(player)?.querySelectorAll('svg') ?? []) {
-      expect(svg.getAttribute('aria-hidden')).toBe('true');
-    }
-    // A button is named by its label, or by the text it shows, as a menu item is.
-    for (const button of bar(player)?.querySelectorAll('button') ?? []) {
-      expect(button.getAttribute('aria-label') ?? button.textContent).not.toBe('');
-      expect(button.getAttribute('aria-label') ?? button.textContent).not.toBeNull();
-    }
+  it('asks the player for fullscreen, and swaps its glyph and name with the state', async () => {
+    const player = mount({ src: silence(), muted: '' });
+    if (typeof player.requestFullscreen !== 'function') return;
+    let inside = false;
+    player.requestFullscreen = () => {
+      inside = true;
+      document.dispatchEvent(new Event('fullscreenchange'));
+      return Promise.resolve();
+    };
+    const matches = player.matches.bind(player);
+    player.matches = (selector: string) =>
+      selector === ':fullscreen' ? inside : matches(selector);
+    player.setAttribute('controls', 'custom');
+    await settled();
+    const button = control(player, 'mbx-fullscreen-button');
+    inner(button).click();
+    expect(inside).toBe(true);
+    expect(inner(button).getAttribute('aria-label')).toBe('Exit fullscreen');
+    expect(shown(button)).toBe('icon-exit');
+    expect(player.hasAttribute('fullscreen')).toBe(true);
+  });
+});
+
+describe('the picture-in-picture button', () => {
+  it('shows exactly when an API exists, and swaps its glyph and name with the state', async () => {
+    const player = await custom();
+    const button = control(player, 'mbx-pip-button');
+    const video: object = player.video;
+    const supported =
+      ('requestPictureInPicture' in video && document.pictureInPictureEnabled) ||
+      'webkitSetPresentationMode' in video;
+    expect(button.hidden).toBe(!supported);
+    expect(inner(button).getAttribute('aria-label')).toBe('Picture in picture');
+    if (!('requestPictureInPicture' in video) || !document.pictureInPictureEnabled) return;
+
+    // The standard API, stubbed: the request resolves and the video says it is in.
+    let inside = false;
+    Object.defineProperty(document, 'pictureInPictureElement', {
+      configurable: true,
+      get: () => (inside ? player.video : null),
+    });
+    player.video.requestPictureInPicture = () => {
+      inside = true;
+      player.video.dispatchEvent(new Event('enterpictureinpicture'));
+      return Promise.resolve({} as PictureInPictureWindow);
+    };
+    inner(button).click();
+    expect(inner(button).getAttribute('aria-label')).toBe('Leave picture in picture');
+    expect(shown(button)).toBe('icon-exit');
+    expect(player.hasAttribute('pip')).toBe(true);
+    delete (document as { pictureInPictureElement?: unknown }).pictureInPictureElement;
+  });
+});
+
+describe('the start button', () => {
+  it('shows a large play while paused, and nothing while playing', async () => {
+    const player = await ready(10);
+    const start = control(player, 'mbx-start-button');
+    expect(start.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
+    expect(start.hidden).toBe(false);
+    expect(inner(start).getAttribute('aria-label')).toBe('Play');
+
+    inner(start).click();
+    await once(player.video, 'play');
+    expect(start.hidden).toBe(true);
+    player.video.pause();
+    await once(player.video, 'pause');
+    expect(start.hidden).toBe(false);
+  });
+
+  it('offers a replay once the media has ended', async () => {
+    const player = await ready();
+    const start = control(player, 'mbx-start-button');
+    await player.video.play();
+    await once(player.video, 'ended');
+    expect(start.hidden).toBe(false);
+    expect(inner(start).getAttribute('aria-label')).toBe('Replay');
+    expect(shown(start)).toBe('icon-replay');
+  });
+
+  it('takes its names from the label attributes', async () => {
+    const player = await custom();
+    const start = control(player, 'mbx-start-button');
+    start.setAttribute('label-play', 'Reproduir');
+    expect(inner(start).getAttribute('aria-label')).toBe('Reproduir');
+  });
+});
+
+describe('the error screen', () => {
+  const failing = { src: 'https://cdn.test/a.m3u8', type: 'application/x-nonsense' };
+
+  function text(screen: HTMLElement, part: string): string {
+    return screen.shadowRoot?.querySelector(`[part~="${part}"]`)?.textContent ?? '';
+  }
+
+  it('shows a fatal error over the picture, not in the row under it, and clears on the next load', async () => {
+    const player = await custom(failing);
+    const screen = control(player, 'mbx-error-screen');
+    await expect.poll(() => screen.hidden).toBe(false);
+    expect(screen.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
+    expect(screen.getAttribute('role')).toBe('alert');
+    expect(text(screen, 'code')).toBe('MANIFEST_UNSUPPORTED');
+    expect(text(screen, 'category')).toBe('manifest');
+    expect(text(screen, 'title')).toBe('Playback failed');
+    expect(text(screen, 'retry')).toBe('Retry');
+    expect(control(player, 'mbx-start-button').hidden).toBe(true);
+    expect(player.error?.code).toBe('MANIFEST_UNSUPPORTED');
+    // The row under the video is the native mode's, and stays quiet.
+    expect(player.shadowRoot?.querySelector<HTMLElement>('[part~="error"]')?.hidden).toBe(true);
+
+    let loads = 0;
+    player.addEventListener('sourcechange', () => {
+      loads += 1;
+    });
+    player.setAttribute('type', 'audio/wav');
+    player.setAttribute('src', silence());
+    await expect.poll(() => loads).toBe(1);
+    expect(screen.hidden).toBe(true);
+    expect(player.error).toBeNull();
+    expect(control(player, 'mbx-start-button').hidden).toBe(false);
+  });
+
+  it('shows an error that came before it did', async () => {
+    const player = mount({ controls: 'custom', ...failing });
+    await expect.poll(() => player.error).not.toBeNull();
+    const screen = document.createElement('mbx-error-screen');
+    player.append(screen);
+    expect(screen.hidden).toBe(false);
+    expect(text(screen, 'code')).toBe('MANIFEST_UNSUPPORTED');
+  });
+
+  it('clears when a source that plays follows one that failed, and shows again for one that fails', async () => {
+    const player = await custom(failing);
+    const screen = control(player, 'mbx-error-screen');
+    await expect.poll(() => screen.hidden).toBe(false);
+
+    // The demo clears the source, sets what describes the next one, then sets it.
+    let loads = 0;
+    player.addEventListener('sourcechange', () => {
+      loads += 1;
+    });
+    player.removeAttribute('src');
+    player.setAttribute('type', 'audio/wav');
+    player.setAttribute('src', silence());
+    await expect.poll(() => loads).toBe(1);
+    expect(screen.hidden).toBe(true);
+
+    player.removeAttribute('src');
+    player.setAttribute('type', 'application/x-nonsense');
+    player.setAttribute('src', 'https://cdn.test/b.m3u8');
+    await expect.poll(() => screen.hidden).toBe(false);
+    expect(text(screen, 'code')).toBe('MANIFEST_UNSUPPORTED');
+  });
+
+  it('loads the source again from the retry, and takes its texts from the label attributes', async () => {
+    const player = await custom(failing);
+    const screen = control(player, 'mbx-error-screen');
+    await expect.poll(() => screen.hidden).toBe(false);
+    screen.setAttribute('label-title', 'Error de reproducció');
+    screen.setAttribute('label-retry', 'Torna-ho a provar');
+    expect(text(screen, 'title')).toBe('Error de reproducció');
+    expect(text(screen, 'retry')).toBe('Torna-ho a provar');
+    let errors = 0;
+    player.addEventListener('error', () => {
+      errors += 1;
+    });
+    const retry = screen.shadowRoot?.querySelector('[part~="retry"]');
+    if (!(retry instanceof HTMLButtonElement)) throw new Error('no retry');
+    retry.click();
+    await expect.poll(() => errors).toBe(1);
+    expect(screen.hidden).toBe(false);
+  });
+});
+
+/** A live namespace over the WAV: the window is what the video reports seekable. */
+function liveApi(
+  edge: number | null,
+  atEdge = false,
+): LiveApi & { seeks: number; atEdge: boolean } {
+  const api = {
+    edge,
+    latency: null,
+    atEdge,
+    seeks: 0,
+    seekToEdge(): void {
+      api.seeks += 1;
+    },
+  };
+  return api;
+}
+
+interface FakeParts {
+  readonly live?: LiveApi;
+  readonly pdt?: PdtApi;
+  readonly thumbnails?: ThumbnailsApi;
+  bufferGoal?: number;
+}
+
+/** An engine of the namespaces the row reads, and what the panels under native controls touch. */
+function fakeEngine(parts: FakeParts): Mattebox {
+  return {
+    on: () => () => undefined,
+    quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+    tracks: { available: [], active: () => null, select() {} },
+    stats: { snapshot: () => ({ scheduling: { bufferGoal: parts.bufferGoal ?? 30 } }) },
+    ...(parts.live === undefined ? {} : { live: parts.live }),
+    ...(parts.pdt === undefined ? {} : { pdt: parts.pdt }),
+    ...(parts.thumbnails === undefined ? {} : { thumbnails: parts.thumbnails }),
+  } as unknown as Mattebox;
+}
+
+/** A handler that plays the WAV natively and hands the element a fake engine. */
+function fakeHandler(engine: Mattebox): Handler {
+  return {
+    name: 'fake',
+    canHandle: () => 'probably',
+    handle(source, video) {
+      video.src = source.url;
+      return Promise.resolve({
+        handler: 'fake',
+        engine,
+        dispose(): Promise<void> {
+          video.removeAttribute('src');
+          video.load();
+          return Promise.resolve();
+        },
+      });
+    },
+  };
+}
+
+/** The element over a fake engine session, ready to play. */
+async function session(parts: FakeParts, seconds = 10): Promise<MatteboxPlayerElement> {
+  const player = new MatteboxPlayerElement({ handlers: [fakeHandler(fakeEngine(parts))] });
+  player.setAttribute('controls', 'custom');
+  player.setAttribute('muted', '');
+  player.setAttribute('src', silence(seconds));
+  document.body.append(player);
+  const metadata = once(player.video, 'loadedmetadata');
+  await settled();
+  await metadata;
+  await expect.poll(() => player.engine).not.toBeNull();
+  return player;
+}
+
+/** Asks every reader of the row to look again, the way the clock does. */
+function tickClock(player: MatteboxPlayerElement): void {
+  player.video.dispatchEvent(new Event('timeupdate'));
+}
+
+function knob(node: HTMLElement): HTMLElement {
+  return node.shadowRoot?.querySelector('[role="slider"]') as HTMLElement;
+}
+
+function inside(node: HTMLElement, part: string): HTMLElement {
+  return node.shadowRoot?.querySelector(`[part~="${part}"]`) as HTMLElement;
+}
+
+describe('the seek row', () => {
+  it('holds the times, the seek bar and the live button, in the seek row by default', async () => {
+    const player = await custom();
+    const root = bar(player) as MbxControlBar;
+    const named = [...(root.shadowRoot?.querySelectorAll('slot') ?? [])].find(
+      (slot) => slot.name === 'seek',
+    ) as HTMLSlotElement;
+    expect(named.assignedElements().map((node) => node.localName)).toEqual([
+      'mbx-current-time',
+      'mbx-seek-bar',
+      'mbx-duration',
+      'mbx-live-button',
+    ]);
+    // A page's own slot wins.
+    const time = document.createElement('mbx-current-time');
+    time.slot = '';
+    root.append(time);
+    expect(time.getAttribute('slot')).toBe('');
+  });
+});
+
+describe('the times', () => {
+  /** The readout alone: the shadow root holds the style too. */
+  const text = (node: HTMLElement) =>
+    [...(node.shadowRoot?.childNodes ?? [])]
+      .filter((child) => child.nodeType === Node.TEXT_NODE)
+      .map((child) => child.textContent ?? '')
+      .join('')
+      .trim();
+
+  it('show the position and the duration once the metadata is in', async () => {
+    const player = await ready(10);
+    const current = control(player, 'mbx-current-time');
+    const duration = control(player, 'mbx-duration');
+    expect(text(current)).toBe('0:00');
+    expect(text(duration)).toBe('0:10');
+    expect(duration.hidden).toBe(false);
+    player.video.currentTime = 3;
+    await once(player.video, 'seeked');
+    expect(text(current)).toBe('0:03');
+  });
+
+  it('read the distance behind the edge on a live stream, the wall clock when pdt can say it, and no duration', async () => {
+    const player = await session({ live: liveApi(8), bufferGoal: 2 });
+    expect(control(player, 'mbx-duration').hidden).toBe(true);
+    expect(text(control(player, 'mbx-current-time'))).toBe('-0:10');
+
+    const clocked = await session({
+      live: liveApi(8),
+      bufferGoal: 2,
+      pdt: {
+        toWallClock: (t: number) => 1_700_000_000 + t,
+        toPresentationTime: (wall: number) => wall - 1_700_000_000,
+      },
+    });
+    const expected = new Date(1_700_000_000 * 1000).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    expect(text(control(clocked, 'mbx-current-time'))).toBe(expected);
+  });
+
+  it('hide the position while the stream is live and not seekable', async () => {
+    // Ten seconds over a 30 s goal: a third of one goal, nowhere to go.
+    const player = await session({ live: liveApi(8), bufferGoal: 30 });
+    await expect.poll(() => player.hasAttribute('seekable')).toBe(false);
+    expect(control(player, 'mbx-current-time').hidden).toBe(true);
   });
 });
 
 describe('the seek bar', () => {
   it('maps the duration once the metadata is in, and reads the position', async () => {
     const player = await ready(10);
-    const seek = part(player, 'seek');
-    expect(seek?.getAttribute('role')).toBe('slider');
-    expect(seek?.getAttribute('aria-valuemin')).toBe('0');
-    expect(seek?.getAttribute('aria-valuemax')).toBe('10');
-    expect(seek?.getAttribute('aria-valuenow')).toBe('0');
-    expect(seek?.getAttribute('aria-valuetext')).toBe('0:00 of 0:10');
+    const seek = knob(control(player, 'mbx-seek-bar'));
+    expect(seek.getAttribute('aria-label')).toBe('Seek');
+    expect(seek.getAttribute('aria-valuemin')).toBe('0');
+    expect(seek.getAttribute('aria-valuemax')).toBe('10');
+    expect(seek.getAttribute('aria-valuenow')).toBe('0');
+    expect(seek.getAttribute('aria-valuetext')).toBe('0:00 of 0:10');
+    expect(player.hasAttribute('seekable')).toBe(true);
+    expect(player.hasAttribute('live')).toBe(false);
   });
 
-  it('seeks with the keys', async () => {
-    const player = await ready(10);
-    const seek = part(player, 'seek') as EventTarget;
+  it('seeks with the keys, by step and page from the attributes', async () => {
+    const player = await ready(30);
+    const element = control(player, 'mbx-seek-bar');
+    const seek = knob(element);
     press(seek, 'ArrowRight');
     await once(player.video, 'seeked');
     expect(player.video.currentTime).toBeCloseTo(5, 1);
-    press(seek, 'ArrowLeft');
+    press(seek, 'PageUp');
+    await once(player.video, 'seeked');
+    expect(player.video.currentTime).toBeCloseTo(30, 1);
+    press(seek, 'Home');
     await once(player.video, 'seeked');
     expect(player.video.currentTime).toBeCloseTo(0, 1);
-    press(seek, 'End');
+    element.setAttribute('step', '10');
+    press(seek, 'ArrowRight');
     await once(player.video, 'seeked');
     expect(player.video.currentTime).toBeCloseTo(10, 1);
-    press(seek, 'PageDown');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(0, 1);
   });
 
   it('seeks where the pointer lands, and the played layer follows the pointer meanwhile', async () => {
     const player = await ready(10);
-    const seek = part(player, 'seek') as HTMLElement;
-    const rect = (part(player, 'seek-rail') as HTMLElement).getBoundingClientRect();
+    const element = control(player, 'mbx-seek-bar');
+    const seek = knob(element);
+    const rect = inside(element, 'rail').getBoundingClientRect();
     expect(rect.width).toBeGreaterThan(0);
     const y = rect.top + rect.height / 2;
     seek.dispatchEvent(
@@ -384,8 +1260,8 @@ describe('the seek bar', () => {
         clientY: y,
       }),
     );
-    expect(seek.getAttribute('part')?.split(' ')).toContain('dragging');
-    expect(part(player, 'seek-fill')?.style.width).toBe('50%');
+    expect(element.hasAttribute('dragging')).toBe(true);
+    expect(inside(element, 'fill').style.width).toBe('50%');
     seek.dispatchEvent(
       new PointerEvent('pointerup', {
         bubbles: true,
@@ -393,133 +1269,140 @@ describe('the seek bar', () => {
         clientY: y,
       }),
     );
-    expect(seek.getAttribute('part')?.split(' ')).not.toContain('dragging');
+    expect(element.hasAttribute('dragging')).toBe(false);
     await once(player.video, 'seeked');
     expect(player.video.currentTime).toBeCloseTo(8, 0);
   });
 
   it('draws the buffered ranges on the track', async () => {
     const player = await ready(10);
+    const element = control(player, 'mbx-seek-bar');
     await expect
-      .poll(() => part(player, 'buffered-range')?.style.width ?? '')
+      .poll(() => inside(element, 'buffered-range')?.style.width ?? '')
       .toMatch(/^(100|9\d(\.\d+)?)%$/);
   });
 
   it('shows the hover time above the pointer', async () => {
     const player = await ready(10);
-    const seek = part(player, 'seek') as HTMLElement;
-    const rect = (part(player, 'seek-rail') as HTMLElement).getBoundingClientRect();
-    seek.dispatchEvent(
+    const element = control(player, 'mbx-seek-bar');
+    const rect = inside(element, 'rail').getBoundingClientRect();
+    knob(element).dispatchEvent(
       new PointerEvent('pointermove', {
         bubbles: true,
         clientX: rect.left + rect.width * 0.25,
         clientY: rect.top + rect.height / 2,
       }),
     );
-    expect(part(player, 'hover')?.hidden).toBe(false);
-    expect(part(player, 'hover')?.style.left).toBe('25%');
-    expect(part(player, 'preview')?.hidden).toBe(false);
-    expect(part(player, 'preview-time')?.textContent).toBe('0:02');
-    expect(part(player, 'preview-image')?.hidden).toBe(true);
-    seek.dispatchEvent(new PointerEvent('pointerleave'));
-    expect(part(player, 'hover')?.hidden).toBe(true);
-    expect(part(player, 'preview')?.hidden).toBe(true);
+    expect(inside(element, 'hover').hidden).toBe(false);
+    expect(inside(element, 'hover').style.left).toBe('25%');
+    expect(inside(element, 'preview').hidden).toBe(false);
+    expect(inside(element, 'preview-time').textContent).toBe('0:02');
+    expect(inside(element, 'preview-image').hidden).toBe(true);
+    knob(element).dispatchEvent(new PointerEvent('pointerleave'));
+    expect(inside(element, 'hover').hidden).toBe(true);
+    expect(inside(element, 'preview').hidden).toBe(true);
   });
 
   it('shows no live edge and no live button without a live session', async () => {
     const player = await ready(10);
-    expect(part(player, 'edge')?.hidden).toBe(true);
-    expect(part(player, 'live-button')?.hidden).toBe(true);
-    expect(bar(player)?.getAttribute('part')?.split(' ')).not.toContain('live');
+    expect(inside(control(player, 'mbx-seek-bar'), 'edge').hidden).toBe(true);
+    expect(control(player, 'mbx-live-button').hidden).toBe(true);
+  });
+
+  it('takes what a screen reader hears from the label attributes', async () => {
+    const player = await ready(10);
+    const element = control(player, 'mbx-seek-bar');
+    element.setAttribute('label', 'Cerca');
+    element.setAttribute('label-of', '{current} de {duration}');
+    expect(knob(element).getAttribute('aria-label')).toBe('Cerca');
+    expect(knob(element).getAttribute('aria-valuetext')).toBe('0:00 de 0:10');
   });
 });
 
 describe('the seek bar over a live session', () => {
-  /** A live namespace over the WAV: the window is what the video reports seekable. */
-  function stub(edge: number | null, atEdge = false): LiveApi & { seeks: number } {
-    const api = {
-      edge,
-      latency: null,
-      atEdge,
-      seeks: 0,
-      seekToEdge(): void {
-        api.seeks += 1;
-      },
-    };
-    return api;
-  }
-
-  async function video(): Promise<HTMLVideoElement> {
-    const node = document.createElement('video');
-    node.muted = true;
-    node.src = silence(10);
-    document.body.append(node);
-    await once(node, 'loadedmetadata');
-    return node;
-  }
-
-  it('maps the seekable window, marks the edge and reads the distance behind it', async () => {
-    const media = await video();
-    const flags: Record<string, boolean> = {};
-    const seek = seekBar(
-      media,
-      (name, on) => {
-        flags[name] = on;
-      },
-      DEFAULTS,
-    );
-    document.body.append(seek.root);
+  it('maps the seekable window, marks the edge, reads the distance behind it, and says so on the player', async () => {
     // A 10 s window over a 2 s goal is five goals: worth a bar.
-    seek.attach({ live: stub(8), bufferGoal: () => 2 });
-    expect(flags.live).toBe(true);
-    expect(flags.seekable).toBe(true);
-    const edge = seek.root.querySelector('[part~="edge"]') as HTMLElement;
-    expect(edge.hidden).toBe(false);
-    expect(edge.style.left).toBe('80%');
-    const slider = seek.root.querySelector('[part~="seek"]');
-    expect(slider?.getAttribute('aria-valuetext')).toBe('0:10 behind live');
-
-    seek.detach();
-    expect(flags.live).toBe(false);
-    expect(edge.hidden).toBe(true);
-    seek.dispose();
+    const player = await session({ live: liveApi(8), bufferGoal: 2 });
+    const element = control(player, 'mbx-seek-bar');
+    expect(player.hasAttribute('live')).toBe(true);
+    expect(player.hasAttribute('seekable')).toBe(true);
+    expect(element.hidden).toBe(false);
+    expect(inside(element, 'edge').hidden).toBe(false);
+    expect(inside(element, 'edge').style.left).toBe('80%');
+    expect(knob(element).getAttribute('aria-valuetext')).toBe('0:10 behind live');
+    element.setAttribute('label-behind', '{time} darrere del directe');
+    expect(knob(element).getAttribute('aria-valuetext')).toBe('0:10 darrere del directe');
   });
 
-  it('shows the live button once there is a window, disabled at the edge, seeking on click', async () => {
-    const media = await video();
-    const live = liveButton(media);
-    document.body.append(live.root);
-    expect(live.root.hidden).toBe(true);
+  it('hides the bar while the window is under live-window goals, and shows it past it', async () => {
+    const parts: FakeParts = { live: liveApi(8), bufferGoal: 30 };
+    const player = await session(parts);
+    const element = control(player, 'mbx-seek-bar');
+    expect(player.hasAttribute('seekable')).toBe(false);
+    expect(element.hidden).toBe(true);
 
-    live.attach(stub(null));
-    expect(live.root.hidden).toBe(true);
+    parts.bufferGoal = 3;
+    tickClock(player);
+    expect(player.hasAttribute('seekable')).toBe(true);
+    expect(element.hidden).toBe(false);
 
-    const api = stub(8);
-    live.attach(api);
-    expect(live.root.hidden).toBe(false);
-    expect((live.root as HTMLButtonElement).disabled).toBe(false);
-    live.root.click();
+    // At zero every live stream is seekable.
+    parts.bufferGoal = 30;
+    element.setAttribute('live-window', '0');
+    expect(player.hasAttribute('seekable')).toBe(true);
+  });
+
+  it('drops live and seekable from the player when it leaves', async () => {
+    const player = await session({ live: liveApi(8), bufferGoal: 2 });
+    control(player, 'mbx-seek-bar').remove();
+    expect(player.hasAttribute('live')).toBe(false);
+    expect(player.hasAttribute('seekable')).toBe(false);
+  });
+});
+
+describe('the live button', () => {
+  it('shows once there is a window, disabled at the edge, seeking on click', async () => {
+    const api = liveApi(null);
+    const parts: FakeParts = { live: api, bufferGoal: 2 };
+    const player = await session(parts);
+    const button = control(player, 'mbx-live-button');
+    expect(button.hidden).toBe(true);
+
+    (api as { edge: number | null }).edge = 8;
+    tickClock(player);
+    expect(button.hidden).toBe(false);
+    expect(inner(button).disabled).toBe(false);
+    expect(inner(button).getAttribute('aria-label')).toBe('Go to the live edge');
+    expect(inside(button, 'text').textContent).toBe('LIVE');
+    inner(button).click();
     expect(api.seeks).toBe(1);
 
-    live.attach(stub(8, true));
-    expect((live.root as HTMLButtonElement).disabled).toBe(true);
-    expect(live.root.getAttribute('part')?.split(' ')).toContain('at-edge');
-    const dot = live.root.querySelector('[part~="live-dot"]');
-    expect(dot?.getAttribute('part')?.split(' ')).toContain('at-edge');
+    api.atEdge = true;
+    tickClock(player);
+    expect(inner(button).disabled).toBe(true);
+    expect(button.hasAttribute('at-edge')).toBe(true);
+    expect(inner(button).getAttribute('aria-label')).toBe('At the live edge');
+  });
 
-    // Without a seek bar there is nowhere to come back from: red and inert, behind or not.
-    live.attach(stub(8, false));
-    live.seekable(false);
-    expect((live.root as HTMLButtonElement).disabled).toBe(true);
-    expect(dot?.getAttribute('part')?.split(' ')).toContain('at-edge');
-    live.seekable(true);
-    expect((live.root as HTMLButtonElement).disabled).toBe(false);
-    live.dispose();
+  it('is red and inert without a seek bar to come back from', async () => {
+    const player = await session({ live: liveApi(8), bufferGoal: 30 });
+    const button = control(player, 'mbx-live-button');
+    await expect.poll(() => button.hasAttribute('at-edge')).toBe(true);
+    expect(inner(button).disabled).toBe(true);
+  });
+
+  it('takes its word and its names from the attributes', async () => {
+    const player = await session({ live: liveApi(8), bufferGoal: 2 });
+    const button = control(player, 'mbx-live-button');
+    button.setAttribute('text', 'DIRECTE');
+    button.setAttribute('label-live', 'Ves al directe');
+    expect(inside(button, 'text').textContent).toBe('DIRECTE');
+    expect(inner(button).getAttribute('aria-label')).toBe('Ves al directe');
   });
 });
 
 describe('the preview over a thumbnail track', () => {
-  /** A track with one tile over the whole clip: a 320 by 180 rectangle at (320, 0) of a sprite. */
+  /** A track with one tile over the first ten seconds: a 320 by 180 rectangle at (320, 0) of a sprite. */
   function track(): ThumbnailsApi {
     const tile = {
       url: 'https://cdn.example/sprite.jpg',
@@ -537,23 +1420,9 @@ describe('the preview over a thumbnail track', () => {
     };
   }
 
-  async function seekOver(seconds: number) {
-    const media = document.createElement('video');
-    media.muted = true;
-    media.src = silence(seconds);
-    document.body.append(media);
-    await once(media, 'loadedmetadata');
-    const seek = seekBar(media, () => undefined, DEFAULTS);
-    // Wide, so the preview has room to sit centred under the pointer.
-    seek.root.style.width = '600px';
-    document.body.append(seek.root);
-    return seek;
-  }
-
-  function hover(row: HTMLElement, fraction: number): void {
-    const seek = row.querySelector('[part~="seek"]') as HTMLElement;
-    const rect = (row.querySelector('[part~="seek-rail"]') as HTMLElement).getBoundingClientRect();
-    seek.dispatchEvent(
+  function hover(element: HTMLElement, fraction: number): void {
+    const rect = inside(element, 'rail').getBoundingClientRect();
+    knob(element).dispatchEvent(
       new PointerEvent('pointermove', {
         bubbles: true,
         clientX: rect.left + rect.width * fraction,
@@ -563,396 +1432,297 @@ describe('the preview over a thumbnail track', () => {
   }
 
   it('draws the tile above the pointer, scaled to the preview width', async () => {
-    const seek = await seekOver(10);
-    seek.attach({ thumbnails: track() });
-    hover(seek.root, 0.5);
-    const image = seek.root.querySelector('[part~="preview-image"]') as HTMLElement;
-    const tile = seek.root.querySelector('[part~="preview-tile"]') as HTMLElement;
+    const player = await session({ thumbnails: track() });
+    player.style.width = '600px';
+    const element = control(player, 'mbx-seek-bar');
+    hover(element, 0.5);
+    const image = inside(element, 'preview-image');
+    const tile = inside(element, 'preview-tile');
     expect(image.hidden).toBe(false);
     expect(image.style.width).toBe('160px');
     expect(image.style.height).toBe('90px');
     expect(tile.style.backgroundImage).toContain('sprite.jpg');
     expect(tile.style.backgroundPosition).toBe('-320px 0px');
     expect(tile.style.transform).toBe('scale(0.5)');
-    expect(seek.root.querySelector('[part~="preview-time"]')?.textContent).toBe('0:05');
-    seek.dispose();
+    expect(inside(element, 'preview-time').textContent).toBe('0:05');
   });
 
-  it('honours --mbx-preview-width', async () => {
-    const seek = await seekOver(10);
-    seek.root.style.setProperty('--mbx-preview-width', '320px');
-    seek.attach({ thumbnails: track() });
-    hover(seek.root, 0.5);
-    const image = seek.root.querySelector('[part~="preview-image"]') as HTMLElement;
-    expect(image.style.width).toBe('320px');
-    expect(image.style.height).toBe('180px');
-    seek.dispose();
+  it('honours --mbx-preview-width set on the player', async () => {
+    const player = await session({ thumbnails: track() });
+    player.style.setProperty('--mbx-preview-width', '320px');
+    const element = control(player, 'mbx-seek-bar');
+    hover(element, 0.5);
+    expect(inside(element, 'preview-image').style.width).toBe('320px');
+    expect(inside(element, 'preview-image').style.height).toBe('180px');
   });
 
-  it('shows the time alone where the track has no tile, and after detach', async () => {
-    const seek = await seekOver(20);
-    seek.attach({ thumbnails: track() });
-    hover(seek.root, 0.75);
-    const image = seek.root.querySelector('[part~="preview-image"]') as HTMLElement;
-    expect(image.hidden).toBe(true);
-    expect(seek.root.querySelector('[part~="preview-time"]')?.textContent).toBe('0:15');
-
-    hover(seek.root, 0.25);
-    expect(image.hidden).toBe(false);
-    seek.detach();
-    expect((seek.root.querySelector('[part~="preview"]') as HTMLElement).hidden).toBe(true);
-    hover(seek.root, 0.25);
-    expect(image.hidden).toBe(true);
-    seek.dispose();
+  it('shows the time alone where the track has no tile', async () => {
+    const player = await session({ thumbnails: track() }, 20);
+    const element = control(player, 'mbx-seek-bar');
+    hover(element, 0.75);
+    expect(inside(element, 'preview-image').hidden).toBe(true);
+    expect(inside(element, 'preview-time').textContent).toBe('0:15');
+    hover(element, 0.25);
+    expect(inside(element, 'preview-image').hidden).toBe(false);
   });
 });
 
-describe('the menu primitive', () => {
-  function build() {
-    const chosen: string[] = [];
-    const control = menu({ name: 'quality', label: 'Quality', icon: 'settings' });
-    control.fill([
-      {
-        name: 'rendition',
-        items: [
-          ['auto', 'Auto'],
-          ['v1', '270p'],
-          ['v2', '720p'],
-        ],
-        value: 'v1',
-        onSelect(value: string): void {
-          chosen.push(value);
-        },
-      },
-    ]);
-    document.body.append(control.root);
-    const button = control.root.querySelector('button') as HTMLButtonElement;
-    const popup = control.root.querySelector('[role="menu"]') as HTMLElement;
-    const items = () => [...popup.querySelectorAll('button')];
-    return { control, button, popup, items, chosen };
-  }
+/** Every item of a menu's popup. */
+function items(node: HTMLElement): HTMLButtonElement[] {
+  return [
+    ...(node.shadowRoot?.querySelectorAll<HTMLButtonElement>('[part~="popup"] button') ?? []),
+  ];
+}
 
-  it('names the button and the items the way a menu is named', () => {
-    const { button, popup, items } = build();
+function popup(node: HTMLElement): HTMLElement {
+  return inside(node, 'popup');
+}
+
+describe('the speed menu', () => {
+  it("offers the rates, marks the video's own, and writes a choice back", async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    expect(items(menu).map((item) => item.textContent)).toEqual([
+      '0.5×',
+      '0.75×',
+      'Normal',
+      '1.25×',
+      '1.5×',
+      '2×',
+    ]);
+    expect(items(menu).find((item) => item.getAttribute('aria-checked') === 'true')?.value).toBe(
+      '1',
+    );
+    items(menu)
+      .find((item) => item.value === '1.5')
+      ?.click();
+    await once(player.video, 'ratechange');
+    expect(player.video.playbackRate).toBe(1.5);
+    expect(items(menu).find((item) => item.getAttribute('aria-checked') === 'true')?.value).toBe(
+      '1.5',
+    );
+  });
+
+  it('takes the rates and the words from the attributes, and lists a rate of its own', async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    menu.setAttribute('rates', '1 2 4');
+    menu.setAttribute('label-normal', 'Normal (1×)');
+    menu.setAttribute('label', 'Velocitat');
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Normal (1×)', '2×', '4×']);
+    expect(inner(menu).getAttribute('aria-label')).toBe('Velocitat');
+    player.video.playbackRate = 3;
+    await once(player.video, 'ratechange');
+    expect(items(menu).map((item) => item.value)).toEqual(['1', '2', '4', '3']);
+  });
+});
+
+describe('the menu primitive, through the speed menu', () => {
+  it('names the button and the items the way a menu is named, and carries open while it shows', async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    const button = inner(menu);
     expect(button.getAttribute('aria-haspopup')).toBe('menu');
-    expect(button.getAttribute('aria-label')).toBe('Quality');
-    expect(popup.getAttribute('role')).toBe('menu');
-    expect(items().map((item) => item.getAttribute('role'))).toEqual([
-      'menuitemradio',
-      'menuitemradio',
-      'menuitemradio',
-    ]);
-    expect(items().map((item) => item.getAttribute('aria-checked'))).toEqual([
-      'false',
-      'true',
-      'false',
-    ]);
-    expect(items()[1]?.getAttribute('part')?.split(' ')).toContain('checked');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(popup(menu).getAttribute('role')).toBe('menu');
+    expect(popup(menu).getAttribute('aria-label')).toBe('Playback speed');
+    expect(items(menu).map((item) => item.getAttribute('role'))).toEqual(
+      Array(6).fill('menuitemradio'),
+    );
+    expect(items(menu)[2]?.getAttribute('part')?.split(' ')).toContain('checked');
+    // One tab stop: the checked item.
+    expect(items(menu).map((item) => item.tabIndex)).toEqual([-1, -1, 0, -1, -1, -1]);
+
+    button.click();
+    expect(popup(menu).hidden).toBe(false);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(menu.hasAttribute('open')).toBe(true);
+    expect(menu.shadowRoot?.activeElement).toBe(items(menu)[2]);
   });
 
-  it('opens on the checked item, moves with the arrows, chooses on Enter, and returns focus', () => {
-    const { button, popup, items, chosen } = build();
+  it('moves with the arrows, chooses on click, returns focus, and closes on Escape or a pointer elsewhere', async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    const button = inner(menu);
+    const focused = () => menu.shadowRoot?.activeElement ?? null;
     button.click();
-    expect(popup.hidden).toBe(false);
-    expect(document.activeElement).toBe(items()[1]);
-
-    press(popup, 'ArrowDown');
-    expect(document.activeElement).toBe(items()[2]);
-    press(popup, 'ArrowDown');
-    expect(document.activeElement).toBe(items()[0]);
-    press(popup, 'End');
-    expect(document.activeElement).toBe(items()[2]);
-
-    (document.activeElement as HTMLButtonElement).click();
-    expect(chosen).toEqual(['v2']);
-    expect(popup.hidden).toBe(true);
-    expect(document.activeElement).toBe(button);
-  });
-
-  it('closes on Escape and on a pointer down elsewhere', () => {
-    const { button, popup } = build();
-    button.click();
-    press(popup, 'Escape');
-    expect(popup.hidden).toBe(true);
-    expect(document.activeElement).toBe(button);
+    press(popup(menu), 'ArrowDown');
+    expect(focused()).toBe(items(menu)[3]);
+    press(popup(menu), 'End');
+    expect(focused()).toBe(items(menu)[5]);
+    press(popup(menu), 'ArrowDown');
+    expect(focused()).toBe(items(menu)[0]);
+    (focused() as HTMLButtonElement).click();
+    await once(player.video, 'ratechange');
+    expect(player.video.playbackRate).toBe(0.5);
+    expect(popup(menu).hidden).toBe(true);
+    expect(menu.hasAttribute('open')).toBe(false);
+    expect(focused()).toBe(button);
 
     button.click();
-    expect(popup.hidden).toBe(false);
+    press(popup(menu), 'Escape');
+    expect(popup(menu).hidden).toBe(true);
+    expect(focused()).toBe(button);
+
+    button.click();
+    expect(popup(menu).hidden).toBe(false);
     document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
-    expect(popup.hidden).toBe(true);
-  });
-});
-
-describe('the seek row over a live window too narrow to seek', () => {
-  function stub(edge: number | null): LiveApi {
-    return { edge, latency: null, atEdge: false, seekToEdge(): void {} };
-  }
-
-  async function video(): Promise<HTMLVideoElement> {
-    const node = document.createElement('video');
-    node.muted = true;
-    node.src = silence(10);
-    document.body.append(node);
-    await once(node, 'loadedmetadata');
-    return node;
-  }
-
-  it('hides the bar and the time while the window is under liveWindow goals, and shows them past it', async () => {
-    const media = await video();
-    const flags: Record<string, boolean> = {};
-    const seek = seekBar(
-      media,
-      (name, on) => {
-        flags[name] = on;
-      },
-      DEFAULTS,
-    );
-    document.body.append(seek.root);
-    const bar = seek.root.querySelector('[part~="seek"]') as HTMLElement;
-    const current = seek.root.querySelector('[part~="current-time"]') as HTMLElement;
-    const duration = seek.root.querySelector('[part~="duration"]') as HTMLElement;
-
-    // Ten seconds over a 30 s goal: a third of one goal, nowhere to go.
-    seek.attach({ live: stub(8), bufferGoal: () => 30 });
-    expect(flags.seekable).toBe(false);
-    expect(bar.hidden).toBe(true);
-    expect(current.hidden).toBe(true);
-    expect(duration.hidden).toBe(true);
-
-    // Ten seconds over a 3 s goal: more than three goals.
-    seek.attach({ live: stub(8), bufferGoal: () => 3 });
-    expect(flags.seekable).toBe(true);
-    expect(bar.hidden).toBe(false);
-    expect(current.hidden).toBe(false);
-    expect(current.textContent).toBe('-0:10');
-    expect(duration.hidden).toBe(true);
-
-    // A session that reports no goal is assumed to hold thirty seconds.
-    seek.attach({ live: stub(8) });
-    expect(flags.seekable).toBe(false);
-
-    // VOD is always seekable.
-    seek.detach();
-    expect(flags.seekable).toBe(true);
-    expect(duration.hidden).toBe(false);
-    seek.dispose();
+    expect(popup(menu).hidden).toBe(true);
   });
 
-  it('reads the wall clock from pdt for the time and the preview, when the session has it', async () => {
-    const media = await video();
-    const seek = seekBar(media, () => undefined, DEFAULTS);
-    seek.root.style.width = '600px';
-    document.body.append(seek.root);
-    const pdt = {
-      toWallClock: (time: number) => 1_700_000_000 + time,
-      toPresentationTime: (wall: number) => wall - 1_700_000_000,
-    };
-    seek.attach({ live: stub(8), bufferGoal: () => 2, pdt });
-    const current = seek.root.querySelector('[part~="current-time"]') as HTMLElement;
-    const slider = seek.root.querySelector('[part~="seek"]') as HTMLElement;
-    const rail = seek.root.querySelector('[part~="seek-rail"]') as HTMLElement;
-    expect(current.textContent).toBe(clock(1_700_000_000));
-    expect(slider.getAttribute('aria-valuetext')).toBe(`${clock(1_700_000_000)}, 0:10 behind live`);
-
-    const rect = rail.getBoundingClientRect();
-    slider.dispatchEvent(
-      new PointerEvent('pointermove', {
-        bubbles: true,
-        clientX: rect.left + rect.width * 0.5,
-        clientY: rect.top + rect.height / 2,
-      }),
-    );
-    const preview = seek.root.querySelector('[part~="preview-time"]') as HTMLElement;
-    expect(preview.textContent).toBe(clock(1_700_000_005));
-
-    // Without an anchor the distance behind the edge is what there is.
-    seek.attach({ live: stub(8), bufferGoal: () => 2, pdt: { ...pdt, toWallClock: () => null } });
-    expect(current.textContent).toBe('-0:10');
-    seek.dispose();
-  });
-
-  it('takes the window from the engine over the browser, which grows with the buffer', async () => {
-    const media = await video();
-    const flags: Record<string, boolean> = {};
-    const seek = seekBar(
-      media,
-      (name, on) => {
-        flags[name] = on;
-      },
-      DEFAULTS,
-    );
-    document.body.append(seek.root);
-    // The browser's range spans the whole ten seconds; the engine's window is two.
-    seek.attach({ live: stub(2), bufferGoal: () => 1, window: () => ({ start: 0, end: 2 }) });
-    expect(flags.seekable).toBe(false);
-    // Grown to six: two goals over, and the bar maps the engine's window, not the browser's.
-    seek.attach({ live: stub(6), bufferGoal: () => 1, window: () => ({ start: 0, end: 6 }) });
-    expect(flags.seekable).toBe(true);
-    const slider = seek.root.querySelector('[part~="seek"]');
-    expect(slider?.getAttribute('aria-valuemax')).toBe('6');
-    seek.dispose();
-  });
-
-  it('seeks every live stream at liveWindow zero', async () => {
-    const media = await video();
-    const seek = seekBar(media, () => undefined, { ...DEFAULTS, liveWindow: 0 });
-    document.body.append(seek.root);
-    seek.attach({ live: stub(8), bufferGoal: () => 300 });
-    expect((seek.root.querySelector('[part~="seek"]') as HTMLElement).hidden).toBe(false);
-    seek.dispose();
-  });
-});
-
-describe('the knobs', () => {
-  it('draws the skip buttons for the default amount, and moves the playhead by it', async () => {
-    const player = await ready(30);
-    const back = part(player, 'skip-back-button');
-    const forward = part(player, 'skip-forward-button');
-    expect(shown(back)).toBe('seek-backward-10-icon');
-    expect(shown(forward)).toBe('seek-forward-10-icon');
-    expect(forward?.getAttribute('aria-label')).toBe('Forward 10 seconds');
-    forward?.click();
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(10, 1);
-    back?.click();
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(0, 1);
-  });
-
-  it('reads each skip amount from its attribute, with a plain arrow for an amount the set has no glyph for', () => {
-    const player = mount({ controls: 'custom', 'skip-forward': '30', 'skip-back': '7' });
-    expect(shown(part(player, 'skip-forward-button'))).toBe('seek-forward-30-icon');
-    expect(shown(part(player, 'skip-back-button'))).toBe('seek-backward-icon');
-    expect(part(player, 'skip-back-button')?.getAttribute('aria-label')).toBe('Back 7 seconds');
-    expect(part(player, 'skip-forward-button')?.getAttribute('aria-label')).toBe(
-      'Forward 30 seconds',
-    );
-  });
-
-  it('leaves a skip button out at zero, each on its own', () => {
-    const player = mount({ controls: 'custom', 'skip-back': '0' });
-    expect(part(player, 'skip-back-button')).toBeNull();
-    expect(part(player, 'skip-forward-button')).not.toBeNull();
-  });
-
-  it('takes the seek step and the idle delay from their attributes', async () => {
-    const player = mount({
-      controls: 'custom',
-      src: silence(30),
-      muted: '',
-      'seek-step': '2',
-      'idle-ms': '500',
-    });
-    await once(player.video, 'loadedmetadata');
-    press(part(player, 'seek') as EventTarget, 'ArrowRight');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(2, 1);
-
+  it('holds the bar while open', async () => {
+    const player = await ready(10);
     player.video.loop = true;
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     await player.video.play();
-    vi.advanceTimersByTime(500);
+    inner(control(player, 'mbx-speed-menu')).click();
+    vi.advanceTimersByTime(IDLE_MS * 2);
+    expect(idle(player)).toBe(false);
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    vi.advanceTimersByTime(IDLE_MS);
     expect(idle(player)).toBe(true);
-  });
-
-  it('takes the knobs from define() under the attributes', () => {
-    const player = new MatteboxPlayerElement({
-      handlers: [nativeHandler()],
-      controls: { skipForward: 30 },
-    });
-    player.setAttribute('controls', 'custom');
-    document.body.append(player);
-    expect(shown(part(player, 'skip-forward-button'))).toBe('seek-forward-30-icon');
-    player.setAttribute('skip-forward', '10');
-    expect(shown(part(player, 'skip-forward-button'))).toBe('seek-forward-10-icon');
   });
 });
 
-describe('the shortcuts', () => {
-  function key(target: EventTarget, name: string): KeyboardEvent {
-    const event = new KeyboardEvent('keydown', {
-      key: name,
-      bubbles: true,
-      composed: true,
-      cancelable: true,
-    });
-    target.dispatchEvent(event);
-    return event;
-  }
+/** An engine with tracks, and what the row and the panels read besides. */
+function tracksEngine(
+  available: ReadonlyArray<{ id: string; contentType: string; lang?: string; role?: string }>,
+): Mattebox & { active: string | null; chosen: string[] } {
+  const fake = {
+    active: null as string | null,
+    chosen: [] as string[],
+    on: () => () => undefined,
+    quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+    stats: { snapshot: () => ({ scheduling: { bufferGoal: 30 } }) },
+    tracks: {
+      available,
+      active: (contentType: string) =>
+        available.find((track) => track.id === fake.active && track.contentType === contentType) ??
+        null,
+      select(id: string): void {
+        fake.chosen.push(id);
+        fake.active = id;
+      },
+      deselect(): void {
+        fake.chosen.push('off');
+        fake.active = null;
+      },
+    },
+  };
+  return fake as unknown as Mattebox & { active: string | null; chosen: string[] };
+}
 
-  it('gives the element a tabindex under custom controls, and takes it back', () => {
-    const player = mount({ controls: 'custom' });
-    expect(player.getAttribute('tabindex')).toBe('0');
-    player.removeAttribute('controls');
-    expect(player.hasAttribute('tabindex')).toBe(false);
-    const own = mount({ tabindex: '-1', controls: 'custom' });
-    expect(own.getAttribute('tabindex')).toBe('-1');
+describe('the subtitles menu over a stubbed session', () => {
+  const tracks = [
+    { id: 'a-en', contentType: 'audio', lang: 'en', role: 'main' },
+    { id: 't-en', contentType: 'text', lang: 'en' },
+  ];
+
+  it('offers off and the tracks under a heading, and a settings page behind them', async () => {
+    const engine = tracksEngine(tracks);
+    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('src', silence());
+    document.body.append(player);
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    const menu = control(player, 'mbx-subtitles-menu');
+    expect(menu.hidden).toBe(false);
+    expect(shown(menu)).toBe('icon-off');
+    const labels = () =>
+      [...(menu.shadowRoot?.querySelectorAll('[part~="section-label"]') ?? [])].map(
+        (node) => node.textContent,
+      );
+    expect(labels()).toEqual(['Track']);
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Off', 'en', 'Settings']);
+    expect(items(menu)[2]?.getAttribute('aria-haspopup')).toBe('menu');
+
+    inner(menu).click();
+    items(menu)[1]?.click();
+    expect(engine.chosen).toEqual(['t-en']);
+    expect(shown(menu)).toBe('icon-on');
+
+    // The looks sit on the Settings page behind the tracks, with a Back at its top.
+    inner(menu).click();
+    items(menu)[2]?.click();
+    expect(labels()).toEqual(['Size', 'Background']);
+    expect(items(menu)[0]?.getAttribute('part')?.split(' ')).toContain('back-item');
+    expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Back from Settings');
+    const item = (group: string, value: string) =>
+      items(menu).find(
+        (node) =>
+          node.getAttribute('part')?.split(' ').includes(`${group}-item`) && node.value === value,
+      );
+    expect(item('size', 'medium')?.getAttribute('aria-checked')).toBe('true');
+    expect(item('background', 'dark')?.getAttribute('aria-checked')).toBe('true');
+    item('size', 'large')?.click();
+    expect(player.getAttribute('subtitle-size')).toBe('large');
+    // A choice closes the menu back at its first page; the page shows the choice.
+    inner(menu).click();
+    items(menu)[2]?.click();
+    expect(item('size', 'large')?.getAttribute('aria-checked')).toBe('true');
+    item('background', 'none')?.click();
+    expect(player.getAttribute('subtitle-background')).toBe('none');
   });
 
-  it('toggles play with k and Space, mutes with m, from anywhere inside', async () => {
-    const player = await ready(10);
-    player.video.loop = true;
-    key(player, 'k');
-    await once(player.video, 'play');
-    expect(player.video.paused).toBe(false);
-    key(player, ' ');
-    await once(player.video, 'pause');
-    expect(player.video.paused).toBe(true);
-    const mute = part(player, 'mute-button') as HTMLElement;
-    key(mute, 'm');
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(false);
-  });
-
-  it('leaves Space to a focused button', async () => {
-    const player = await ready(10);
-    const play = part(player, 'play-button') as HTMLElement;
-    const event = key(play, ' ');
-    expect(event.defaultPrevented).toBe(false);
-    expect(player.video.paused).toBe(true);
-  });
-
-  it('seeks by the step with the arrows, once even from the seek bar', async () => {
-    const player = await ready(30);
-    key(part(player, 'mute-button') as EventTarget, 'ArrowRight');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(5, 1);
-    key(part(player, 'seek') as EventTarget, 'ArrowRight');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(10, 1);
-    key(player, 'ArrowLeft');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(5, 1);
-  });
-
-  it('ignores keys with a modifier, and keys pressed outside the element', async () => {
-    const player = await ready(10);
-    player.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
-    document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(player.video.paused).toBe(true);
-  });
-
-  it('toggles play on a click on the video, and not on a click on the bar', async () => {
-    const player = await ready(10);
-    player.video.loop = true;
-    player.video.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
-    await once(player.video, 'play');
-    expect(player.video.paused).toBe(false);
-    (part(player, 'seek-row') as HTMLElement).dispatchEvent(
-      new MouseEvent('click', { bubbles: true, composed: true }),
+  it('reads a size the page set in markup, and every word from the attributes', async () => {
+    const engine = tracksEngine(tracks);
+    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('subtitle-size', 'xlarge');
+    player.setAttribute('src', silence());
+    document.body.append(player);
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    const menu = control(player, 'mbx-subtitles-menu');
+    menu.setAttribute('label-off', 'Cap');
+    menu.setAttribute('label-settings', 'Opcions');
+    menu.setAttribute('label-xlarge', 'Molt gran');
+    menu.setAttribute('label-back', 'Torna de {page}');
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Cap', 'en', 'Opcions']);
+    inner(menu).click();
+    items(menu)[2]?.click();
+    expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Torna de Opcions');
+    const checked = items(menu).find(
+      (node) =>
+        node.getAttribute('part')?.split(' ').includes('size-item') &&
+        node.getAttribute('aria-checked') === 'true',
     );
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(player.video.paused).toBe(false);
+    expect(checked?.value).toBe('xlarge');
+    expect(checked?.textContent).toBe('Molt gran');
+  });
+
+  it('hides without text tracks, and the audio menu without a choice', async () => {
+    const engine = tracksEngine([{ id: 'a-en', contentType: 'audio', lang: 'en' }]);
+    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('src', silence());
+    document.body.append(player);
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-quality-menu').hidden).toBe(true);
+  });
+
+  it('hides for a native session', async () => {
+    const player = await ready();
+    expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-quality-menu').hidden).toBe(true);
+    expect(control(player, 'mbx-speed-menu').hidden).toBe(false);
   });
 });
 
 describe('the DRM badge', () => {
-  /** An engine with a DRM namespace and nothing else the badge reads. */
-  function engine(keySystem: string | null, sessions: Array<{ keyId: string; status: string }>) {
+  /** An engine with a DRM namespace, and what the rest of the composition reads. */
+  function drmEngine(keySystem: string | null, sessions: Array<{ keyId: string; status: string }>) {
     const listeners: Array<() => void> = [];
     const fake = {
       drm: { keySystem, sessions, setLicenseUrl(): void {} },
+      quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+      tracks: { available: [], active: () => null, select() {} },
+      stats: { snapshot: () => ({ scheduling: { bufferGoal: 30 } }) },
       on(_name: string, fn: () => void): () => void {
         listeners.push(fn);
         return () => undefined;
@@ -966,597 +1736,59 @@ describe('the DRM badge', () => {
     };
   }
 
-  it('is hidden without a key system, and named and described with one', () => {
-    const { fake, fire } = engine(null, []);
-    const badge = drmBadge({ engine: fake, host: document.body });
-    document.body.append(badge.root);
-    expect(badge.root.hidden).toBe(true);
+  async function badgeOver(engine: Mattebox): Promise<[MatteboxPlayerElement, HTMLElement]> {
+    const player = new MatteboxPlayerElement({ handlers: [fakeHandler(engine)] });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('src', silence());
+    document.body.append(player);
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    const badge = document.createElement('mbx-drm-badge');
+    bar(player)?.append(badge);
+    return [player, badge];
+  }
+
+  it('is hidden without a key system, and named and described with one', async () => {
+    const { fake, fire } = drmEngine(null, []);
+    const [, badge] = await badgeOver(fake);
+    expect(badge.hidden).toBe(true);
+    expect(badge.getAttribute('role')).toBe('img');
+    expect(badge.tabIndex).toBe(0);
 
     (fake as unknown as { drm: { keySystem: string | null } }).drm.keySystem = 'com.widevine.alpha';
     fire();
-    expect(badge.root.hidden).toBe(false);
-    expect(badge.root.getAttribute('aria-label')).toBe('Protected by Widevine, no key yet');
-    badge.dispose();
+    expect(badge.hidden).toBe(false);
+    expect(badge.getAttribute('aria-label')).toBe('Protected by Widevine, no key yet');
   });
 
-  it('shows the key system and the key statuses in a tooltip on hover and on focus', () => {
-    const { fake } = engine('com.microsoft.playready', [
+  it('shows the key system and the key statuses in a tooltip on hover and on focus', async () => {
+    const { fake } = drmEngine('com.microsoft.playready', [
       { keyId: 'a', status: 'usable' },
       { keyId: 'b', status: 'usable' },
       { keyId: 'c', status: 'expired' },
     ]);
-    const badge = drmBadge({ engine: fake, host: document.body });
-    document.body.append(badge.root);
-    const tooltip = badge.root.querySelector('[part~="tooltip"]') as HTMLElement;
+    const [, badge] = await badgeOver(fake);
+    const tooltip = inside(badge, 'tooltip');
     expect(tooltip.hidden).toBe(true);
     expect(tooltip.textContent).toContain('PlayReady');
     expect(tooltip.textContent).toContain('com.microsoft.playready');
     expect(tooltip.textContent).toContain('3 keys: usable ×2, expired');
 
-    badge.root.dispatchEvent(new PointerEvent('pointerenter'));
+    badge.dispatchEvent(new PointerEvent('pointerenter'));
     expect(tooltip.hidden).toBe(false);
-    badge.root.dispatchEvent(new PointerEvent('pointerleave'));
+    badge.dispatchEvent(new PointerEvent('pointerleave'));
     expect(tooltip.hidden).toBe(true);
-    (badge.root as HTMLElement).focus();
+    badge.focus();
     expect(tooltip.hidden).toBe(false);
-    (badge.root as HTMLElement).blur();
+    badge.blur();
     expect(tooltip.hidden).toBe(true);
-    badge.dispose();
-  });
-});
-
-describe('the fullscreen button over a stubbed API', () => {
-  it('swaps its glyph and name with the state, and reports it as a flag', () => {
-    let active = false;
-    let change: (() => void) | null = null;
-    const flags: Record<string, boolean> = {};
-    const button = fullscreenButton(
-      {
-        supported: true,
-        active: () => active,
-        toggle(): void {
-          active = !active;
-          change?.();
-        },
-        watch(fn: () => void): () => void {
-          change = fn;
-          return () => undefined;
-        },
-      },
-      (name, on) => {
-        flags[name] = on;
-      },
-    );
-    document.body.append(button.root);
-    expect(button.root.getAttribute('aria-label')).toBe('Enter fullscreen');
-    expect(flags.fullscreen).toBe(false);
-    button.root.click();
-    expect(button.root.getAttribute('aria-label')).toBe('Exit fullscreen');
-    expect(shown(button.root)).toBe('fullscreen-exit-icon');
-    expect(flags.fullscreen).toBe(true);
-    button.dispose();
-  });
-});
-
-describe('a menu of several groups', () => {
-  it('heads each group, walks every item with the arrows, and chooses per group', () => {
-    const chosen: string[] = [];
-    const control = menu({ name: 'text', label: 'Subtitles', icon: 'closed-captions' });
-    control.fill([
-      {
-        name: 'track',
-        label: 'Track',
-        items: [
-          ['off', 'Off'],
-          ['en', 'English'],
-        ],
-        value: 'en',
-        onSelect(value: string): void {
-          chosen.push(`track:${value}`);
-        },
-      },
-      {
-        name: 'size',
-        label: 'Size',
-        items: [
-          ['small', 'Small'],
-          ['medium', 'Medium'],
-        ],
-        value: 'medium',
-        onSelect(value: string): void {
-          chosen.push(`size:${value}`);
-        },
-      },
-    ]);
-    document.body.append(control.root);
-    const popup = control.root.querySelector('[role="menu"]') as HTMLElement;
-    const labels = [...popup.querySelectorAll('[part~="section-label"]')].map((n) => n.textContent);
-    expect(labels).toEqual(['Track', 'Size']);
-    const items = [...popup.querySelectorAll('button')];
-    expect(items.map((item) => item.getAttribute('aria-checked'))).toEqual([
-      'false',
-      'true',
-      'false',
-      'true',
-    ]);
-    // One tab stop: the first checked item.
-    expect(items.map((item) => item.tabIndex)).toEqual([-1, 0, -1, -1]);
-
-    // Opens on the checked English; one step down crosses into the next group.
-    (control.root.querySelector('button') as HTMLButtonElement).click();
-    expect(document.activeElement).toBe(items[1]);
-    press(popup, 'ArrowDown');
-    expect(document.activeElement).toBe(items[2]);
-    (document.activeElement as HTMLButtonElement).click();
-    expect(chosen).toEqual(['size:small']);
-    control.dispose();
-  });
-});
-
-describe('the subtitles menu over a stubbed session', () => {
-  function stubbed(host: HTMLElement) {
-    const engine = {
-      tracks: {
-        available: [
-          { id: 't-en', contentType: 'text', lang: 'en', mimeType: 'text/vtt', drm: null },
-        ],
-        active: () => null,
-        select(): void {},
-        deselect(): void {},
-      },
-      on: () => () => undefined,
-    };
-    return textMenu({ engine: engine as unknown as Mattebox, host });
-  }
-
-  it('reflects the size and the background as attributes on the host', () => {
-    const host = document.createElement('div');
-    document.body.append(host);
-    const control = stubbed(host);
-    host.append(control.root);
-    const popup = control.root.querySelector('[role="menu"]') as HTMLElement;
-    const item = (group: string, value: string) =>
-      [...popup.querySelectorAll<HTMLButtonElement>(`[part~="text-${group}-item"]`)].find(
-        (node) => node.value === value,
-      );
-    // The looks sit on the Settings page behind the tracks.
-    expect(item('size', 'medium')).toBeUndefined();
-    (popup.querySelector('[part~="text-settings-item"]') as HTMLButtonElement).click();
-    expect(item('size', 'medium')?.getAttribute('aria-checked')).toBe('true');
-    expect(item('background', 'dark')?.getAttribute('aria-checked')).toBe('true');
-
-    item('size', 'large')?.click();
-    expect(host.getAttribute('subtitle-size')).toBe('large');
-    // A choice closes the menu back at its first page; the page shows the choice.
-    (popup.querySelector('[part~="text-settings-item"]') as HTMLButtonElement).click();
-    expect(item('size', 'large')?.getAttribute('aria-checked')).toBe('true');
-    item('background', 'none')?.click();
-    expect(host.getAttribute('subtitle-background')).toBe('none');
-    control.dispose();
   });
 
-  it('reads a size the page set in markup', () => {
-    const host = document.createElement('div');
-    host.setAttribute('subtitle-size', 'xlarge');
-    document.body.append(host);
-    const control = stubbed(host);
-    (control.root.querySelector('[part~="text-settings-item"]') as HTMLButtonElement).click();
-    const checked = [
-      ...control.root.querySelectorAll<HTMLButtonElement>('[part~="text-size-item"]'),
-    ].find((node) => node.getAttribute('aria-checked') === 'true');
-    expect(checked?.value).toBe('xlarge');
-    control.dispose();
-  });
-});
-
-describe('the speed menu', () => {
-  it("offers the rates, marks the video's own, and writes a choice back", async () => {
-    const player = await ready(10);
-    const popup = part(player, 'speed-popup') as HTMLElement;
-    const items = [...popup.querySelectorAll<HTMLButtonElement>('button')];
-    expect(items.map((item) => item.textContent)).toEqual([
-      '0.5×',
-      '0.75×',
-      'Normal',
-      '1.25×',
-      '1.5×',
-      '2×',
-    ]);
-    expect(items.find((item) => item.getAttribute('aria-checked') === 'true')?.value).toBe('1');
-    items.find((item) => item.value === '1.5')?.click();
-    await once(player.video, 'ratechange');
-    expect(player.video.playbackRate).toBe(1.5);
-    const checked = [...popup.querySelectorAll<HTMLButtonElement>('button')].find(
-      (item) => item.getAttribute('aria-checked') === 'true',
-    );
-    expect(checked?.value).toBe('1.5');
-  });
-});
-
-describe('the subtitles and the bar', () => {
-  it('puts the cue rules in the document once, one per look the attributes can take', () => {
-    mount({ controls: 'custom' });
-    const styles = document.head.querySelectorAll('style[data-mattebox-cue]');
-    expect(styles.length).toBe(1);
-    const text = styles[0]?.textContent ?? '';
-    expect(text).toContain('mattebox-player[subtitle-size="large"] > video::cue');
-    // The background goes on the cue and on the backdrop Chromium and WebKit paint, both.
-    expect(text).toContain(
-      'mattebox-player[subtitle-background="none"] > video::-webkit-media-text-track-display-backdrop',
-    );
-    expect(text).toContain('mattebox-player[subtitle-background="none"] > video::cue');
-    expect(text).not.toContain('@supports');
-    // Percentages of the browser's own cue size, which follows the video's height.
-    expect(text).toMatch(/subtitle-size="large"[^}]*font-size: 150%/);
-    expect(text).not.toContain('var(');
-    mount({ controls: 'custom' });
-    expect(document.head.querySelectorAll('style[data-mattebox-cue]').length).toBe(1);
-  });
-
-  it('lifts an unpositioned active cue above the bar while it shows, and puts it back', async () => {
-    // A bare video and a stand-in bar, so no other lift holds the cues.
-    const video = document.createElement('video');
-    video.muted = true;
-    video.src = silence(10);
-    document.body.append(video);
-    await once(video, 'loadedmetadata');
-    const fakeBar = document.createElement('div');
-    fakeBar.style.height = '80px';
-    document.body.append(fakeBar);
-    const track = video.addTextTrack('subtitles', 'Test', 'en');
-    track.mode = 'showing';
-    const cue = new VTTCue(0, 10, 'Hello');
-    const second = new VTTCue(0, 10, 'Second, two\nlines');
-    const placed = new VTTCue(0, 10, 'Author placed');
-    placed.line = 10;
-    track.addCue(cue);
-    track.addCue(second);
-    track.addCue(placed);
-    // Cues become active when time marches, which a seek makes it do.
-    video.currentTime = 1;
-    await once(video, 'seeked');
-    await expect.poll(() => track.activeCues?.length ?? 0).toBe(3);
-
-    const host = document.createElement('div');
-    const lift = cueLift(video, fakeBar, host);
-    lift.lifted(true);
-    // A negative line count, which wraps everywhere; the earliest sits
-    // lowest and the next climbs past it, whichever end a browser anchors.
-    expect(cue.snapToLines).toBe(true);
-    expect(typeof cue.line).toBe('number');
-    const first = cue.line as number;
-    expect(first).toBeLessThan(-1);
-    // The second is two lines tall: it climbs by at least that.
-    expect(second.line as number).toBeLessThanOrEqual(first - 2);
-    expect(placed.line).toBe(10);
-
-    // At another size the stack holds.
-    host.setAttribute('subtitle-size', 'xlarge');
-    lift.lifted(true);
-    expect(second.line as number).toBeLessThan(cue.line as number);
-
-    lift.lifted(false);
-    expect(cue.line).toBe('auto');
-    expect(cue.snapToLines).toBe(true);
-    expect(second.line).toBe('auto');
-    lift.dispose();
-  });
-});
-
-describe('the picture-in-picture button', () => {
-  it('shows exactly when an API exists, and swaps its glyph and name with the state', () => {
-    const player = mount({ controls: 'custom' });
-    const host: object = player.video;
-    const supported =
-      ('requestPictureInPicture' in host && document.pictureInPictureEnabled) ||
-      'webkitSetPresentationMode' in host;
-    expect(part(player, 'pip-button')?.hidden).toBe(!supported);
-
-    let active = false;
-    let change: (() => void) | null = null;
-    const flags: Record<string, boolean> = {};
-    const button = pipButton(
-      {
-        supported: true,
-        active: () => active,
-        toggle(): void {
-          active = !active;
-          change?.();
-        },
-        watch(fn: () => void): () => void {
-          change = fn;
-          return () => undefined;
-        },
-      },
-      (name, on) => {
-        flags[name] = on;
-      },
-    );
-    document.body.append(button.root);
-    expect(button.root.getAttribute('aria-label')).toBe('Picture in picture');
-    expect(shown(button.root)).toBe('picture-in-picture-icon');
-    button.root.click();
-    expect(button.root.getAttribute('aria-label')).toBe('Leave picture in picture');
-    expect(shown(button.root)).toBe('picture-in-picture-exit-icon');
-    expect(flags.pip).toBe(true);
-    button.dispose();
-  });
-});
-
-describe('the layout knob', () => {
-  /** Each child's specific part name, the last one it carries. */
-  const names = (row: Element | null) =>
-    [...(row?.querySelectorAll(':scope > [part]') ?? [])].map(
-      (node) => node.getAttribute('part')?.split(' ').pop() ?? '',
-    );
-
-  it('carries every control in the default order', () => {
-    const player = mount({ controls: 'custom' });
-    const row = part(player, 'buttons');
-    expect(names(row)).toEqual([
-      'skip-back-button',
-      'play-button',
-      'skip-forward-button',
-      'volume-group',
-      'cluster',
-    ]);
-    expect(names(part(player, 'cluster'))).toEqual([
-      'speed-menu',
-      'subtitles-slot',
-      'audio-slot',
-      'quality-slot',
-      'pip-button',
-      'fullscreen-button',
-    ]);
-    // The lock is a control the row can carry, and does not by default.
-    expect(part(player, 'drm-slot')).toBeNull();
-    const withLock = mount({ controls: 'custom', layout: 'play | drm' });
-    expect(part(withLock, 'drm-slot')).not.toBeNull();
-  });
-
-  it('builds only what the attribute names, in its order, either side of the bar', () => {
-    const player = mount({ controls: 'custom', layout: 'fullscreen play | volume nonsense' });
-    expect(names(part(player, 'buttons'))).toEqual(['fullscreen-button', 'play-button', 'cluster']);
-    expect(names(part(player, 'cluster'))).toEqual(['volume-group']);
-    expect(part(player, 'skip-back-button')).toBeNull();
-    expect(part(player, 'speed-menu')).toBeNull();
-  });
-
-  it('rebuilds when the attribute changes, and takes the option under it', () => {
-    const player = new MatteboxPlayerElement({
-      handlers: [nativeHandler()],
-      controls: { layout: 'play' },
-    });
-    player.setAttribute('controls', 'custom');
-    document.body.append(player);
-    expect(names(part(player, 'buttons'))).toEqual(['play-button', 'cluster']);
-    player.setAttribute('layout', 'play | fullscreen');
-    expect(names(part(player, 'cluster'))).toEqual(['fullscreen-button']);
-  });
-});
-
-describe('the screens over the picture', () => {
-  it('shows a large play while paused, a replay once ended, and nothing while playing', async () => {
-    const player = await ready(10);
-    const start = part(player, 'start-button') as HTMLButtonElement;
-    expect(start.parentElement?.getAttribute('part')).toBe('stage');
-    expect(start.hidden).toBe(false);
-    expect(start.getAttribute('aria-label')).toBe('Play');
-    expect(bar(player)?.getAttribute('part')?.split(' ')).toContain('paused');
-
-    start.click();
-    await once(player.video, 'play');
-    expect(start.hidden).toBe(true);
-    player.video.pause();
-    await once(player.video, 'pause');
-    expect(start.hidden).toBe(false);
-
-    player.video.currentTime = 10;
-    await player.video.play();
-    await once(player.video, 'ended');
-    expect(start.hidden).toBe(false);
-    expect(start.getAttribute('aria-label')).toBe('Replay');
-    expect(shown(start)).toBe('replay-icon');
-  });
-
-  it('shows a fatal error over the picture, not in the row under it, and clears on the next load', async () => {
-    const player = mount({
-      controls: 'custom',
-      src: 'https://cdn.test/a.m3u8',
-      type: 'application/x-nonsense',
-    });
-    const screen = part(player, 'error-screen') as HTMLElement;
-    await expect.poll(() => screen.hidden).toBe(false);
-    expect(screen.parentElement?.getAttribute('part')).toBe('stage');
-    expect(part(player, 'error-code')?.textContent).toBe('MANIFEST_UNSUPPORTED');
-    expect(part(player, 'error-category')?.textContent).toBe('manifest');
-    expect(part(player, 'start-button')?.hidden).toBe(true);
-    // The row under the video is the native mode's, and stays quiet.
-    expect(part(player, 'error')?.hidden).toBe(true);
-
-    let loads = 0;
-    player.addEventListener('sourcechange', () => {
-      loads += 1;
-    });
-    player.setAttribute('type', 'audio/wav');
-    player.setAttribute('src', silence());
-    await expect.poll(() => loads).toBe(1);
-    expect(screen.hidden).toBe(true);
-  });
-});
-
-describe('the error screen across loads, the way the demo drives the element', () => {
-  it('clears when a source that plays follows one that failed, and shows again for one that fails', async () => {
-    const player = mount({
-      controls: 'custom',
-      src: 'https://cdn.test/a.m3u8',
-      type: 'application/x-nonsense',
-    });
-    const screen = part(player, 'error-screen') as HTMLElement;
-    await expect.poll(() => screen.hidden).toBe(false);
-
-    // The demo clears the source, sets what describes the next one, sets it,
-    // then re-applies the bar's attributes at their current values.
-    let loads = 0;
-    player.addEventListener('sourcechange', () => {
-      loads += 1;
-    });
-    player.removeAttribute('src');
-    player.setAttribute('type', 'audio/wav');
-    player.setAttribute('src', silence());
-    player.setAttribute('controls', 'custom');
-    player.setAttribute('layout', 'play | fullscreen');
-    await expect.poll(() => loads).toBe(1);
-    expect((part(player, 'error-screen') as HTMLElement).hidden).toBe(true);
-
-    player.removeAttribute('src');
-    player.setAttribute('type', 'application/x-nonsense');
-    player.setAttribute('src', 'https://cdn.test/b.m3u8');
-    await expect.poll(() => (part(player, 'error-screen') as HTMLElement).hidden).toBe(false);
-    expect(part(player, 'error-code')?.textContent).toBe('MANIFEST_UNSUPPORTED');
-  });
-});
-
-describe('the start knob', () => {
-  it('leaves the large play out at zero, through every state', async () => {
-    const player = mount({ controls: 'custom', src: silence(10), muted: '', start: '0' });
-    await once(player.video, 'loadedmetadata');
-    const start = part(player, 'start-button') as HTMLElement;
-    expect(start.hidden).toBe(true);
-    await player.video.play();
-    player.video.pause();
-    await once(player.video, 'pause');
-    expect(start.hidden).toBe(true);
-  });
-});
-
-describe('a menu with a page behind an entry', () => {
-  function build() {
-    const chosen: string[] = [];
-    const control = menu({ name: 'text', label: 'Subtitles', icon: 'closed-captions' });
-    control.fill([
-      {
-        name: 'track',
-        items: [
-          ['off', 'Off'],
-          ['en', 'English'],
-        ],
-        value: 'off',
-        onSelect(value: string): void {
-          chosen.push(`track:${value}`);
-        },
-      },
-      {
-        name: 'settings',
-        label: 'Settings',
-        entries: [
-          {
-            name: 'size',
-            label: 'Size',
-            items: [
-              ['small', 'Small'],
-              ['large', 'Large'],
-            ],
-            value: 'small',
-            onSelect(value: string): void {
-              chosen.push(`size:${value}`);
-            },
-          },
-        ],
-      },
-    ]);
-    document.body.append(control.root);
-    const button = control.root.querySelector('button') as HTMLButtonElement;
-    const popup = control.root.querySelector('[role="menu"]') as HTMLElement;
-    return { control, button, popup, chosen };
-  }
-
-  it('opens the page from its entry, walks it, goes back on Escape, and closes on a choice', () => {
-    const { button, popup, chosen } = build();
-    button.click();
-    const link = popup.querySelector('[part~="text-settings-item"]') as HTMLButtonElement;
-    expect(link.getAttribute('aria-haspopup')).toBe('menu');
-    expect(popup.querySelector('[part~="back-item"]')).toBeNull();
-
-    link.click();
-    const back = popup.querySelector('[part~="back-item"]') as HTMLButtonElement;
-    expect(back.textContent).toBe('Settings');
-    expect(document.activeElement).toBe(back);
-    expect(popup.querySelectorAll('[part~="text-size-item"]').length).toBe(2);
-    expect(popup.querySelector('[part~="text-track-item"]')).toBeNull();
-
-    press(popup, 'Escape');
-    expect(popup.hidden).toBe(false);
-    expect(popup.querySelector('[part~="back-item"]')).toBeNull();
-    expect(popup.querySelector('[part~="text-track-item"]')).not.toBeNull();
-
-    link.isConnected
-      ? link.click()
-      : (popup.querySelector('[part~="text-settings-item"]') as HTMLButtonElement).click();
-    (popup.querySelector('[part~="text-size-item"][value="large"]') as HTMLButtonElement).click();
-    expect(chosen).toEqual(['size:large']);
-    expect(popup.hidden).toBe(true);
-    button.click();
-    expect(popup.querySelector('[part~="text-track-item"]')).not.toBeNull();
-  });
-
-  it('never leaves the stage: the popup takes the room above the button as its height', async () => {
-    const player = await ready(10);
-    (part(player, 'speed-button') as HTMLButtonElement).click();
-    const popup = part(player, 'speed-popup') as HTMLElement;
-    const height = Number.parseFloat(popup.style.maxHeight);
-    expect(height).toBeGreaterThan(0);
-    const stage = part(player, 'stage') as HTMLElement;
-    expect(height).toBeLessThan(stage.getBoundingClientRect().height);
-    expect(getComputedStyle(popup).overflowY).toBe('auto');
-  });
-});
-
-describe('the error screen against a picture that plays', () => {
-  it('clears once playback resumes, whatever the engine said', async () => {
-    const player = mount({
-      controls: 'custom',
-      src: 'https://cdn.test/a.m3u8',
-      type: 'application/x-nonsense',
-    });
-    const screen = part(player, 'error-screen') as HTMLElement;
-    await expect.poll(() => screen.hidden).toBe(false);
-    player.video.dispatchEvent(new Event('playing'));
-    expect(screen.hidden).toBe(true);
-  });
-});
-
-describe('the lift and Chromium', () => {
-  it('rebuilds the track display through its mode when a line changes, and leaves it showing', async () => {
-    const video = document.createElement('video');
-    video.muted = true;
-    video.src = silence(10);
-    document.body.append(video);
-    await once(video, 'loadedmetadata');
-    const fakeBar = document.createElement('div');
-    fakeBar.style.height = '80px';
-    document.body.append(fakeBar);
-    const track = video.addTextTrack('subtitles', 'Test', 'en');
-    track.mode = 'showing';
-    const cue = new VTTCue(0, 10, 'Hello');
-    track.addCue(cue);
-    video.currentTime = 1;
-    await once(video, 'seeked');
-    await expect.poll(() => track.activeCues?.length ?? 0).toBe(1);
-    const modes: string[] = [];
-    const seen = () => modes.push(track.mode);
-    video.textTracks.addEventListener('change', seen);
-    const lift = cueLift(video, fakeBar, document.createElement('div'));
-    lift.lifted(true);
-    expect(track.mode).toBe('showing');
-    expect(typeof cue.line).toBe('number');
-    // The change event lands later, finds the same lines, and flips nothing more.
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    const flips = modes.length;
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(modes.length).toBe(flips);
-    expect(track.mode).toBe('showing');
-    video.textTracks.removeEventListener('change', seen);
-    lift.dispose();
+  it('takes its words from the attributes', async () => {
+    const { fake } = drmEngine('com.apple.fps.1_0', [{ keyId: 'a', status: 'usable' }]);
+    const [, badge] = await badgeOver(fake);
+    badge.setAttribute('label', 'Protegit per {system}: {keys}');
+    badge.setAttribute('label-key', '{count} clau, {statuses}');
+    expect(badge.getAttribute('aria-label')).toBe('Protegit per FairPlay: 1 clau, usable');
   });
 });

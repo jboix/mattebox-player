@@ -109,15 +109,10 @@ export function icon(name: IconName): SVGSVGElement {
   const svg = document.createElementNS(SVG, 'svg');
   svg.setAttribute('viewBox', '0 0 32 32');
   svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('part', 'icon');
   const path = document.createElementNS(SVG, 'path');
   path.setAttribute('fill-rule', 'evenodd');
+  path.setAttribute('d', PATHS[name]);
   svg.append(path);
-  glyph(svg, name);
   return svg;
-}
-
-/** Swaps the glyph in place, so the part and the focus ring stay put across states. */
-export function glyph(svg: SVGSVGElement, name: IconName): void {
-  svg.setAttribute('part', `icon ${name}-icon`);
-  svg.firstElementChild?.setAttribute('d', PATHS[name]);
 }

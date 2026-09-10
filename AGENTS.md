@@ -43,8 +43,11 @@ you had to reach around.
    playback and the UI feature-tests. Native sessions have no diagnostics
    beyond the element's `MediaError`; do not invent any.
 
-6. **No globals, no registries, no skins, no plugins, no framework.** A
-   player is per element, like an engine.
+6. **No player-level registry, no plugin API, no skin system, no framework.**
+   A player is per element, like an engine. The controls are custom elements
+   the page places inside `<mattebox-player>`, and the browser's element
+   registry is the one extension point: a page's own element inside the bar
+   is a control. See `docs/v3-composable-controls-plan.md`.
 
 7. **Do not fix the engine from here.** A missing engine surface is an entry
    in the integrator log, not a workaround that hides the gap.

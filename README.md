@@ -42,8 +42,12 @@ the URL has a known extension.
 
 The video inside keeps its native API and controls. The element adds only
 what the browser cannot show: quality, tracks, live, DRM, and errors, each
-present exactly when the engine's namespace is. Every element it draws
-carries a `part`, so the page styles all of it with `::part()`.
+present exactly when the engine's namespace is. With `controls="custom"` the
+controls are elements the page places inside the player, each with its
+parameters and its words as attributes and its glyphs as slots, and a page
+that places none gets the default bar. A page on a bundler can take the
+player alone and one entry per control it composes. Every element carries
+a `part`, so the page styles all of it with `::part()`.
 
 With your own UI, take the core and choose the handler order:
 
@@ -64,10 +68,10 @@ The [guide](docs/guide/README.md) covers the rest, starting with
 
 ## Status
 
-The workspace is bootstrapped and the gates are green. The core's types and
-the type table ship; the handler chain, the two handlers, and the element's
-panels are the next deliverables, in the order the
-[architecture](docs/architecture.md) lists.
+The core, the element, its panels and its controls ship, and the gates are
+green. The controls became elements in v3; the
+[plan](docs/v3-composable-controls-plan.md) records the decisions, and the
+[architecture](docs/architecture.md) lists the deliverables in order.
 
 ## Documentation
 

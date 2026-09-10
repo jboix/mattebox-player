@@ -47,19 +47,29 @@ next handler. Any other fatal error is the session's error.
 ## The element
 
 `<mattebox-player>` renders a real `<video>` as a light-DOM child, so the
-integrator can reach it, and its own panels in shadow DOM. Native controls
-carry playback. The panels cover only what the element cannot show, and each
-one feature-tests its namespace on `session.engine` and renders nothing for
-a native session.
+integrator can reach it, and its error surface in shadow DOM. Native
+controls carry playback by default.
 
-| Panel      | Namespace                                 |
-| ---------- | ----------------------------------------- |
-| Quality    | `engine.quality`                          |
-| Tracks     | `engine.tracks`                           |
-| Live       | `engine.live`                             |
-| DRM        | `engine.drm`                              |
-| Thumbnails | `engine.thumbnails`, loaded but not drawn |
-| Error      | `engine.error`, the core's `error` event  |
+The controls are custom elements the page places inside the player, beside
+the video: under `controls="custom"` the bar and the screens over the
+picture, otherwise `<mbx-panels>`, a row under it with only what the video
+cannot show. Each finds the nearest player above it and reads `video`,
+`engine`, `player` and `error`, and listens to `sourcechange`; nothing
+else. A page's own element inside the bar is a control the same way. Each
+one feature-tests its namespace on `session.engine` and hides for a native
+session. The element reflects state as attributes on itself, and every
+control carries its parameters and its words as attributes and takes a
+page's glyph through a slot. `docs/v3-composable-controls-plan.md` records
+the decisions.
+
+| Control                                                               | Namespace                   |
+| --------------------------------------------------------------------- | --------------------------- |
+| `mbx-quality-menu`                                                    | `engine.quality`            |
+| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`             |
+| `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt` |
+| `mbx-drm-badge`                                                       | `engine.drm`                |
+| `mbx-seek-bar`                                                        | `engine.thumbnails`         |
+| `mbx-error-screen`, the error surface                                 | the core's `error` event    |
 
 ## Builds
 
@@ -79,5 +89,5 @@ engine bundle and the size story stays the engine's.
 5. The integrator log: every place the engine's API made the player reach
    around it, ordered by how much each entry hurt.
 
-Custom controls came after those five: `controls="custom"` draws the
-element's own bar over the video, and guide chapter 03 covers it.
+Custom controls came after those five, first as one fixed bar and then, in
+v3, as the elements above. Guide chapter 03 covers them.

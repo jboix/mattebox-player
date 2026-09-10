@@ -1,0 +1,23 @@
+/** The tag names, in one place, so the composition and the lookup agree with the registration. */
+export const PLAYER = 'mattebox-player';
+export const CONTROL_BAR = 'mbx-control-bar';
+export const SPACER = 'mbx-spacer';
+export const PLAY_BUTTON = 'mbx-play-button';
+export const MUTE_BUTTON = 'mbx-mute-button';
+export const VOLUME_SLIDER = 'mbx-volume-slider';
+export const SKIP_BUTTON = 'mbx-skip-button';
+export const PIP_BUTTON = 'mbx-pip-button';
+export const FULLSCREEN_BUTTON = 'mbx-fullscreen-button';
+export const START_BUTTON = 'mbx-start-button';
+export const ERROR_SCREEN = 'mbx-error-screen';
+export const CURRENT_TIME = 'mbx-current-time';
+export const DURATION = 'mbx-duration';
+export const SEEK_BAR = 'mbx-seek-bar';
+export const LIVE_BUTTON = 'mbx-live-button';
+export const SPEED_MENU = 'mbx-speed-menu';
+export const QUALITY_MENU = 'mbx-quality-menu';
+export const AUDIO_MENU = 'mbx-audio-menu';
+export const SUBTITLES_MENU = 'mbx-subtitles-menu';
+export const DRM_BADGE = 'mbx-drm-badge';
+export const PANELS = 'mbx-panels';
+export const VOLUME = 'mbx-volume';

@@ -24,7 +24,9 @@
     // and resolve through node_modules to the built output instead.
     "paths": {
       "@mattebox/player-core": ["./packages/core/src/index.ts"],
-      "@mattebox/player": ["./packages/player/src/index.ts"]
+      "@mattebox/player": ["./packages/player/src/index.ts"],
+      "@mattebox/player/element": ["./packages/player/src/element-entry.ts"],
+      "@mattebox/player/elements/*": ["./packages/player/src/entries/*.ts"]
     }
   },
   "include": [

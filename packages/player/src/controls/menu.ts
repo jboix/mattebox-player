@@ -4,8 +4,9 @@
  * with a heading each, and pages behind entries that open them. The button
  * carries the name and `aria-expanded`; the popup is `role="menu"`, every
  * choice a `menuitemradio` with `aria-checked`, the checked one also
- * carrying `checked` on its part name; an entry that opens a page is a
- * `menuitem` with `aria-haspopup`, and the page starts with a Back.
+ * carrying `checked` on its part name, because an item inside a shadow
+ * root has no other seam a page can style; an entry that opens a page is
+ * a `menuitem` with `aria-haspopup`, and the page starts with a Back.
  *
  * Open on click. Inside, the arrows move focus across every item, Home and
  * End jump, Enter and Space choose, Escape goes back a page or closes and
@@ -13,12 +14,11 @@
  * anywhere else closes it too.
  *
  * The popup never leaves the picture: on opening it takes the room above
- * the button inside the stage as its height and scrolls past that.
+ * the button down to `ceiling()` as its height and scrolls past that. The
+ * element that owns the menu carries `open` while the popup shows, which
+ * the bar reads to hold its fade.
  */
 import { el, state } from '../dom.js';
-import type { Control } from './control.js';
-import type { IconName } from './icons.js';
-import { glyph, icon } from './icons.js';
 
 export interface MenuGroup {
   /** The part suffix: `track`, `size`. */
@@ -40,22 +40,26 @@ export interface MenuPage {
 export type MenuEntry = MenuGroup | MenuPage;
 
 export interface MenuOptions {
-  /** The part prefix: `quality`, `audio`, `text`, `speed`. */
-  readonly name: string;
-  /** The accessible name of the button. */
-  readonly label: string;
-  readonly icon: IconName;
+  /** The element the menu belongs to: it carries `open`, and a pointer inside it is not outside. */
+  readonly host: HTMLElement;
+  /** The top of the picture, in viewport pixels, which the popup never rises above. */
+  readonly ceiling: () => number | null;
+  /** The name of the Back item, from the page it leaves: "Back from {page}". */
+  readonly back: (page: string) => string;
 }
 
-export interface Menu extends Control {
+export interface Menu {
+  readonly button: HTMLButtonElement;
+  readonly popup: HTMLElement;
+  /** The accessible name of the button and the popup. */
+  label(text: string): void;
   /** Replaces the entries, back at the first page. */
   fill(entries: readonly MenuEntry[]): void;
-  /** Swaps the button's glyph, for a menu whose state shows on it. */
-  show(name: IconName): void;
   close(): void;
+  dispose(): void;
 }
 
-/** Air between the popup's top and the stage's. */
+/** Air between the popup's top and the picture's. */
 const AIR = 8;
 
 function isPage(entry: MenuEntry): entry is MenuPage {
@@ -63,22 +67,17 @@ function isPage(entry: MenuEntry): entry is MenuPage {
 }
 
 export function menu(options: MenuOptions): Menu {
-  const { name } = options;
-  const root = el('div', `menu ${name}-menu`);
-  const button = el('button', `control ${name}-button`);
+  const { host } = options;
+  const button = el('button', 'button');
   button.type = 'button';
-  button.setAttribute('aria-label', options.label);
   button.setAttribute('aria-haspopup', 'menu');
   button.setAttribute('aria-expanded', 'false');
-  const svg = icon(options.icon);
-  button.append(svg);
-  const popup = el('div', `popup ${name}-popup`);
+  const popup = el('div', 'popup');
   popup.setAttribute('role', 'menu');
-  popup.setAttribute('aria-label', options.label);
   popup.hidden = true;
-  root.append(button, popup);
 
   let open = false;
+  let name = '';
   let first: readonly MenuEntry[] = [];
   /** The pages opened, the first being the menu itself. */
   let stack: MenuPage[] = [];
@@ -98,14 +97,14 @@ export function menu(options: MenuOptions): Menu {
   }
 
   function outside(event: PointerEvent): void {
-    if (!event.composedPath().includes(root)) close();
+    if (!event.composedPath().includes(host)) close();
   }
 
-  /** Whatever room there is above the button inside the stage, so the popup never leaves the picture. */
+  /** Whatever room there is above the button down to the ceiling, so the popup never leaves the picture. */
   function fit(): void {
-    const stage = root.closest('[part~="stage"]');
-    if (stage === null) return;
-    const room = button.getBoundingClientRect().top - stage.getBoundingClientRect().top - AIR;
+    const top = options.ceiling();
+    if (top === null) return;
+    const room = button.getBoundingClientRect().top - top - AIR;
     popup.style.maxHeight = `${Math.max(0, Math.floor(room))}px`;
   }
 
@@ -133,18 +132,18 @@ export function menu(options: MenuOptions): Menu {
     if (page === undefined) return;
     let tab = true;
     if (stack.length > 1) {
-      const back = item(`item back-item ${name}-back-item`, page.label, () => {
+      const back = item('item back-item', page.label, () => {
         stack.pop();
         render();
         items()[0]?.focus();
       });
       back.setAttribute('role', 'menuitem');
-      back.setAttribute('aria-label', `Back from ${page.label}`);
+      back.setAttribute('aria-label', options.back(page.label));
       popup.append(back);
     }
     for (const entry of page.entries) {
       if (isPage(entry)) {
-        const link = item(`item page-item ${name}-${entry.name}-item`, entry.label, () => {
+        const link = item(`item page-item ${entry.name}-item`, entry.label, () => {
           stack.push(entry);
           render();
           items()[0]?.focus();
@@ -154,14 +153,14 @@ export function menu(options: MenuOptions): Menu {
         popup.append(link);
         continue;
       }
-      const section = el('div', `section ${name}-${entry.name}-section`);
+      const section = el('div', `section ${entry.name}-section`);
       section.setAttribute('role', 'group');
       if (entry.label !== undefined) {
         section.setAttribute('aria-label', entry.label);
-        section.append(el('div', `section-label ${name}-${entry.name}-label`, entry.label));
+        section.append(el('div', `section-label ${entry.name}-label`, entry.label));
       }
       for (const [id, text] of entry.items) {
-        const choice = item(`item ${name}-item ${name}-${entry.name}-item`, text, () => {
+        const choice = item(`item ${entry.name}-item`, text, () => {
           close();
           button.focus();
           entry.onSelect(id);
@@ -170,7 +169,7 @@ export function menu(options: MenuOptions): Menu {
         choice.setAttribute('role', 'menuitemradio');
         const on = id === entry.value;
         choice.setAttribute('aria-checked', String(on));
-        state(choice, `item ${name}-item ${name}-${entry.name}-item`, { checked: on });
+        state(choice, `item ${entry.name}-item`, { checked: on });
         // One tab stop: the first checked item.
         if (on && tab) {
           choice.tabIndex = 0;
@@ -188,7 +187,7 @@ export function menu(options: MenuOptions): Menu {
     open = false;
     popup.hidden = true;
     button.setAttribute('aria-expanded', 'false');
-    state(root, `menu ${name}-menu`, { open: false });
+    host.removeAttribute('open');
     document.removeEventListener('pointerdown', outside, true);
     if (stack.length > 1) {
       stack = stack.slice(0, 1);
@@ -201,7 +200,7 @@ export function menu(options: MenuOptions): Menu {
     open = true;
     popup.hidden = false;
     button.setAttribute('aria-expanded', 'true');
-    state(root, `menu ${name}-menu`, { open: true });
+    host.setAttribute('open', '');
     document.addEventListener('pointerdown', outside, true);
     fit();
     (checked() ?? items()[0])?.focus();
@@ -251,14 +250,19 @@ export function menu(options: MenuOptions): Menu {
   popup.addEventListener('keydown', key);
 
   return {
-    root,
+    button,
+    popup,
+    label(text: string): void {
+      name = text;
+      button.setAttribute('aria-label', text);
+      popup.setAttribute('aria-label', text);
+      const root = stack[0];
+      if (root !== undefined) stack[0] = { ...root, label: text };
+    },
     fill(entries): void {
       first = entries;
-      stack = [{ name, label: options.label, entries: first }];
+      stack = [{ name: 'menu', label: name, entries: first }];
       render();
-    },
-    show(glyphName: IconName): void {
-      glyph(svg, glyphName);
     },
     close,
     dispose(): void {

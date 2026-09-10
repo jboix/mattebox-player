@@ -34,6 +34,16 @@
       "modern": "./dist/index.js",
       "default": "./dist/es2015/index.js"
     },
+    "./element": {
+      "types": "./dist/element-entry.d.ts",
+      "modern": "./dist/element-entry.js",
+      "default": "./dist/es2015/element-entry.js"
+    },
+    "./elements/*": {
+      "types": "./dist/entries/*.d.ts",
+      "modern": "./dist/entries/*.js",
+      "default": "./dist/es2015/entries/*.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

@@ -40,12 +40,13 @@ The element puts a real `<video>` inside itself, in light DOM, with native
 controls. Reach it as `player.video` or with a query. Everything the browser
 already does stays on the video.
 
-| Need                      | Use                                   |
-| ------------------------- | ------------------------------------- |
-| Play, pause, seek, volume | `player.video`                        |
-| Native controls           | The video's `controls` attribute, set |
-| Which source is loaded    | `player.player.session`               |
-| The engine's namespaces   | `player.engine`, null for native      |
+| Need                       | Use                                   |
+| -------------------------- | ------------------------------------- |
+| Play, pause, seek, volume  | `player.video`                        |
+| Native controls            | The video's `controls` attribute, set |
+| The element's own controls | `controls="custom"`, chapter 03       |
+| Which source is loaded     | `player.player.session`               |
+| The engine's namespaces    | `player.engine`, null for native      |
 
 ## The core
 

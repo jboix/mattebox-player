@@ -1,13 +1,13 @@
 /**
- * Fullscreen on the stage, which is the video and the bar and nothing
- * else, through whichever API the browser has. Three shapes, tried in
- * order: the standard one; the `webkit` prefix on elements, which Safari
- * kept until 16.4; and the iPhone, which has fullscreen on the video alone.
- * None of them means no button.
+ * Fullscreen on the player itself, so the video and every control in it
+ * come along, through whichever API the browser has. Three shapes, tried
+ * in order: the standard one; the `webkit` prefix on elements, which
+ * Safari kept until 16.4; and the iPhone, which has fullscreen on the
+ * video alone. None of them means no button.
  *
- * The stage is in shadow DOM, so `document.fullscreenElement` reports the
- * host, retargeted; "active" is whether the fullscreen element is the host
- * or inside it.
+ * "Active" is whether the host is the fullscreen element, which `:fullscreen`
+ * answers whatever tree the host is in: `document.fullscreenElement` is
+ * retargeted when the host sits in a shadow root, and the pseudo-class is not.
  */
 
 interface PrefixedElement {
@@ -43,30 +43,20 @@ function watching(target: EventTarget, names: readonly string[]) {
   };
 }
 
-export function fullscreen(
-  host: HTMLElement,
-  stage: HTMLElement,
-  video: HTMLVideoElement,
-): Fullscreen {
+export function fullscreen(host: HTMLElement, video: HTMLVideoElement): Fullscreen {
   const doc = document as Document & PrefixedDocument;
-  const prefixed = stage as HTMLElement & PrefixedElement;
+  const prefixed = host as HTMLElement & PrefixedElement;
   const phone = video as HTMLVideoElement & PrefixedVideo;
 
-  /** Whether `node` is the host or inside it, which is what a retargeted fullscreen element is. */
-  function within(node: Element | null | undefined): boolean {
-    return node !== null && node !== undefined && host.contains(node);
-  }
-
-  if (typeof stage.requestFullscreen === 'function') {
+  if (typeof host.requestFullscreen === 'function') {
+    const active = (): boolean => host.matches(':fullscreen');
     return {
       supported: true,
-      active: () => within(document.fullscreenElement),
+      active,
       toggle(): void {
         // Both return promises that reject outside a user gesture or where
         // the page forbids it; there is nothing to do with that but drop it.
-        const request = within(document.fullscreenElement)
-          ? document.exitFullscreen()
-          : stage.requestFullscreen();
+        const request = active() ? document.exitFullscreen() : host.requestFullscreen();
         request.catch(() => undefined);
       },
       watch: watching(document, ['fullscreenchange']),
@@ -74,11 +64,12 @@ export function fullscreen(
   }
 
   if (typeof prefixed.webkitRequestFullscreen === 'function') {
+    const active = (): boolean => doc.webkitFullscreenElement === host;
     return {
       supported: true,
-      active: () => within(doc.webkitFullscreenElement),
+      active,
       toggle(): void {
-        if (within(doc.webkitFullscreenElement)) doc.webkitExitFullscreen?.();
+        if (active()) doc.webkitExitFullscreen?.();
         else prefixed.webkitRequestFullscreen?.();
       },
       watch: watching(document, ['webkitfullscreenchange']),

@@ -20,8 +20,6 @@
  * already follows the video's height, in the page and in fullscreen alike.
  * A page that wants more writes its own `mattebox-player > video::cue`.
  */
-import type { Control } from './control.js';
-
 /** How the sizes scale the browser's own cue size; the lift counts lines by it. */
 export const SCALES: Readonly<Record<string, number>> = {
   small: 0.75,
@@ -72,12 +70,16 @@ interface Placed {
   readonly lineAlign: LineAlignSetting;
 }
 
-export interface CueLift extends Control {
+export interface CueLift {
   /** Whether the bar is showing, so the cues move above it or back. */
   lifted(on: boolean): void;
+  dispose(): void;
 }
 
-export function cueLift(video: HTMLVideoElement, bar: HTMLElement, host: HTMLElement): CueLift {
+/** What the bar covers of the picture: from its first row's top, not its gradient run-in, to its bottom. */
+export type Covered = () => { readonly top: number; readonly bottom: number };
+
+export function cueLift(video: HTMLVideoElement, host: HTMLElement, covered: Covered): CueLift {
   /** The cues moved, with what they were, so they and only they are put back. */
   const lifted = new Map<VTTCue, Placed>();
   let on = false;
@@ -116,17 +118,11 @@ export function cueLift(video: HTMLVideoElement, bar: HTMLElement, host: HTMLEle
     return total;
   }
 
-  /** The bar's height from its first row, not its gradient run-in, to its bottom, which sits on the video's. */
-  function covered(): number {
-    const whole = bar.getBoundingClientRect();
-    const first = bar.firstElementChild?.getBoundingClientRect() ?? whole;
-    return whole.bottom - first.top;
-  }
-
   function apply(): void {
     const box = video.getBoundingClientRect();
     const height = box.height;
-    const pixels = covered();
+    const span = covered();
+    const pixels = span.bottom - span.top;
     const lift = on && height > 0 && pixels > 0 && pixels < height;
     const font = fontSize(height);
     const unit = font * LINE_HEIGHT;
@@ -197,7 +193,6 @@ export function cueLift(video: HTMLVideoElement, bar: HTMLElement, host: HTMLEle
   watch();
 
   return {
-    root: bar,
     lifted(next: boolean): void {
       on = next;
       apply();

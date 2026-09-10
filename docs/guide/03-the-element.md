@@ -1,44 +1,53 @@
 # 03 The element
 
-This chapter covers `<mattebox-player>`: its attributes, properties, events,
-and the panels it draws over the engine's namespaces.
+This chapter covers `<mattebox-player>`: its attributes, properties and
+events, and the controls that go inside it, over the picture under
+`controls="custom"` and in a row under it otherwise.
 
 ## Attributes
 
-| Attribute             | Is                                                                                                                                                                                                                                                   |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src`                 | The source URL. Changing it loads the new source.                                                                                                                                                                                                    |
-| `type`                | The source's MIME type. Optional when the extension is known.                                                                                                                                                                                        |
-| `preset`              | The engine preset by name, default `full`.                                                                                                                                                                                                           |
-| `license-url`         | The DRM license URL, given to `engine.drm.setLicenseUrl`.                                                                                                                                                                                            |
-| `thumbnails`          | A thumbnail track URL, given to `engine.thumbnails.load`.                                                                                                                                                                                            |
-| `controls`            | `native` (the default), `custom` for the element's own bar, or `none` for a page that draws its own. Changing it never reloads.                                                                                                                      |
-| `idle-ms`             | Milliseconds of pointer stillness before the bar hides while playing. Default 3000.                                                                                                                                                                  |
-| `seek-step`           | Seconds an arrow key moves the playhead on the seek bar. Default 5.                                                                                                                                                                                  |
-| `seek-page`           | Seconds Page Up and Page Down move it. Default 30.                                                                                                                                                                                                   |
-| `skip-back`           | Seconds the skip-back button moves the playhead. Default 10; 0 leaves that button out.                                                                                                                                                               |
-| `skip-forward`        | Seconds the skip-forward button moves it. Default 10; 0 leaves that button out.                                                                                                                                                                      |
-| `start`               | Whether the large play sits over the picture while paused. Default 1; 0 leaves it out.                                                                                                                                                               |
-| `live-window`         | How many forward buffer goals long a live window must be to get a seek bar. Default 3; 0 makes every live stream seekable.                                                                                                                           |
-| `layout`              | Which controls the buttons row carries, by name and in order, with `\|` between the left and the right cluster. A name left out is a control left out. Default `skip-back play skip-forward volume \| speed subtitles audio quality pip fullscreen`. |
-| `subtitle-size`       | `small`, `medium`, `large` or `xlarge`, as the subtitles menu sets it. Default medium.                                                                                                                                                               |
-| `subtitle-background` | `none`, `dark` or `solid`. Default dark.                                                                                                                                                                                                             |
-| `autoplay`            | Forwarded onto the video, as an attribute.                                                                                                                                                                                                           |
-| `muted`               | Forwarded onto the video, as an attribute and into its muted state, which the attribute alone sets only at creation.                                                                                                                                 |
-| `poster`              | Forwarded onto the video, as an attribute.                                                                                                                                                                                                           |
+| Attribute             | Is                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src`                 | The source URL. Changing it loads the new source. Setting it to its own value loads it again.                                                     |
+| `type`                | The source's MIME type. Optional when the extension is known.                                                                                     |
+| `preset`              | The engine preset by name, default `full`.                                                                                                        |
+| `license-url`         | The DRM license URL, given to `engine.drm.setLicenseUrl`.                                                                                         |
+| `thumbnails`          | A thumbnail track URL, given to `engine.thumbnails.load`.                                                                                         |
+| `controls`            | `native` (the default), `custom` for the controls elements inside the player, or `none` for a page that draws its own. Changing it never reloads. |
+| `subtitle-size`       | `small`, `medium`, `large` or `xlarge`, as the subtitles menu sets it. Default medium.                                                            |
+| `subtitle-background` | `none`, `dark` or `solid`. Default dark.                                                                                                          |
+| `autoplay`            | Forwarded onto the video, as an attribute.                                                                                                        |
+| `muted`               | Forwarded onto the video, as an attribute and into its muted state. The element also reflects the video's muted state back into it.               |
+| `poster`              | Forwarded onto the video, as an attribute.                                                                                                        |
+
+The element reflects state as attributes on itself, for the page's
+stylesheet and for the controls alike. `mattebox-player[playing]` is how a
+page styles the playing state.
+
+| State attribute              | Set by                        | While                                                       |
+| ---------------------------- | ----------------------------- | ----------------------------------------------------------- |
+| `paused`, `playing`, `ended` | The element                   | The video is in that state                                  |
+| `muted`                      | The element                   | The video is muted                                          |
+| `fullscreen`                 | The bar, the button           | The player is the fullscreen element                        |
+| `pip`                        | The picture-in-picture button | The video is in the floating window                         |
+| `idle`                       | The bar                       | The bar is hidden for stillness                             |
+| `live`                       | The seek bar                  | The stream has an availability window                       |
+| `seekable`                   | The seek bar                  | The stream can be seeked: VOD, or a live window wide enough |
 
 ## Properties
 
-| Property | Is                                    |
-| -------- | ------------------------------------- |
-| `player` | The core's `Player`                   |
-| `engine` | The current session's engine, or null |
-| `video`  | The `<video>` inside, in light DOM    |
+| Property | Is                                                                                  |
+| -------- | ----------------------------------------------------------------------------------- |
+| `player` | The core's `Player`                                                                 |
+| `engine` | The current session's engine, or null                                               |
+| `video`  | The `<video>` inside, in light DOM                                                  |
+| `error`  | The fatal error of the current load, or null once a load starts or playback resumes |
 
 ## Events
 
 The core's `sourcechange` and `error` are re-dispatched as `CustomEvent`s on
 the element, composed and bubbling, with the core's payload as `detail`.
+When `sourcechange` fires, `engine` already answers for the new session.
 
 ```ts
 player.addEventListener('error', (event) => {
@@ -49,88 +58,200 @@ player.addEventListener('error', (event) => {
 ## Stages come from the integrator
 
 Attribute-only usage gets the named preset, `full` unless the attribute says
-otherwise. `full` composes every stage the engine ships, so every panel has
+otherwise. `full` composes every stage the engine ships, so every control has
 its namespace and no source kind is missing an adapter. Naming a narrower
 preset, or passing a stage list, is optimization: it trades features for
 bytes, and the engine's guide chapter 02 has the matrix.
 
 From JavaScript, the constructor and the static `define()` accept a handler
-list or a stage list, so the page decides what the engine carries, and a
-`controls` object with the bar's knobs, which the attributes of the same
-names in kebab-case override.
+list or a stage list, so the page decides what the engine carries.
 
 ```ts
 import { MatteboxPlayerElement } from '@mattebox/player';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import abr from 'mattebox/stages/abr';
 
-MatteboxPlayerElement.define({
-  stages: [hlsCmaf(), abr()],
-  controls: { skipBack: 15, skipForward: 30, liveWindow: 2 },
-});
+MatteboxPlayerElement.define({ stages: [hlsCmaf(), abr()] });
 ```
 
-## The panels
+## The controls
 
-Under native controls the video carries playback and the panels, in a row
-under it, cover only what the video cannot show. Each one feature-tests its
-namespace and renders nothing for a native session. Under `controls="custom"`
-the row is hidden and the bar carries the same choices as menus: quality,
-audio and subtitles, with a live button and a lock for DRM.
+`controls="custom"` takes the browser's controls off the video, and the
+controls are elements the page places inside the player, beside the video.
+The bar lays its children out in its order; a control the page leaves out
+is a control left out. Every control carries its parameters and its words
+as attributes, and takes a page's own glyph through a slot.
 
-| Panel      | Shows                                                     | Namespace           |
-| ---------- | --------------------------------------------------------- | ------------------- |
-| Quality    | The renditions, with "auto" meaning no pin                | `engine.quality`    |
-| Tracks     | Audio and text track selectors                            | `engine.tracks`     |
-| Live       | A badge with the latency and a go-to-edge button          | `engine.live`       |
-| DRM        | The key system in use                                     | `engine.drm`        |
-| Thumbnails | The tile in the seek bar's preview, under custom controls | `engine.thumbnails` |
-| Error      | The category and code, with a retry                       | the `error` event   |
+```html
+<mattebox-player src="…" controls="custom">
+  <mbx-start-button></mbx-start-button>
+  <mbx-error-screen></mbx-error-screen>
+  <mbx-control-bar>
+    <mbx-current-time></mbx-current-time>
+    <mbx-seek-bar></mbx-seek-bar>
+    <mbx-duration></mbx-duration>
+    <mbx-play-button label-play="Reproduir" label-pause="Pausa"></mbx-play-button>
+    <mbx-skip-button seconds="15"></mbx-skip-button>
+    <mbx-spacer></mbx-spacer>
+    <mbx-fullscreen-button>
+      <svg slot="icon-enter" viewBox="0 0 32 32">…</svg>
+    </mbx-fullscreen-button>
+  </mbx-control-bar>
+</mattebox-player>
+```
 
-The live badge needs more than its namespace. `full` composes both live
-adapters, so `engine.live` is there for a VOD stream too; what makes a stream
-live is an availability window, so the badge shows only once `edge` is set.
+A player under `controls="custom"` with no `<mbx-control-bar>` child gets
+the default composition appended to its own light DOM, once its children
+are all in: the document parsed, or the microtask after a scripted
+connect. It is this, and a page can start from it:
 
-Thumbnails have no panel. Native controls expose no scrub position, so under
-`controls="native"` the `thumbnails` attribute loads the track and
-`engine.thumbnails.at(time)` answers for the app, and nothing is drawn. Under
-`controls="custom"` the seek bar's preview draws the tile above the pointer,
-scaled to `--mbx-preview-width`, 160px unless the page says otherwise.
+```html
+<mbx-start-button></mbx-start-button>
+<mbx-error-screen></mbx-error-screen>
+<mbx-control-bar>
+  <mbx-current-time></mbx-current-time>
+  <mbx-seek-bar></mbx-seek-bar>
+  <mbx-duration></mbx-duration>
+  <mbx-live-button></mbx-live-button>
+  <mbx-skip-button seconds="-10"></mbx-skip-button>
+  <mbx-play-button></mbx-play-button>
+  <mbx-skip-button seconds="10"></mbx-skip-button>
+  <mbx-volume></mbx-volume>
+  <mbx-spacer></mbx-spacer>
+  <mbx-speed-menu></mbx-speed-menu>
+  <mbx-subtitles-menu></mbx-subtitles-menu>
+  <mbx-audio-menu></mbx-audio-menu>
+  <mbx-quality-menu></mbx-quality-menu>
+  <mbx-pip-button></mbx-pip-button>
+  <mbx-fullscreen-button></mbx-fullscreen-button>
+</mbx-control-bar>
+```
 
-## The bar
+The bar has two rows: the seek row over the buttons row. A child with
+`slot="seek"` sits in the seek row; the times, the seek bar and the live
+button put themselves there unless the page wrote a `slot` of its own.
+Everything else sits in the buttons row, in its order, and `<mbx-spacer>`
+pushes what follows to the right.
 
-`controls="custom"` takes the browser's controls off the video and draws the
-element's own bar over it: the time, the seek bar and the duration, then
-skip back, play, skip forward, the volume, and on the right the menus and
-picture in picture and fullscreen. The panels row is hidden, and the bar
-carries its choices as menus. The bar fades on one timer: any pointer movement or press, any key,
-or playback starting re-arms it for `idle-ms`, and when it fires the bar
-hides unless the video is paused, a menu is open, or keyboard focus is
-inside it. Whether the pointer is over the element is never tracked. The
+### Only what you compose
+
+The root entry registers every element, and the CDN bundle carries them
+all. A page on a bundler that composes its own bar takes the player alone
+and one entry per control it writes, and carries only those:
+
+```ts
+import '@mattebox/player/element';
+import '@mattebox/player/elements/control-bar';
+import '@mattebox/player/elements/play-button';
+import '@mattebox/player/elements/seek-bar';
+```
+
+Each control entry registers its element and the player with it. A page on
+these entries writes its composition: the default one names elements the
+page did not import, and an element the page did not import renders
+nothing.
+
+### The elements
+
+Each element reads and writes the video from outside, the way a page would,
+and reads the engine's namespaces through the player. One that reads a
+namespace hides while the session has none: a native session shows no
+quality, audio or subtitles menu and no live button.
+
+| Element                 | Attributes                    | Labels                                                                                                                                                                                                         | Icon slots                               | Does                                                                                                                                              |
+| ----------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mbx-control-bar`       | `idle-ms`, `seek-step`        |                                                                                                                                                                                                                |                                          | The overlay, the fade, the shortcuts, the click on the video, and the subtitles lifted above it                                                   |
+| `mbx-spacer`            |                               |                                                                                                                                                                                                                |                                          | Takes the room in a row                                                                                                                           |
+| `mbx-play-button`       |                               | `label-play`, `label-pause`, `label-replay`                                                                                                                                                                    | `icon-play`, `icon-pause`, `icon-replay` | Play, pause, and replay once ended                                                                                                                |
+| `mbx-mute-button`       |                               | `label-mute`, `label-unmute`                                                                                                                                                                                   | `icon-mute`, `icon-low`, `icon-high`     | Mute and unmute, the level in the glyph, `aria-pressed`                                                                                           |
+| `mbx-volume-slider`     | `step`, `page`                | `label`                                                                                                                                                                                                        |                                          | The volume, zero while muted; a level above zero unmutes. Carries `dragging`                                                                      |
+| `mbx-volume`            |                               |                                                                                                                                                                                                                |                                          | The mute button with the slider unfolding from it under the pointer or focus; fills itself with both when empty                                   |
+| `mbx-skip-button`       | `seconds`, negative for back  | `label` with `{seconds}`                                                                                                                                                                                       | `icon`                                   | Moves the playhead by the amount, within what the video can reach                                                                                 |
+| `mbx-current-time`      |                               |                                                                                                                                                                                                                |                                          | The position, "1:23"; on live the wall clock or the distance behind the edge, hidden while live and not seekable                                  |
+| `mbx-duration`          |                               |                                                                                                                                                                                                                |                                          | The duration, "4:56", hidden on live                                                                                                              |
+| `mbx-seek-bar`          | `step`, `page`, `live-window` | `label`, `label-of` with `{current}` and `{duration}`, `label-behind` with `{time}`                                                                                                                            |                                          | The position, the buffered ranges, the live window and edge, and the preview. Sets `live` and `seekable`; carries `dragging`                      |
+| `mbx-live-button`       |                               | `text`, `label-live`, `label-at-edge`                                                                                                                                                                          |                                          | Shown on a live stream, seeks to the edge, disabled there. Carries `at-edge`                                                                      |
+| `mbx-speed-menu`        | `rates`, space-separated      | `label`, `label-normal`, `label-back` with `{page}`                                                                                                                                                            | `icon`                                   | `video.playbackRate`, for every session                                                                                                           |
+| `mbx-quality-menu`      |                               | `label`, `label-auto`, `label-back`                                                                                                                                                                            | `icon`                                   | The pin over `engine.quality`, where auto means none                                                                                              |
+| `mbx-audio-menu`        |                               | `label`, `label-back`                                                                                                                                                                                          | `icon`                                   | The audio track over `engine.tracks`, shown when there is a choice                                                                                |
+| `mbx-subtitles-menu`    |                               | `label`, `label-back`, `label-off`, `label-track`, `label-settings`, `label-size`, `label-background`, `label-small`, `label-medium`, `label-large`, `label-xlarge`, `label-none`, `label-dark`, `label-solid` | `icon`, `icon-on`                        | The text track with off, and a Settings page with the size and the background, written to `subtitle-size` and `subtitle-background` on the player |
+| `mbx-drm-badge`         |                               | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                             | `icon`                                   | A lock over `engine.drm`, its tooltip on hover and focus. Not in the default composition                                                          |
+| `mbx-pip-button`        |                               | `label-enter`, `label-exit`                                                                                                                                                                                    | `icon-enter`, `icon-exit`                | Picture in picture, hidden without an API. Sets `pip`                                                                                             |
+| `mbx-fullscreen-button` |                               | `label-enter`, `label-exit`                                                                                                                                                                                    | `icon-enter`, `icon-exit`                | Fullscreen on the player, hidden without an API. Sets `fullscreen`                                                                                |
+| `mbx-start-button`      |                               | `label-play`, `label-replay`                                                                                                                                                                                   | `icon-play`, `icon-replay`               | The large play over the picture while paused, a replay once ended, gone while playing and behind an error                                         |
+| `mbx-error-screen`      |                               | `label-title`, `label-retry`                                                                                                                                                                                   |                                          | A fatal error over the picture, with the category, the code and a retry that loads `src` again                                                    |
+| `mbx-panels`            |                               |                                                                                                                                                                                                                |                                          | The row under the video for native controls, hidden while every child is                                                                          |
+
+Every menu carries `open` on itself while its popup shows, and the bar
+holds its fade while any descendant does. A popup never leaves the picture:
+it takes the room above its button as its height and scrolls past that.
+
+### Words
+
+Every word a control shows or names itself with is an attribute of that
+control, and English is the value when the attribute is absent. One name
+per state: `label-play`, `label-pause`, `label-replay`. A label with a value
+carries it in braces, and a name the control has no value for stays as
+written: `label="Enrere {seconds} segons"`. Translation is the page's, in
+whatever way the page manages its strings; the element ships no locales.
+
+```html
+<mbx-play-button label-play="Reproduir" label-pause="Pausa" label-replay="Torna a reproduir"></mbx-play-button>
+<mbx-skip-button seconds="-10" label="Enrere {seconds} segons"></mbx-skip-button>
+<mbx-seek-bar label="Cerca" label-of="{current} de {duration}"></mbx-seek-bar>
+```
+
+A track's name in the audio and subtitles menus is the language, then the
+role, then the id, whichever the manifest gave, and a rendition's is its
+height or its bitrate. Those come from the stream and have no attribute.
+
+### Glyphs
+
+A button's glyph is a named slot per state, with the element's own glyph as
+the fallback. A page drops its own SVG in, and the button keeps its name:
+the glyph is decoration, `aria-hidden`, and the name is on the button where
+a screen reader reads it.
+
+```html
+<mbx-play-button>
+  <svg slot="icon-play" viewBox="0 0 24 24"><path d="…" /></svg>
+  <svg slot="icon-pause" viewBox="0 0 24 24"><path d="…" /></svg>
+</mbx-play-button>
+```
+
+The element's own glyphs come from Vidstack's media-icons, MIT, and the
+notice ships in the package as `NOTICE`.
+
+### A control of your own
+
+Any element inside the bar is a control. It sits in the row where the page
+put it, and it finds its player the way the element's own controls do:
+
+- The nearest `mattebox-player` above it, through shadow hosts. Wait for
+  `customElements.whenDefined('mattebox-player')` before reading it.
+- `player.video` for playback, `player.engine` for the namespaces, null for
+  a native session, `player.player` for the core, and `player.error`.
+- `sourcechange` on the player for a new session, `error` for a failure.
+- Set `open` on itself while it shows a popup, so the bar holds its fade.
+- A real `<button>` for anything Space should reach: the bar leaves Space
+  to a focused button.
+
+That is the whole surface a control gets. Anything the element's own
+controls need beyond it is a gap in this API, and the gap is the bug.
+
+### The bar
+
+The bar fades on one timer: any pointer movement or press, any key, or
+playback starting re-arms it for `idle-ms`, and when it fires the bar hides
+unless the video is paused, a descendant carries `open`, or keyboard focus
+is inside it. Whether the pointer is over the element is never tracked. The
 fade honours `prefers-reduced-motion`.
 
-For live, the seek bar maps the availability window and marks the edge, and
-a dot, red at the edge and grey behind it, seeks to the edge on a click. The
-time and the hover preview read the wall clock when the stream carries an
-anchor, program date time or an availability start, and the distance behind
-the edge otherwise. A window under `live-window` buffer goals gets no bar,
-since there is nowhere to go, and then the dot stays red and the button
-inert, since there is nowhere to come back from either.
-
-Fullscreen goes on the stage, the video and the bar and nothing else. The
-stage is in shadow DOM and `:fullscreen` does not match the element for it,
-so the element reflects the state as a `fullscreen` attribute on itself:
-`mattebox-player[fullscreen] > video` is how a page styles the video in
-that state, and lifts any height it capped it at.
-
-The hover preview shows the time and, given a `thumbnails` track, the tile.
-
-The subtitles menu carries the track, and a Settings page behind it with a
-size and a background, which the element reflects as `subtitle-size` and
-`subtitle-background` on itself, so a page can set them in markup and
-persist them as it likes. The speed menu writes `video.playbackRate`. A
-menu never leaves the picture: it takes the room above its button as its
-height and scrolls past that.
+Fullscreen goes on the player itself, so every control the page placed
+inside comes along, and `mattebox-player:fullscreen` matches. The player
+reflects it as `fullscreen` too, for the Safari versions that have only the
+prefixed API: `mattebox-player[fullscreen] > video` is how a page lifts any
+height it capped the video at.
 
 Subtitles are the browser's own cues on the video, so while the bar shows,
 every active cue the author left unpositioned is moved above it, and put
@@ -142,6 +263,14 @@ sizes are percentages of the browser's own cue size, which follows the
 video's height. A page that wants more writes its own
 `mattebox-player > video::cue` rule, which wins by coming later.
 
+For live, the seek bar maps the availability window and marks the edge, and
+the live button seeks to the edge on a click. The time and the hover
+preview read the wall clock when the stream carries an anchor, program date
+time or an availability start, and the distance behind the edge otherwise.
+A window under `live-window` buffer goals gets no bar, since there is
+nowhere to go, and then the live button stays red and inert, since there is
+nowhere to come back from either.
+
 Every control is keyboard reachable and named, and the sliders read their
 value in words. While focus is inside the element, these keys work from
 anywhere in it:
@@ -151,115 +280,92 @@ anywhere in it:
 | Space, `k`                     | Play or pause. Space on a button is that button's         |
 | `m`                            | Mute or unmute                                            |
 | `f`                            | Enter or leave fullscreen                                 |
-| Left, Right                    | Seek by `seek-step`                                       |
+| Left, Right                    | Seek by the bar's `seek-step`                             |
 | Up, Down, Page keys, Home, End | On a slider, move it by its step, its page, or to its end |
 | Up, Down, Home, End, Escape    | In a menu, move, and close                                |
-
-The `layout` attribute, or the `layout` option, says which of these the
-buttons row carries and in what order: `skip-back`, `play`, `skip-forward`,
-`volume`, `speed`, `subtitles`, `audio`, `quality`, `drm`, `pip` and
-`fullscreen`, with `|` between the left and the right cluster. The seek row
-is not part of it. The package exports the default as `LAYOUT`; `drm`, the
-lock, is not in it.
-
-Over the picture, a large play shows while the video is paused and a replay
-once it has ended, and a fatal error takes the whole picture with the
-category, the code and a retry, in place of the row under the video that
-native mode uses.
 
 A click on the video toggles play. Under `custom` the element gives itself
 `tabindex="0"` so a click on the video leaves the shortcuts somewhere to
 listen; a page that set its own `tabindex` keeps it.
 
+## The panels
+
+Under `controls="native"` and `none` the video carries playback, and a row
+under it covers only what the video cannot show: the same menu elements the
+bar carries, in `<mbx-panels>`, appended by default when the page wrote none.
+Each one feature-tests its namespace and hides for a native session, and the
+row hides with the last of them.
+
+```html
+<mbx-panels>
+  <mbx-quality-menu></mbx-quality-menu>
+  <mbx-audio-menu></mbx-audio-menu>
+  <mbx-subtitles-menu></mbx-subtitles-menu>
+  <mbx-live-button></mbx-live-button>
+  <mbx-drm-badge></mbx-drm-badge>
+</mbx-panels>
+```
+
+A fatal error under native controls goes in the element's own row under the
+video, the error surface, with the category, the code and a retry; under
+`custom` the error screen element carries it instead.
+
+The live button needs more than its namespace. `full` composes both live
+adapters, so `engine.live` is there for a VOD stream too; what makes a stream
+live is an availability window, so the button shows only once `edge` is set.
+
+Thumbnails have no panel. Native controls expose no scrub position, so under
+`controls="native"` the `thumbnails` attribute loads the track and
+`engine.thumbnails.at(time)` answers for the app, and nothing is drawn. Under
+`controls="custom"` the seek bar's preview draws the tile above the pointer,
+scaled to `--mbx-preview-width`, 160px unless the page says otherwise.
+
 ## Styling
 
-The panels are in shadow DOM, so the page's stylesheet does not reach them by
-accident. It reaches them on purpose through `::part()`, which carries every
-CSS property.
+The controls are elements in the page's own light DOM, so the page's
+stylesheet reaches each one by its tag: `mbx-play-button { margin: 0 4px }`.
+Their insides are in shadow DOM, reached on purpose through `::part()`,
+which carries every CSS property, and state on the element itself is an
+attribute the selector can read.
 
 ```css
-mattebox-player::part(quality-option) { font: inherit; border-radius: 0; }
-mattebox-player::part(quality-option):hover { background: rebeccapurple; }
-mattebox-player::part(live-badge)::after { content: ' ●'; }
+mbx-play-button::part(button) { border-radius: 50%; }
+mattebox-player[playing] mbx-play-button::part(icon) { fill: rebeccapurple; }
+mbx-quality-menu::part(item):hover { background: rebeccapurple; }
+mbx-live-button[at-edge]::part(dot) { box-shadow: none; }
+mbx-panels { background: #000; }
 ```
 
 Two rules make that work, and neither is optional. Nothing in the element's
-own stylesheet carries `!important`: for normal declarations the outer tree
+own stylesheets carries `!important`: for normal declarations the outer tree
 wins over the shadow tree, so a page's `::part()` rule beats the default
-whatever its specificity, and an `!important` inside would invert that.
-And every element the element draws carries a `part`, because `::part()`
-cannot descend: `::part(quality) select` matches nothing.
+whatever its specificity, and an `!important` inside would invert that. And
+every element the controls draw carries a `part`, because `::part()` cannot
+descend.
 
-Each element carries a generic name before its specific one, so
-`::part(select)` reaches every menu and `::part(quality-select)` reaches one.
-
-| Part                                                                                                                                            | Is                                                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `stage`                                                                                                                                         | Wraps the video, and holds the bar over it                                                             |
-| `controls`                                                                                                                                      | The bar, while `controls="custom"`                                                                     |
-| `idle`                                                                                                                                          | On the bar while it is hidden for stillness                                                            |
-| `playing`, `muted`, `fullscreen`                                                                                                                | On the bar while the video is in that state                                                            |
-| `row`, `seek-row`, `buttons`                                                                                                                    | The bar's rows: the time, the bar, the duration and the live button; then the buttons                  |
-| `group`, `volume-group`, `cluster`                                                                                                              | The mute button with its slider, which unfolds under the pointer or focus; and the right-hand cluster  |
-| `skip-back-button`, `skip-forward-button`                                                                                                       | The skip buttons                                                                                       |
-| `seek-backward-icon`, `seek-forward-icon`, and the `-10` and `-30` forms                                                                        | Their glyphs                                                                                           |
-| `seekable`                                                                                                                                      | On the bar while the stream can be seeked: always for VOD, and for live once the window is wide enough |
-| `seek`, `seek-track`, `seek-fill`, `seek-thumb`                                                                                                 | The seek bar and its layers                                                                            |
-| `buffered`, `buffered-range`, `seek-buffered`, `seek-buffered-range`                                                                            | The buffered ranges on the track                                                                       |
-| `hover`, `seek-hover`, `preview`, `seek-preview`                                                                                                | The hover position, and the box above it                                                               |
-| `preview-image`, `preview-tile`, `preview-time`, and the `seek-` forms                                                                          | The tile and the time inside the preview                                                               |
-| `edge`, `seek-edge`                                                                                                                             | The live edge on the track                                                                             |
-| `live-button`, `live-dot`, `live-text`                                                                                                          | The live button, its dot and its word; the button and the dot carry `at-edge` at the edge              |
-| `slot`, `subtitles-slot`, `audio-slot`, `quality-slot`, `drm-slot`                                                                              | Where a per-session menu sits in the row, empty for a native session                                   |
-| `menu`, `quality-menu`, `audio-menu`, `text-menu`                                                                                               | A menu: its button and its popup                                                                       |
-| `quality-button`, `audio-button`, `text-button`                                                                                                 | The button that opens a menu                                                                           |
-| `popup`, `quality-popup`, `audio-popup`, `text-popup`, `speed-popup`                                                                            | The list above the button                                                                              |
-| `section`, `section-label`, and the `text-track-section`, `text-size-section`, `text-background-section` forms                                  | A section of a list and its heading                                                                    |
-| `speed-menu`, `speed-button`, `speed-item`, `playback-speed-icon`                                                                               | The speed menu                                                                                         |
-| `item`, `quality-item`, `audio-item`, `text-item`                                                                                               | One choice in a list                                                                                   |
-| `page-item`, `text-settings-item`, `back-item`, `text-back-item`                                                                                | An entry that opens a page, and the Back at a page's top                                               |
-| `open`                                                                                                                                          | On a menu while its popup shows                                                                        |
-| `checked`                                                                                                                                       | On the chosen item                                                                                     |
-| `drm-badge`                                                                                                                                     | The lock, named for the key system and its keys                                                        |
-| `tooltip`, `drm-tooltip`, `tooltip-title`, `tooltip-text`                                                                                       | What the lock shows on hover or focus: the key system and the key statuses                             |
-| `settings-icon`, `music-icon`, `closed-captions-icon`, `closed-captions-on-icon`, `lock-closed-icon`                                            | The glyphs of the menus and the lock                                                                   |
-| `live`                                                                                                                                          | On the bar while the stream has an availability window                                                 |
-| `control`, `play-button`, `mute-button`, `pip-button`, `fullscreen-button`                                                                      | The bar's buttons                                                                                      |
-| `start-button`                                                                                                                                  | The large play over the picture while paused, a replay once ended                                      |
-| `paused`                                                                                                                                        | On the bar while the video is paused                                                                   |
-| `error-screen`, `error-box`, `error-title`, `error-detail`, `error-separator`, `error-retry`                                                    | The error over the picture under custom controls; `error-category` and `error-code` as in the row      |
-| `pip`                                                                                                                                           | On the bar while the video is in picture in picture                                                    |
-| `picture-in-picture-icon`, `picture-in-picture-exit-icon`                                                                                       | The picture-in-picture glyphs                                                                          |
-| `icon`, `play-icon`, `pause-icon`, `replay-icon`, `mute-icon`, `volume-low-icon`, `volume-high-icon`, `fullscreen-icon`, `fullscreen-exit-icon` | The glyph inside a button, by what it shows                                                            |
-| `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                      | Every slider and its layers; the rail is the track's extent, inset so the thumb is whole at either end |
-| `volume`, `volume-track`, `volume-fill`, `volume-thumb`                                                                                         | The volume slider                                                                                      |
-| `dragging`                                                                                                                                      | On a slider while a pointer holds it                                                                   |
-| `at-edge`                                                                                                                                       | On the live button, as on the live panel, while the playhead is at the edge                            |
-| `time`, `current-time`, `time-separator`, `duration`                                                                                            | The time display                                                                                       |
-| `panels`                                                                                                                                        | The bar holding the panels                                                                             |
-| `panel`                                                                                                                                         | Every panel root, and the error surface                                                                |
-| `label`, `text`, `value`, `select`, `option`, `button`, `badge`                                                                                 | Every element of that kind                                                                             |
-| `quality`, `quality-label`, `quality-text`, `quality-select`, `quality-playing`                                                                 | The quality menu, and the rendition decoding now                                                       |
-| `tracks`, `audio-label`, `audio-text`, `audio-select`                                                                                           | The audio menu                                                                                         |
-| `text-label`, `text-text`, `text-select`                                                                                                        | The subtitle menu                                                                                      |
-| `live`, `live-badge`, `live-latency`, `live-edge-button`                                                                                        | The live badge                                                                                         |
-| `at-edge`                                                                                                                                       | On the live panel while the playhead is at the edge                                                    |
-| `drm`, `drm-text`, `drm-key-system`                                                                                                             | The DRM indicator                                                                                      |
-| `error`, `error-category`, `error-code`, `error-retry`                                                                                          | The error surface                                                                                      |
-
-State rides the part name because `::part()` takes no attribute selector:
-`mattebox-player::part(at-edge)` is how a page styles the edge state.
+| Element                             | Parts                                                                                                                                     |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `mattebox-player`                   | `stage`, and the error surface: `error`, `error-category`, `error-code`, `error-retry`, `value`, `button`                                 |
+| `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                          |
+| Every button control                | `button`, `icon`                                                                                                                          |
+| `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                |
+| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `hover`, `edge`, `preview`, `preview-image`, `preview-tile`, `preview-time`                                 |
+| `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                   |
+| Every menu                          | `button`, `icon`, `popup`, `section`, `section-label`, `item`, `page-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
+| A menu's chosen item                | `checked`, on the item's part: the one state that rides a part name, because an item inside a shadow root has no other seam               |
+| `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                        |
+| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `retry`                                                                        |
 
 Part names are public API. New ones are added freely; existing ones are not
 renamed without a major version.
 
-For the tokens that cross every panel there are custom properties, which also
-work on browsers older than `::part()`: `--mbx-surface`, `--mbx-text`,
+For the tokens that cross every control there are custom properties, set on
+the player and inherited into every control: `--mbx-surface`, `--mbx-text`,
 `--mbx-muted`, `--mbx-accent`, `--mbx-error`, `--mbx-radius`, `--mbx-gap`,
 `--mbx-pad`, `--mbx-font`, `--mbx-live`, `--mbx-preview-width`.
 
-The shadow root is open, so a page that needs more than `::part()` reaches
-past it: `player.shadowRoot.append(style)` on any browser, or
+The shadow roots are open, so a page that needs more than `::part()` reaches
+past them: `control.shadowRoot.append(style)` on any browser, or
 `adoptedStyleSheets` on a modern one.
 
 The `<video>` is in light DOM, so the page styles it directly. Its default
@@ -281,20 +387,52 @@ the two packages are for.
 ## Lifecycle
 
 `disconnectedCallback` disposes the session. Reconnecting reloads the `src`.
+A control attaches when it is connected inside a player and detaches when it
+is removed, so a framework that reorders or replaces children is safe.
 
 ## Example
 
+A player with its own bar in Catalan, its own play glyphs, and a control of
+the page's own.
+
 ```html
-<mattebox-player
-  src="https://example.com/live/master.m3u8"
-  preset="hls"
-  muted
-  autoplay
-></mattebox-player>
+<mattebox-player src="https://example.com/vod/master.m3u8" controls="custom">
+  <mbx-start-button label-play="Reproduir"></mbx-start-button>
+  <mbx-error-screen label-title="Error de reproducció" label-retry="Torna-ho a provar"></mbx-error-screen>
+  <mbx-control-bar>
+    <mbx-current-time></mbx-current-time>
+    <mbx-seek-bar label="Cerca" label-of="{current} de {duration}"></mbx-seek-bar>
+    <mbx-play-button label-play="Reproduir" label-pause="Pausa">
+      <svg slot="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+      <svg slot="icon-pause" viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z" /></svg>
+    </mbx-play-button>
+    <mbx-volume>
+      <mbx-mute-button label-mute="Silencia" label-unmute="Activa el so"></mbx-mute-button>
+      <mbx-volume-slider label="Volum"></mbx-volume-slider>
+    </mbx-volume>
+    <mbx-spacer></mbx-spacer>
+    <my-share-button></my-share-button>
+    <mbx-fullscreen-button label-enter="Pantalla completa" label-exit="Surt"></mbx-fullscreen-button>
+  </mbx-control-bar>
+</mattebox-player>
 
 <script type="module">
   import '@mattebox/player';
+
+  class MyShareButton extends HTMLElement {
+    async connectedCallback() {
+      await customElements.whenDefined('mattebox-player');
+      const player = this.closest('mattebox-player');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.setAttribute('aria-label', 'Comparteix');
+      button.textContent = '↗';
+      button.addEventListener('click', () => {
+        navigator.share({ url: player.getAttribute('src') });
+      });
+      this.append(button);
+    }
+  }
+  customElements.define('my-share-button', MyShareButton);
 </script>
 ```
-
-Next: [04 CDN](04-cdn.md).
