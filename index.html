@@ -18,8 +18,8 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/mattebox-player/assets/index-C4DRvt8a.js"></script>
-  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-CNZHXBjj.css">
+  <script type="module" crossorigin src="/mattebox-player/assets/index-BrCYDIvb.js"></script>
+  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-CfekwhTg.css">
 </head>
 <body>
   <header class="masthead">
@@ -93,7 +93,8 @@
         <div class="checks">
           <label class="check"><input type="checkbox" data-flag="autoplay" /><span>Autoplay</span></label>
           <label class="check"><input type="checkbox" data-flag="muted" checked /><span>Start muted</span></label>
-          <label class="check"><input type="checkbox" data-knob-flag="start" checked /><span>Big play button</span></label>
+          <label class="check"><input type="checkbox" data-screen="start" checked /><span>Big play button</span></label>
+          <label class="check"><input type="checkbox" data-screen="error" checked /><span>Error screen</span></label>
         </div>
         <label class="field"><span>Poster URL</span><input type="url" id="poster" placeholder="https://…/poster.jpg" /></label>
         <div class="pair">
@@ -146,29 +147,44 @@
 
       <fieldset class="group" id="layout">
         <legend>Layout</legend>
-        <p class="hint">Tick what the bar carries. Drag to reorder, across the two sides too.</p>
+        <p class="hint">Tick what the bar carries. Drag to reorder, across the rows and the sides too.</p>
+        <h3>Seek row</h3>
+        <ul id="layout-seek" class="layout-list" data-row="seek"></ul>
         <div class="pair sides">
           <div>
             <h3>Left</h3>
-            <ul id="layout-left" class="layout-list" data-side="left"></ul>
+            <ul id="layout-left" class="layout-list" data-row="left"></ul>
           </div>
           <div>
             <h3>Right</h3>
-            <ul id="layout-right" class="layout-list" data-side="right"></ul>
+            <ul id="layout-right" class="layout-list" data-row="right"></ul>
           </div>
         </div>
       </fieldset>
 
       <fieldset class="group" id="knobs">
         <legend>Knobs</legend>
+        <p class="hint">Each one is an attribute on the control that uses it.</p>
         <div class="pair">
-          <label class="field"><span>Skip back, seconds</span><input type="number" min="0" step="1" data-knob="skip-back" value="10" /></label>
-          <label class="field"><span>Skip forward, seconds</span><input type="number" min="0" step="1" data-knob="skip-forward" value="10" /></label>
+          <label class="field"><span>Skip back, seconds</span><input type="number" min="1" step="1" data-knob="skip-back" value="10" /></label>
+          <label class="field"><span>Skip forward, seconds</span><input type="number" min="1" step="1" data-knob="skip-forward" value="10" /></label>
           <label class="field"><span>Idle, ms</span><input type="number" min="0" step="100" data-knob="idle-ms" value="3000" /></label>
           <label class="field"><span>Seek step, seconds</span><input type="number" min="0" step="1" data-knob="seek-step" value="5" /></label>
           <label class="field"><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
           <label class="field"><span>Live window, buffer goals</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
         </div>
+        <label class="field"><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
+      </fieldset>
+
+      <fieldset class="group" id="words">
+        <legend>Words</legend>
+        <p class="hint">Every word is an attribute on its control, so a language is a set of them.</p>
+        <label class="field">
+          <span>Language</span>
+          <select id="language">
+            <option value="en">English</option>
+          </select>
+        </label>
       </fieldset>
     </aside>
 

@@ -1,1 +1,0 @@
-import{o as e}from"./index-C4DRvt8a.js";var t=e(`kernel`,()=>[]);export{t as default};
