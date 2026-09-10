@@ -103,11 +103,27 @@ export function cueLift(video: HTMLVideoElement, host: HTMLElement, covered: Cov
     return canvas;
   }
 
+  /**
+   * A cue's text without its tags, for measuring: `<b>`, `<c.name>`, the
+   * timestamps and their closers. Brackets are counted, so a tag inside
+   * another's brackets goes with it.
+   */
+  function plain(text: string): string {
+    let out = '';
+    let depth = 0;
+    for (const char of text) {
+      if (char === '<') depth += 1;
+      else if (char === '>') depth = Math.max(0, depth - 1);
+      else if (depth === 0) out += char;
+    }
+    return out;
+  }
+
   /** The lines a cue takes: its own, each wrapped at the cue box's width. */
   function lines(cue: VTTCue, font: number, width: number): number {
     const context = measure();
     let total = 0;
-    for (const line of cue.text.replace(/<[^>]+>/g, '').split('\n')) {
+    for (const line of plain(cue.text).split('\n')) {
       if (context === null) {
         total += 1;
         continue;

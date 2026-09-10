@@ -169,9 +169,27 @@ for (const stream of STREAMS) {
   streamList.append(item);
 }
 
+/** The schemes a source may come over. */
+const SCHEMES = ['http:', 'https:', 'blob:', 'data:'];
+
+/** A typed URL as the player gets it: absolute, over one of the schemes, or nothing. */
+function mediaUrl(text: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(text);
+  } catch {
+    return null;
+  }
+  return SCHEMES.includes(url.protocol) ? url.href : null;
+}
+
 byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
-  const url = streamUrl.value.trim();
-  if (url === '') return;
+  if (streamUrl.value.trim() === '') return;
+  const url = mediaUrl(streamUrl.value.trim());
+  if (url === null) {
+    say('not a URL the player can load', 'bad');
+    return;
+  }
   const license = licenseUrl.value.trim();
   const thumbs = thumbUrl.value.trim();
   // A hand-edited URL is its own entry: no keys, no note.
@@ -498,11 +516,20 @@ function knob(name: string): string | null {
   return value === '' || value === KNOB_DEFAULTS[name] ? null : value;
 }
 
+/** A value inside a quoted attribute: the characters that could end it, or open a tag, as entities. */
+function quoted(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 /** One element as markup: the tag, then the attributes in the order given. */
 function tag(name: string, attributes: Readonly<Record<string, string | null>>): string {
   const text = Object.entries(attributes)
     .filter((entry): entry is [string, string] => entry[1] !== null)
-    .map(([key, value]) => ` ${key}="${value}"`)
+    .map(([key, value]) => ` ${key}="${quoted(value)}"`)
     .join('');
   return `<${name}${text}></${name}>`;
 }
@@ -519,7 +546,8 @@ function words(tagName: string, name: string): Record<string, string | null> {
 
 /** A control's markup: its tag, its knobs, and its words. */
 function controlMarkup(name: string, row: Row): string {
-  const tagName = TAGS.get(name) ?? name;
+  const tagName = TAGS.get(name);
+  if (tagName === undefined) return '';
   const own: Record<string, string | null> = {};
   const seekRow = ['current-time', 'seek-bar', 'duration', 'live'];
   if (row === 'seek' && !seekRow.includes(name)) own.slot = 'seek';
@@ -558,7 +586,7 @@ function composition(): string {
     ...on('left').map((name) => controlMarkup(name, 'left')),
     ...(on('right').length > 0 ? ['<mbx-spacer></mbx-spacer>'] : []),
     ...on('right').map((name) => controlMarkup(name, 'right')),
-  ];
+  ].filter((line) => line !== '');
   const bar = tag('mbx-control-bar', {
     'idle-ms': knob('idle-ms'),
     'seek-step': knob('seek-step'),
