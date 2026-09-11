@@ -48,6 +48,6 @@
     "release:ci": "semantic-release"
   },
   "peerDependencies": {
-    "mattebox": "^0.2.1"
+    "mattebox": "^0.3.0"
   }
 }

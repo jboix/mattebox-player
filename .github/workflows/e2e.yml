@@ -34,4 +34,4 @@ jobs:
       - name: Install browsers
         uses: ./.github/actions/playwright-browsers
       - name: Demo page E2E
-        run: npx playwright test
+        run: npm run test:e2e

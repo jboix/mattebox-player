@@ -63,9 +63,10 @@ jobs:
       - name: Browser tests
         run: npm run test:browser
 
-  # The demo page in three real browsers, built and served the way the hosted
-  # page is. Its own job so the verify tiers and the browsers download in
-  # parallel; `npm run test:e2e` runs the same suite locally.
+  # The demo page in three real browsers, over its sources. Its own job so the
+  # verify tiers and the browsers download in parallel; `npm run test:e2e`
+  # runs the same suite locally. The build comes first: no other gate on a
+  # pull request proves the hosted page still builds.
   demo-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -83,6 +84,8 @@ jobs:
         env:
           HUSKY: '0'
         run: npm ci
+      - name: Build demo
+        run: npm run demo:build
       - name: Install browsers
         uses: ./.github/actions/playwright-browsers
       - name: Demo page E2E

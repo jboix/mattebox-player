@@ -1,31 +1,36 @@
-import { fileURLToPath } from 'node:url';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
+import { alias } from './vitest.alias.js';
 
-// Tests import the workspace packages by name and get their sources, the
-// same mapping as tsconfig.json's paths, so no build is needed first.
-const alias = [
-  {
-    find: '@mattebox/player-core',
-    replacement: fileURLToPath(new URL('packages/core/src/index.ts', import.meta.url)),
-  },
-  {
-    find: '@mattebox/player/element',
-    replacement: fileURLToPath(new URL('packages/player/src/element-entry.ts', import.meta.url)),
-  },
-  {
-    find: /^@mattebox\/player\/elements\/(.+)$/,
-    replacement: fileURLToPath(new URL('packages/player/src/entries/$1.ts', import.meta.url)),
-  },
-  {
-    find: /^@mattebox\/player$/,
-    replacement: fileURLToPath(new URL('packages/player/src/index.ts', import.meta.url)),
-  },
-  {
-    find: '@mattebox/player-diagnostics',
-    replacement: fileURLToPath(new URL('packages/diagnostics/src/index.ts', import.meta.url)),
-  },
-];
+type Browser = 'chromium' | 'firefox' | 'webkit';
+
+/**
+ * The browser tier in one browser. Each browser is a project of its own so
+ * it can carry a `groupOrder`: Vitest runs the projects of one order together
+ * and the orders in sequence, so the three browsers run one after another
+ * rather than side by side. Together they starved each other on a small
+ * machine and left a run stuck now and then. Project names are unique, so
+ * the parent takes the browser's name and the instance keeps the name the
+ * reports always showed, `browser (chromium)`; `--project='browser*'`
+ * selects all three.
+ */
+function browserProject(browser: Browser, order: number) {
+  return {
+    resolve: { alias },
+    test: {
+      name: browser,
+      include: ['packages/*/test/browser/**/*.test.ts'],
+      setupFiles: ['./test/browser/setup.ts'],
+      sequence: { groupOrder: order },
+      browser: {
+        enabled: true,
+        headless: true,
+        provider: playwright(),
+        instances: [{ browser, name: `browser (${browser})` }],
+      },
+    },
+  };
+}
 
 export default defineConfig({
   resolve: { alias },
@@ -52,19 +57,9 @@ export default defineConfig({
           include: ['packages/*/test/node/**/*.test.ts', 'packages/*/src/**/*.test.ts'],
         },
       },
-      {
-        resolve: { alias },
-        test: {
-          name: 'browser',
-          include: ['packages/*/test/browser/**/*.test.ts'],
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright(),
-            instances: [{ browser: 'chromium' }, { browser: 'firefox' }, { browser: 'webkit' }],
-          },
-        },
-      },
+      browserProject('chromium', 1),
+      browserProject('firefox', 2),
+      browserProject('webkit', 3),
     ],
   },
 });

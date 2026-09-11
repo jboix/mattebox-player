@@ -8,7 +8,7 @@ Thanks for contributing. Agents working in this repository also follow
 
 ```sh
 npm install
-npx playwright install chromium firefox webkit   # browser and e2e tests
+npx playwright install chromium firefox webkit   # the browser tier and the demo page suite
 npm run verify    # everything CI checks
 ```
 
@@ -28,8 +28,9 @@ npm run verify    # everything CI checks
 | `npm run check:package`      | packages/\*/package.json      | publint and attw on each packed package                    |
 | `npm run test`               | Vitest                        | Node tests, and browser tests in Chromium, Firefox, WebKit |
 
-`npm run test:e2e` runs the Playwright tests against the built demo page. CI
-runs them nightly and on labeled pull requests, `verify` does not.
+`npm run test:e2e` runs the demo page suite: Vitest browser mode over the
+demo's sources, in Chromium, Firefox and WebKit. CI runs it on every pull
+request and nightly, `verify` does not.
 
 Requirements: Node 24 or later (see `.nvmrc`) and npm. The workspace uses npm
 workspaces; `package-lock.json` is the one lockfile.
@@ -42,7 +43,7 @@ workspaces; `package-lock.json` is the one lockfile.
 | `packages/player`      | `@mattebox/player`, with its CDN entry under `cdn/`             |
 | `packages/diagnostics` | `@mattebox/player-diagnostics`, with its CDN entry under `cdn/` |
 | `demo`                 | The demo page, a Vite app over the packages' sources            |
-| `test/e2e`             | The Playwright tests over the demo page                         |
+| `test/e2e`             | The demo page suite, Vitest browser mode                        |
 | `docs/guide`           | The user guide, one chapter per topic                           |
 | `scripts`              | The check scripts `verify` runs                                 |
 

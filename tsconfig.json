@@ -37,7 +37,8 @@
     "demo",
     "test",
     "vitest.config.ts",
-    "playwright.config.ts"
+    "vitest.e2e.config.ts",
+    "vitest.alias.ts"
   ],
   "exclude": ["demo/dist"]
 }
