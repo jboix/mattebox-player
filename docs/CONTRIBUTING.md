@@ -14,19 +14,20 @@ npm run verify    # everything CI checks
 
 `verify` runs:
 
-| Step                         | Tool                          | Checks                                                     |
-| ---------------------------- | ----------------------------- | ---------------------------------------------------------- |
-| `npm run lint`               | Biome                         | Formatting and lint rules                                  |
-| `npm run docs:check`         | remark                        | Markdown formatting, broken links and anchors              |
-| `npm run typecheck`          | tsc                           | Type errors, `strict` and `exactOptionalPropertyTypes`     |
-| `npm run depcruise`          | dependency-cruiser            | The core never imports the UI, cycles, runtime deps        |
-| `npm run knip`               | knip                          | Dead code, unused exports and dependencies                 |
-| `npm run build`              | tsc + Rolldown, per package   | Modern ESM, types, ES2015 ESM, the element's CDN bundle    |
-| `npm run check:emit`         | scripts/check-emit.mjs        | Banned TS constructs, stray bare import specifiers         |
-| `npm run check:side-effects` | scripts/side-effect-audit.mjs | Importing the core in isolation creates no global          |
-| `npx size-limit`             | size-limit                    | One budget per package, min+brotli                         |
-| `npm run check:package`      | packages/\*/package.json      | publint and attw on each packed package                    |
-| `npm run test`               | Vitest                        | Node tests, and browser tests in Chromium, Firefox, WebKit |
+| Step                         | Tool                          | Checks                                                       |
+| ---------------------------- | ----------------------------- | ------------------------------------------------------------ |
+| `npm run lint`               | Biome                         | Formatting and lint rules                                    |
+| `npm run docs:check`         | remark                        | Markdown formatting, broken links and anchors                |
+| `npm run typecheck`          | tsc                           | Type errors, `strict` and `exactOptionalPropertyTypes`       |
+| `npm run depcruise`          | dependency-cruiser            | The core never imports the UI, cycles, runtime deps          |
+| `npm run knip`               | knip                          | Dead code, unused exports and dependencies                   |
+| `npm run build`              | tsc + Rolldown, per package   | Modern ESM, types, ES2015 ESM, the element's CDN bundle      |
+| `npm run check:emit`         | scripts/check-emit.mjs        | Banned TS constructs, stray bare import specifiers           |
+| `npm run check:side-effects` | scripts/side-effect-audit.mjs | Importing the core in isolation creates no global            |
+| `npx size-limit`             | size-limit                    | One budget per package, min+brotli                           |
+| `npm run check:size-chart`   | scripts/size-chart.mjs        | docs/size-chart-\*.svg match the build and the pinned stacks |
+| `npm run check:package`      | packages/\*/package.json      | publint and attw on each packed package                      |
+| `npm run test`               | Vitest                        | Node tests, and browser tests in Chromium, Firefox, WebKit   |
 
 `npm run test:e2e` runs the demo page suite: Vitest browser mode over the
 demo's sources, in Chromium, Firefox and WebKit. CI runs it on every pull

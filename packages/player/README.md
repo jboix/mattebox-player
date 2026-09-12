@@ -1,4 +1,7 @@
-# @mattebox/player
+<h1>
+  <img src="https://raw.githubusercontent.com/jboix/mattebox-player/main/docs/logo.svg" width="44" height="44" align="absmiddle" alt="">
+  @mattebox/player
+</h1>
 
 The `<mattebox-player>` custom element of the
 [Mattebox player](https://github.com/jboix/mattebox-player): a real

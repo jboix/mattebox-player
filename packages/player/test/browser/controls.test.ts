@@ -1463,6 +1463,55 @@ describe('the seek bar', () => {
     expect(player.video.currentTime).toBeCloseTo(8, 0);
   });
 
+  it('lets the thumb go on a move with no button held, when the pointerup never reached it', async () => {
+    const player = await ready(10);
+    const element = control(player, 'mbx-seek-bar');
+    const seek = knob(element);
+    const rect = inside(element, 'rail').getBoundingClientRect();
+    const y = rect.top + rect.height / 2;
+    seek.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        button: 0,
+        clientX: rect.left + rect.width * 0.2,
+        clientY: y,
+      }),
+    );
+    expect(element.hasAttribute('dragging')).toBe(true);
+    // Held: the fill follows.
+    seek.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        buttons: 1,
+        clientX: rect.left + rect.width * 0.4,
+        clientY: y,
+      }),
+    );
+    expect(inside(element, 'fill').style.width).toBe('40%');
+    // Released somewhere the slider never heard of: the next move says so.
+    seek.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        buttons: 0,
+        clientX: rect.left + rect.width * 0.6,
+        clientY: y,
+      }),
+    );
+    expect(element.hasAttribute('dragging')).toBe(false);
+    await once(player.video, 'seeked');
+    expect(player.video.currentTime).toBeCloseTo(6, 0);
+    // And a later move with nothing held moves nothing.
+    seek.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        buttons: 0,
+        clientX: rect.left + rect.width * 0.9,
+        clientY: y,
+      }),
+    );
+    expect(player.video.currentTime).toBeCloseTo(6, 0);
+  });
+
   it('draws the buffered ranges on the track', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');

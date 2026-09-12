@@ -31,7 +31,7 @@
   },
   "scripts": {
     "prepare": "husky",
-    "verify": "npm run lint && npm run docs:check && npm run typecheck && npm run depcruise && npm run knip && npm run build && npm run check:emit && npm run check:side-effects && npx size-limit && npm run check:package && npm run test",
+    "verify": "npm run lint && npm run docs:check && npm run typecheck && npm run depcruise && npm run knip && npm run build && npm run check:emit && npm run check:side-effects && npx size-limit && npm run check:size-chart && npm run check:package && npm run test",
     "build": "npm run build --workspaces",
     "lint": "biome ci .",
     "typecheck": "tsc --noEmit",
@@ -44,6 +44,8 @@
     "check:emit": "node scripts/check-emit.mjs",
     "check:side-effects": "node scripts/side-effect-audit.mjs",
     "check:package": "npm run check:package --workspaces",
+    "check:size-chart": "npm run size-chart && git diff --exit-code --stat -- docs/size-chart-*.svg",
+    "size-chart": "node scripts/size-chart.mjs",
     "demo": "vite demo",
     "demo:build": "vite build demo",
     "docs:check": "remark . --quiet --frail --use ./scripts/remark-check-formatted.mjs",

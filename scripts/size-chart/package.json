@@ -1,0 +1,17 @@
+{
+  "name": "size-chart",
+  "private": true,
+  "dependencies": {
+    "video.js": "8.24.0",
+    "@videojs/html": "10.0.0-rc.2",
+    "@videojs/hlsjs-video": "10.0.0-rc.2",
+    "@videojs/dash-video": "10.0.0-rc.2",
+    "shaka-player": "5.2.10",
+    "vidstack": "1.15.6",
+    "hls.js": "1.7.3",
+    "dashjs": "5.2.1",
+    "media-chrome": "4.19.2",
+    "hls-video-element": "1.5.11",
+    "dash-video-element": "0.3.2"
+  }
+}

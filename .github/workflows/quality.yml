@@ -51,6 +51,8 @@ jobs:
         run: npm run check:side-effects
       - name: Size budgets
         run: npx size-limit
+      - name: Size chart current
+        run: npm run check:size-chart
       - name: Package validation
         run: npm run check:package
       - name: Node tests (with coverage)

@@ -1,4 +1,7 @@
-# @mattebox/player-core
+<h1>
+  <img src="https://raw.githubusercontent.com/jboix/mattebox-player/main/docs/logo.svg" width="44" height="44" align="absmiddle" alt="">
+  @mattebox/player-core
+</h1>
 
 The headless layer of the [Mattebox player](https://github.com/jboix/mattebox-player):
 source resolution and the handler chain over the

@@ -8,7 +8,7 @@
     "url": "git+https://github.com/jboix/mattebox-player.git",
     "directory": "packages/player"
   },
-  "homepage": "https://github.com/jboix/mattebox-player#readme",
+  "homepage": "https://jboix.github.io/mattebox-player/",
   "bugs": {
     "url": "https://github.com/jboix/mattebox-player/issues"
   },

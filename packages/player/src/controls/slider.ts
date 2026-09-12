@@ -15,6 +15,11 @@
  *
  * The steps are read on every key, so an element can take them from its
  * attributes as they change.
+ *
+ * A drag ends on `pointerup`, and also on a move that reports no button
+ * held: the button went up where no `pointerup` reached the slider, such
+ * as outside the window, and the thumb must not stay on the pointer. A
+ * lost capture ends it too.
  */
 import { el } from '../dom.js';
 
@@ -101,7 +106,14 @@ export function slider(options: SliderOptions): Slider {
   }
 
   function move(event: PointerEvent): void {
-    if (held) onInput(at(event.clientX));
+    if (!held) return;
+    // A mouse that moves with no button down has let go; a touch or a pen
+    // in contact reports one.
+    if (event.buttons === 0) {
+      up(event);
+      return;
+    }
+    onInput(at(event.clientX));
   }
 
   function up(event: PointerEvent): void {
@@ -148,6 +160,7 @@ export function slider(options: SliderOptions): Slider {
   root.addEventListener('pointermove', move);
   root.addEventListener('pointerup', up);
   root.addEventListener('pointercancel', cancel);
+  root.addEventListener('lostpointercapture', cancel);
   root.addEventListener('keydown', key);
 
   return {
@@ -178,6 +191,7 @@ export function slider(options: SliderOptions): Slider {
       root.removeEventListener('pointermove', move);
       root.removeEventListener('pointerup', up);
       root.removeEventListener('pointercancel', cancel);
+      root.removeEventListener('lostpointercapture', cancel);
       root.removeEventListener('keydown', key);
     },
   };

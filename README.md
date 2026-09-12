@@ -22,6 +22,15 @@ UI on top.
 An integrator with their own UI takes only the core. The engine is a peer
 dependency of all three, and the diagnostics is optional.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">
+  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript only. Mattebox player with the engine's full preset is 74.9 KB, video.js 8 with VHS 199.3 KB, Shaka Player with its UI 322.5 KB, Media Chrome with hls.js and dash.js 448.7 KB, video.js 10 with hls.js and dash.js 463.3 KB, Vidstack with hls.js and dash.js 511.1 KB." src="docs/size-chart-light.svg">
+</picture>
+
+Every stack is bundled from its npm packages the same way, JavaScript only.
+`npm run size-chart` regenerates the chart and lists what each row counts
+under `--verbose`.
+
 ## Quick start
 
 Install the element and the engine:
