@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A <mattebox-player> custom element over @mattebox/player-core.",
   "author": "Josep Boix Requesens",
   "repository": {
