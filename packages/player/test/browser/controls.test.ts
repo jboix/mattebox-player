@@ -48,6 +48,10 @@ async function custom(
   attributes: Readonly<Record<string, string>> = {},
 ): Promise<MatteboxPlayerElement> {
   const player = mount({ controls: 'custom', ...attributes });
+  // Wide enough for every control: at the test page's width the bar
+  // collapses its buttons, which the tests of the narrow bar set up for
+  // themselves.
+  player.style.width = '800px';
   await settled();
   return player;
 }
@@ -368,6 +372,194 @@ describe('the rows of the bar', () => {
     expect(buttons).toContain(playButton(player));
     expect(buttons.slice(-2)).toEqual([spacer, other]);
     expect(getComputedStyle(spacer).flexGrow).toBe('1');
+  });
+});
+
+/** Two frames: a ResizeObserver reports after layout, and the bar collapses on the report. */
+async function laidOut(): Promise<void> {
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
+/** What the bar has collapsed, in DOM order, each by its priority attribute or its tag. */
+function collapsed(player: MatteboxPlayerElement): string[] {
+  return [...player.querySelectorAll('mbx-control-bar [collapsed]')].map(
+    (node) => node.getAttribute('priority') ?? node.localName,
+  );
+}
+
+describe('the bar when narrow', () => {
+  /** The bar's children in the buttons row that have a box, the spacer aside since it takes what is left. */
+  function shown(root: MbxControlBar): Element[] {
+    return [...root.children].filter(
+      (child) =>
+        child.slot !== 'seek' &&
+        child.localName !== 'mbx-spacer' &&
+        child.getClientRects().length > 0,
+    );
+  }
+
+  /** What the buttons need, with their gaps and the bar's padding: the width at which the row fits with no slack. */
+  function need(root: MbxControlBar): number {
+    const children = shown(root);
+    const sum = children.reduce((total, child) => total + child.getBoundingClientRect().width, 0);
+    return Math.ceil(sum + 8 * (children.length - 1) + 32);
+  }
+
+  /** The bar wide, with the volume group gone: its folded slider counts at its unfolded width. */
+  async function wide(player: MatteboxPlayerElement): Promise<MbxControlBar> {
+    const root = bar(player) as MbxControlBar;
+    root.querySelector('mbx-volume')?.remove();
+    player.style.width = '800px';
+    await laidOut();
+    return root;
+  }
+
+  it('collapses the buttons row by priority, the menus first, and never play or fullscreen', async () => {
+    const player = await custom();
+    player.style.width = '800px';
+    await laidOut();
+    expect(collapsed(player)).toEqual([]);
+    // Room for a few buttons: the speed menu goes, the skips may.
+    player.style.width = '300px';
+    await expect.poll(() => collapsed(player)).toContain('mbx-speed-menu');
+    expect(collapsed(player)).not.toContain('mbx-play-button');
+    expect(collapsed(player)).not.toContain('mbx-fullscreen-button');
+    // Room for two: the skips go too, and play and fullscreen still stay.
+    player.style.width = '160px';
+    await expect.poll(() => collapsed(player)).toContain('mbx-skip-button');
+    expect(collapsed(player)).not.toContain('mbx-play-button');
+    expect(collapsed(player)).not.toContain('mbx-fullscreen-button');
+    // Wider again: everything comes back.
+    player.style.width = '800px';
+    await expect.poll(() => collapsed(player)).toEqual([]);
+  });
+
+  it('marks nothing that is not shown: a hidden menu takes no room', async () => {
+    const player = await custom();
+    // The quality menu hides on a native session, so it is never the one to go.
+    player.style.width = '160px';
+    await expect.poll(() => collapsed(player).length).toBeGreaterThan(0);
+    expect(collapsed(player)).not.toContain('mbx-quality-menu');
+  });
+
+  it('takes a priority the page wrote, and hides the highest number first', async () => {
+    const player = await custom();
+    const root = await wide(player);
+    const fullscreen = root.querySelector('mbx-fullscreen-button') as HTMLElement;
+    fullscreen.setAttribute('priority', '9');
+    // A few pixels short of what the buttons need: the highest number alone goes.
+    player.style.width = `${need(root) - 4}px`;
+    await expect.poll(() => collapsed(player)).toEqual(['9']);
+    // The bar's mark is one attribute, hidden by one rule of the bar's.
+    expect(getComputedStyle(fullscreen).display).toBe('none');
+    // Zero pins a control whatever the width; the mark comes off with the attribute.
+    fullscreen.setAttribute('priority', '0');
+    await expect.poll(() => collapsed(player)).not.toContain('9');
+    expect(fullscreen.hasAttribute('collapsed')).toBe(false);
+  });
+
+  it('keeps a little slack: a row that would fit flush collapses one', async () => {
+    const player = await custom();
+    const root = await wide(player);
+    const width = need(root);
+    player.style.width = `${width + 8}px`;
+    await laidOut();
+    expect(collapsed(player)).toEqual([]);
+    player.style.width = `${width}px`;
+    await expect.poll(() => collapsed(player).length).toBe(1);
+  });
+
+  it('counts the folded slider at its unfolded width, and folds it away first', async () => {
+    const player = await custom();
+    const root = bar(player) as MbxControlBar;
+    const group = root.querySelector('mbx-volume') as HTMLElement;
+    const slider = group.querySelector('mbx-volume-slider') as HTMLElement;
+    player.style.width = '800px';
+    await laidOut();
+    expect(collapsed(player)).toEqual([]);
+    // Room for the group folded and the slack, not for the slider unfolded.
+    player.style.width = `${need(root) + 40}px`;
+    await expect.poll(() => collapsed(player)).toEqual(['mbx-volume-slider']);
+    expect(getComputedStyle(slider).display).toBe('none');
+    expect(group.hasAttribute('collapsed')).toBe(false);
+    player.style.width = '800px';
+    await expect.poll(() => collapsed(player)).toEqual([]);
+  });
+
+  it('knows the diagnostics by its tag, and takes it first', async () => {
+    const player = await custom();
+    const root = await wide(player);
+    // The element is another package's; an unknown tag stands in, with a
+    // box from a sheet of its own, as the real one has: an inline style
+    // would beat the bar's hiding rule, a shadow rule does not.
+    const diagnostics = document.createElement('mbx-diagnostics');
+    diagnostics.attachShadow({ mode: 'open' }).innerHTML =
+      '<style>:host { display: inline-flex; flex: none; width: 40px; height: 40px; }</style>';
+    root.append(diagnostics);
+    await laidOut();
+    player.style.width = `${need(root) - 4}px`;
+    await expect.poll(() => collapsed(player)).toEqual(['mbx-diagnostics']);
+  });
+
+  it('lets go of the marks when the bar is removed', async () => {
+    const player = await custom();
+    player.style.width = '160px';
+    await expect.poll(() => collapsed(player).length).toBeGreaterThan(0);
+    const root = bar(player) as MbxControlBar;
+    const children = [...root.querySelectorAll('*')];
+    root.remove();
+    expect(children.some((child) => child.hasAttribute('collapsed'))).toBe(false);
+  });
+});
+
+describe('the box', () => {
+  /** The video's box against the player's. */
+  function boxes(player: MatteboxPlayerElement) {
+    const outer = player.getBoundingClientRect();
+    const inner = player.video.getBoundingClientRect();
+    return {
+      outer: { width: outer.width, height: outer.height },
+      inner: { width: inner.width, height: inner.height, top: inner.top - outer.top },
+    };
+  }
+
+  it('is black, and as tall as a 16:9 picture until the media says otherwise', async () => {
+    const player = mount();
+    player.style.width = '320px';
+    expect(getComputedStyle(player).backgroundColor).toBe('rgb(0, 0, 0)');
+    expect(boxes(player)).toEqual({
+      outer: { width: 320, height: 180 },
+      inner: { width: 320, height: 180, top: 0 },
+    });
+  });
+
+  it('centres the picture in a taller box, and caps it in a shorter one', async () => {
+    const player = mount();
+    player.style.width = '320px';
+    player.style.height = '400px';
+    expect(boxes(player)).toEqual({
+      outer: { width: 320, height: 400 },
+      inner: { width: 320, height: 180, top: 110 },
+    });
+    player.style.height = '100px';
+    const capped = boxes(player);
+    expect(capped.inner.height).toBe(100);
+    expect(capped.inner.width).toBe(320);
+    expect(getComputedStyle(player.video).objectFit).toBe('contain');
+  });
+
+  it('keeps a row the page puts in flow under the picture, and centres both', async () => {
+    const player = mount();
+    player.style.width = '320px';
+    player.style.height = '400px';
+    // What the panels row is under native controls: a block child in flow.
+    const row = document.createElement('div');
+    row.style.height = '20px';
+    player.append(row);
+    const video = player.video.getBoundingClientRect();
+    expect(row.getBoundingClientRect().top).toBe(video.bottom);
+    expect(boxes(player).inner.top).toBe(100);
   });
 });
 
@@ -930,6 +1122,35 @@ describe('the start button', () => {
   });
 });
 
+describe('the start button in a short box', () => {
+  it('hides when it would sit over the bar, and shows again with the height', async () => {
+    const player = await custom();
+    const start = control(player, 'mbx-start-button');
+    player.style.width = '400px';
+    player.style.height = '400px';
+    await laidOut();
+    expect(start.hasAttribute('cramped')).toBe(false);
+    expect(getComputedStyle(start).display).not.toBe('none');
+    // 150px: the button's foot would be inside the bar's box.
+    player.style.height = '150px';
+    await expect.poll(() => start.hasAttribute('cramped')).toBe(true);
+    expect(getComputedStyle(start).display).toBe('none');
+    player.style.height = '400px';
+    await expect.poll(() => start.hasAttribute('cramped')).toBe(false);
+  });
+
+  it('is not cramped without a bar to sit over', async () => {
+    // Under `none` the element composes no bar, and a start button the page writes still attaches.
+    const player = mount({ controls: 'none' });
+    player.innerHTML = '<mbx-start-button></mbx-start-button>';
+    player.style.width = '400px';
+    player.style.height = '120px';
+    await settled();
+    await laidOut();
+    expect(player.querySelector('mbx-start-button')?.hasAttribute('cramped')).toBe(false);
+  });
+});
+
 describe('the error screen', () => {
   const failing = { src: 'https://cdn.test/a.m3u8', type: 'application/x-nonsense' };
 
@@ -1154,6 +1375,23 @@ describe('the times', () => {
       second: '2-digit',
     });
     expect(text(control(clocked, 'mbx-current-time'))).toBe(expected);
+  });
+
+  it('show what is left, counting down, and hide it on a live stream', async () => {
+    const player = await ready(10);
+    const remaining = document.createElement('mbx-remaining-time');
+    bar(player)?.append(remaining);
+    await settled();
+    expect(remaining.getAttribute('slot')).toBe('seek');
+    expect(text(remaining)).toBe('-0:10');
+    player.video.currentTime = 3;
+    await once(player.video, 'seeked');
+    expect(text(remaining)).toBe('-0:07');
+    const live = await session({ live: liveApi(8), bufferGoal: 2 });
+    const gone = document.createElement('mbx-remaining-time');
+    bar(live)?.append(gone);
+    await settled();
+    expect(gone.hidden).toBe(true);
   });
 
   it('hide the position while the stream is live and not seekable', async () => {

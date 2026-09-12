@@ -171,6 +171,29 @@ body {
   flex: none;
 }
 
+/* The repository, as the mark alone. */
+.github {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+}
+
+.github:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.github svg {
+  width: 1rem;
+  height: 1rem;
+  fill: currentColor;
+}
+
 /* The rig */
 
 .rig {

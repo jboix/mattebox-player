@@ -97,4 +97,8 @@ engine bundle and the size story stays the engine's.
 Custom controls came after those five, first as one fixed bar and then, in
 v3, as the elements above. Guide chapter 03 covers them. The chapters and the
 diagnostics came after v3; `diagnostics-and-chapters-plan.md` records the
-decisions, and guide chapter 05 covers the diagnostics.
+decisions, and guide chapter 05 covers the diagnostics. The theme editor
+(a repository of its own, `mattebox-player-editor`) came next and sent back
+three findings, now in: the time left as an element, the bar collapsing
+its buttons by priority, and the black box with the picture centred and
+contained outside fullscreen too.

@@ -96,10 +96,15 @@ export abstract class Component extends HTMLElement {
     run();
   }
 
-  /** Runs `fn` when any of `names` changes on `target`, until detach. */
-  protected observe(target: Element, names: readonly string[], fn: () => void): void {
+  /** Runs `fn` when any of `names` changes on `target`, or under it with `subtree`, until detach. */
+  protected observe(
+    target: Element,
+    names: readonly string[],
+    fn: () => void,
+    subtree = false,
+  ): void {
     const observer = new MutationObserver(fn);
-    observer.observe(target, { attributes: true, attributeFilter: [...names] });
+    observer.observe(target, { attributes: true, attributeFilter: [...names], subtree });
     this.offs.push(() => {
       observer.disconnect();
     });

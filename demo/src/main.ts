@@ -465,6 +465,7 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
   ['current-time', 'Current time', 'mbx-current-time'],
   ['seek-bar', 'Seek bar', 'mbx-seek-bar'],
   ['duration', 'Duration', 'mbx-duration'],
+  ['remaining-time', 'Time left', 'mbx-remaining-time'],
   ['live', 'Live', 'mbx-live-button'],
   ['skip-back', 'Skip back', 'mbx-skip-button'],
   ['play', 'Play / pause', 'mbx-play-button'],
@@ -483,7 +484,7 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
 const LABELS = new Map(CONTROLS.map(([name, label]) => [name, label]));
 const TAGS = new Map(CONTROLS.map(([name, , tag]) => [name, tag]));
 const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
-  seek: ['current-time', 'seek-bar', 'duration', 'live'],
+  seek: ['current-time', 'seek-bar', 'duration', 'remaining-time', 'live'],
   left: ['skip-back', 'play', 'skip-forward', 'volume'],
   right: [
     'speed',
@@ -497,8 +498,8 @@ const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
     'diagnostics',
   ],
 };
-/** What the element composes on its own: everything but the lock and the diagnostics, which is a package of its own. */
-const DEFAULT_OFF = new Set(['drm', 'diagnostics']);
+/** What the element composes on its own: everything but the time left, the lock and the diagnostics, which is a package of its own. */
+const DEFAULT_OFF = new Set(['remaining-time', 'drm', 'diagnostics']);
 const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'skip-back': '10',
   'skip-forward': '10',
@@ -570,7 +571,7 @@ function controlMarkup(name: string, row: Row): string {
   const tagName = TAGS.get(name);
   if (tagName === undefined) return '';
   const own: Record<string, string | null> = {};
-  const seekRow = ['current-time', 'seek-bar', 'duration', 'live'];
+  const seekRow = ['current-time', 'seek-bar', 'duration', 'remaining-time', 'live'];
   if (row === 'seek' && !seekRow.includes(name)) own.slot = 'seek';
   if (row !== 'seek' && seekRow.includes(name)) own.slot = '';
   if (name === 'skip-back') own.seconds = `-${knob('skip-back') ?? '10'}`;

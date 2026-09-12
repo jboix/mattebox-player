@@ -147,6 +147,11 @@ it('a chapters track in the chooser reaches the element', async () => {
 it('a control dragged to another row lands there', async () => {
   const { $, $$, bar } = await mount({ row: 'none' });
   // The volume from the left to the seek row, by the drop the lists take.
+  // The lists sit in a flag that scrolls. Both must be in view before the
+  // drag: Chromium picks the source when the pointer first moves, and a
+  // scroll to the target between the press and that move would put the
+  // item above under the pointer.
+  $('#layout-seek').scrollIntoView({ block: 'start' });
   await userEvent.dragAndDrop($('#layout-left li[data-name="volume"]'), $('#layout-seek'));
   expect($$('#layout-seek li[data-name="volume"]')).toHaveLength(1);
   expect($('mbx-volume', bar()).getAttribute('slot')).toBe('seek');

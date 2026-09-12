@@ -309,6 +309,9 @@ describe('the menus over an engine session', () => {
 
   async function engineReady(url: string): Promise<MatteboxPlayerElement> {
     const player = mount({ controls: 'custom', src: url });
+    // Wide enough for every button: at the test page's width the bar
+    // collapses its menus, and these tests open them.
+    player.style.width = '800px';
     await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     return player;

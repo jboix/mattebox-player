@@ -12,6 +12,7 @@ export const START_BUTTON = 'mbx-start-button';
 export const ERROR_SCREEN = 'mbx-error-screen';
 export const CURRENT_TIME = 'mbx-current-time';
 export const DURATION = 'mbx-duration';
+export const REMAINING_TIME = 'mbx-remaining-time';
 export const SEEK_BAR = 'mbx-seek-bar';
 export const LIVE_BUTTON = 'mbx-live-button';
 export const SPEED_MENU = 'mbx-speed-menu';

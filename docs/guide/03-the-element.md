@@ -181,6 +181,7 @@ quality, audio or subtitles menu and no live button.
 | `mbx-skip-button`       | `seconds`, negative for back              | `label` with `{seconds}`                                                                                                                                                                                       | `icon`                                   | Moves the playhead by the amount, within what the video can reach                                                                                                                                                 |
 | `mbx-current-time`      |                                           |                                                                                                                                                                                                                |                                          | The position, "1:23"; on live the wall clock or the distance behind the edge, hidden while live and not seekable                                                                                                  |
 | `mbx-duration`          |                                           |                                                                                                                                                                                                                |                                          | The duration, "4:56", hidden on live                                                                                                                                                                              |
+| `mbx-remaining-time`    |                                           |                                                                                                                                                                                                                |                                          | What is left, "-4:53", hidden on live. A bar that shows one number shows this one                                                                                                                                 |
 | `mbx-seek-bar`          | `step`, `page`, `live-window`, `chapters` | `label`, `label-of` with `{current}` and `{duration}`, `label-behind` with `{time}`                                                                                                                            |                                          | The position, the buffered ranges, the live window and edge, and the preview. Divided at the chapters, which the preview names; `chapters="none"` leaves it whole. Sets `live` and `seekable`; carries `dragging` |
 | `mbx-live-button`       |                                           | `text`, `label-live`, `label-at-edge`                                                                                                                                                                          |                                          | Shown on a live stream, seeks to the edge, disabled there. Carries `at-edge`                                                                                                                                      |
 | `mbx-speed-menu`        | `rates`, space-separated                  | `label`, `label-normal`, `label-back` with `{page}`                                                                                                                                                            | `icon`                                   | `video.playbackRate`, for every session                                                                                                                                                                           |
@@ -191,7 +192,7 @@ quality, audio or subtitles menu and no live button.
 | `mbx-drm-badge`         |                                           | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                             | `icon`                                   | A lock over `engine.drm`, its tooltip on hover and focus. Not in the default composition                                                                                                                          |
 | `mbx-pip-button`        |                                           | `label-enter`, `label-exit`                                                                                                                                                                                    | `icon-enter`, `icon-exit`                | Picture in picture, hidden without an API. Sets `pip`                                                                                                                                                             |
 | `mbx-fullscreen-button` |                                           | `label-enter`, `label-exit`                                                                                                                                                                                    | `icon-enter`, `icon-exit`                | Fullscreen on the player, hidden without an API. Sets `fullscreen`                                                                                                                                                |
-| `mbx-start-button`      |                                           | `label-play`, `label-replay`                                                                                                                                                                                   | `icon-play`, `icon-replay`               | The large play over the picture while paused, a replay once ended, gone while playing and behind an error                                                                                                         |
+| `mbx-start-button`      |                                           | `label-play`, `label-replay`                                                                                                                                                                                   | `icon-play`, `icon-replay`               | The large play over the picture while paused, a replay once ended, gone while playing, behind an error, and in a box too short to keep it above the bar                                                           |
 | `mbx-error-screen`      |                                           | `label-title`, `label-retry`                                                                                                                                                                                   |                                          | A fatal error over the picture, with the category, the code and a retry that loads `src` again                                                                                                                    |
 | `mbx-panels`            |                                           |                                                                                                                                                                                                                |                                          | The row under the video for native controls, hidden while every child is                                                                                                                                          |
 
@@ -262,6 +263,29 @@ playback starting re-arms it for `idle-ms`, and when it fires the bar hides
 unless the video is paused, a descendant carries `open`, or keyboard focus
 is inside it. Whether the pointer is over the element is never tracked. The
 fade honours `prefers-reduced-motion`.
+
+A narrow bar collapses its buttons row rather than overflow it. Each child
+has a `priority`, and the highest goes first:
+
+| Priority | Controls                                                                      |
+| -------- | ----------------------------------------------------------------------------- |
+| 5        | The volume slider                                                             |
+| 4        | The diagnostics, the DRM lock, the speed and chapters menus                   |
+| 3        | The audio and quality menus, picture in picture                               |
+| 2        | The skips                                                                     |
+| 1        | The subtitles menu, the mute button and the volume group                      |
+| 0        | Everything else, never collapsed: play and fullscreen stay whatever the width |
+
+A `priority` attribute on a control replaces its default; a page's own
+control in the bar starts at 0. While the buttons need more than the row
+has, less a few pixels of slack, the bar marks the highest numbers
+`collapsed` one at a time, from the right among equals, and takes the
+marks back as the bar widens. The volume's folded slider counts at the
+width it unfolds to, so the row is sized for what the pointer will make of
+it, and the slider is the first thing to go. The mark is an attribute and
+the hiding is one rule of the bar's, so `mbx-speed-menu[collapsed]` is a
+page's to style. A page that wants its own breakpoints instead writes them
+as container queries on the player and sets every priority to 0.
 
 Fullscreen goes on the player itself, so every control the page placed
 inside comes along, and `mattebox-player:fullscreen` matches. The player
@@ -400,6 +424,13 @@ The `<video>` is in light DOM, so the page styles it directly. Its default
 from the element is full width at 16:9 until the media's own ratio is known,
 so the box does not jump when the metadata arrives; a page that knows its
 media sets `aspect-ratio` on the video itself.
+
+The element's box is black, and the picture is centred in it. A page that
+gives the element a height or an `aspect-ratio` gets the picture
+letterboxed or pillarboxed inside it by `object-fit: contain`, with the
+bar at the foot of the box, the way fullscreen has it. A page that gives
+no height gets a box as tall as the picture, and none of the black shows.
+`mattebox-player { background: … }` changes the colour.
 
 ## Browser support
 
