@@ -19,10 +19,6 @@ API is awkward, missing, or wrong. Second, to be a usable player. When the two
 conflict, the first wins: write the awkward code, and say in a comment what
 you had to reach around.
 
-> The design record (`docs/specs/` of the engine repository) is maintained
-> locally by the project owner and is not part of this repository. The
-> player's prompt is chapter 18 of that record.
-
 ## Non-negotiable rules
 
 1. **The boundary is strict.** The core never imports the UI. The UI never
@@ -51,10 +47,10 @@ you had to reach around.
    A player is per element, like an engine. The controls are custom elements
    the page places inside `<mattebox-player>`, and the browser's element
    registry is the one extension point: a page's own element inside the bar
-   is a control. See `docs/v3-composable-controls-plan.md`.
+   is a control.
 
-7. **Do not fix the engine from here.** A missing engine surface is an entry
-   in the integrator log, not a workaround that hides the gap.
+7. **Do not fix the engine from here.** A missing engine surface is reported
+   in the handoff, not hidden behind a workaround.
 
 8. **Banned TypeScript:** non-const `enum`, `namespace`, parameter properties,
    decorators. The emit check enforces this.
@@ -109,17 +105,17 @@ End every deliverable with:
 - [x] item — evidence
 - [ ] item — why not
 
-### Deviations from the prompt
+### Deviations from the task
 <what, why, and whether docs need updating>
 
-### Decisions not covered by the prompt
+### Decisions not covered by the task
 <anything you had to choose; flag for human review>
 
 ### Gate output
 <actual command output, pasted>
 
-### Integrator log
-<the entries added, ordered by how much each hurt>
+### Engine gaps
+<the places the engine's API made the player reach around it, ordered by how much each hurt>
 ```
 
 ## Scope discipline
@@ -130,9 +126,9 @@ incrementally; building ahead defeats that and makes review impossible.
 If you believe a deliverable's scope is wrong, say so in the handoff report
 and stop. Do not expand scope unilaterally.
 
-## When the prompt is wrong or silent
+## When the task is wrong or silent
 
-The prompt encodes decisions the engine made, often for non-obvious reasons.
+The task often encodes decisions the engine made, for non-obvious reasons.
 If something seems wrong:
 
 1. Check the engine's guide; the option may already be decided there.

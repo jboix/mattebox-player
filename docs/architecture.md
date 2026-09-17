@@ -61,8 +61,7 @@ else. A page's own element inside the bar is a control the same way. Each
 one feature-tests its namespace on `session.engine` and hides for a native
 session. The element reflects state as attributes on itself, and every
 control carries its parameters and its words as attributes and takes a
-page's glyph through a slot. `docs/v3-composable-controls-plan.md` records
-the decisions.
+page's glyph through a slot.
 
 | Control                                                               | Namespace                                                                                               |
 | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -91,13 +90,12 @@ engine bundle and the size story stays the engine's.
 2. The core with the two handlers and the fallthrough, its tests passing in three browsers.
 3. The element with native controls and the namespace panels, its tests passing.
 4. The demo page: every source kind, each row stating which handler won.
-5. The integrator log: every place the engine's API made the player reach
-   around it, ordered by how much each entry hurt.
+5. The engine gaps: every place the engine's API made the player reach
+   around it, ordered by how much each one hurt.
 
 Custom controls came after those five, first as one fixed bar and then, in
 v3, as the elements above. Guide chapter 03 covers them. The chapters and the
-diagnostics came after v3; `diagnostics-and-chapters-plan.md` records the
-decisions, and guide chapter 05 covers the diagnostics. The theme editor
+diagnostics came after v3, and guide chapter 05 covers the diagnostics. The theme editor
 (a repository of its own, `mattebox-player-editor`) came next and sent back
 three findings, now in: the time left as an element, the bar collapsing
 its buttons by priority, and the black box with the picture centred and

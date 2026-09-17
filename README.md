@@ -79,8 +79,7 @@ The [guide](docs/guide/README.md) covers the rest, starting with
 ## Status
 
 The core, the element, its panels and its controls ship, and the gates are
-green. The controls became elements in v3; the
-[plan](docs/v3-composable-controls-plan.md) records the decisions, and the
+green. The controls became elements in v3, and the
 [architecture](docs/architecture.md) lists the deliverables in order.
 
 ## Documentation
