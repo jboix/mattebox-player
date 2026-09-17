@@ -10,7 +10,7 @@
  * flow under it for the panels row. A page that places none gets the
  * default composition for its mode appended to its light DOM. The element
  * reflects the video's state as attributes on itself, `paused`, `playing`,
- * `ended` and `muted`, for the page's stylesheet and the controls alike.
+ * `ended`, `muted` and `audio`, for the page's stylesheet and the controls alike.
  *
  * No class fields, `#private` or otherwise: the ES2015 build would lower
  * them into runtime helpers, and the emit check bans helpers. Statics are
@@ -18,7 +18,7 @@
  */
 
 import type { Handler, Player, PlayerError, Session, Source } from '@mattebox/player-core';
-import { createPlayer, matteboxHandler, nativeHandler } from '@mattebox/player-core';
+import { createPlayer, inferType, matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import { composeBar, composePanels } from './compose.js';
 import type { PlayerHost } from './host.js';
@@ -53,7 +53,15 @@ const CHAPTERS = 'chapters';
 const CONTROLS = 'controls';
 
 /** The video's state, as attributes on the element, read on the events the video fires for it. */
-const STATE_EVENTS = ['play', 'pause', 'ended', 'emptied', 'volumechange', 'loadedmetadata'];
+const STATE_EVENTS = [
+  'play',
+  'pause',
+  'ended',
+  'emptied',
+  'volumechange',
+  'loadedmetadata',
+  'resize',
+];
 
 /** Every stage the engine ships. A narrower preset is optimization. */
 const DEFAULT_PRESET = 'full';
@@ -106,8 +114,8 @@ export interface MatteboxPlayerOptions {
 
 /**
  * What `define()` recorded, for the elements the parser creates. It is the
- * one value shared across elements, and the prompt asks for it: a page that
- * writes only markup still has to be able to say what the engine carries.
+ * one value shared across elements, because a page that writes only markup
+ * still has to be able to say what the engine carries.
  */
 let defaults: MatteboxPlayerOptions = {};
 
@@ -263,7 +271,25 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // the video's state sets the attribute. Reflection never forwards, so
     // a read can only ever change the attribute, never the video.
     this.toggleAttribute('muted', video.muted);
+    this.toggleAttribute('audio', this.audio());
     this.reflecting = false;
+  }
+
+  /**
+   * Whether the source has no picture. Once the metadata is in, the video's
+   * size decides: zero by zero is sound alone, and `resize` catches a stream
+   * that moves to or from an audio-only rendition. Before that, the type the
+   * page wrote or the URL implies is the hint, so an mp3 is `audio` from
+   * the start rather than from its metadata.
+   */
+  private audio(): boolean {
+    const video = this.media;
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+      return video.videoWidth === 0 && video.videoHeight === 0;
+    }
+    const src = this.getAttribute('src');
+    const type = this.getAttribute('type') ?? (src === null ? undefined : inferType(src));
+    return type?.startsWith('audio/') === true;
   }
 
   disconnectedCallback(): void {
@@ -287,6 +313,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     // The preset decides the chain, so it is the one attribute that rebuilds it.
     if (name === 'preset') this.enqueue(() => this.discard());
+    // The source's type is the hint for `audio` until its metadata arrives.
+    // Only `audio`: a full reflection here would drop a `muted` the page
+    // wrote before its own callback forwards it.
+    if (name === 'src' || name === 'type') this.toggleAttribute('audio', this.audio());
     this.reload();
   }
 

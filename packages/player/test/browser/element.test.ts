@@ -66,10 +66,22 @@ function chain(): Handler[] {
   ];
 }
 
-/** The element with its chain supplied, which is the JS route the prompt fixes. */
+/** The element with its chain supplied, the JS route. */
 function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers: chain() });
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
+  document.body.append(player);
+  return player;
+}
+
+/**
+ * The element over a native chain alone, with no `type`: the source is
+ * the browser's whatever its URL, so only its metadata says what it is.
+ */
+function native(src: string): MatteboxPlayerElement {
+  const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+  player.setAttribute('muted', '');
+  player.setAttribute('src', src);
   document.body.append(player);
   return player;
 }
@@ -142,6 +154,47 @@ describe('<mattebox-player>', () => {
     expect(player.video.hasAttribute('autoplay')).toBe(true);
     player.removeAttribute('poster');
     expect(player.video.hasAttribute('poster')).toBe(false);
+  });
+
+  it('reflects audio from the source type before the metadata arrives', () => {
+    document.body.innerHTML =
+      '<mattebox-player muted src="https://cdn.test/show.mp3?token=1"></mattebox-player>';
+    const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
+    expect(player.hasAttribute('audio')).toBe(true);
+    // The hint leaves the page's own attributes alone.
+    expect(player.hasAttribute('muted')).toBe(true);
+    player.setAttribute('type', 'video/mp4');
+    expect(player.hasAttribute('audio')).toBe(false);
+    player.removeAttribute('type');
+    player.setAttribute('src', 'https://cdn.test/hls/master.m3u8');
+    expect(player.hasAttribute('audio')).toBe(false);
+  });
+
+  it('reflects audio from the metadata of a source with no picture', async () => {
+    // A blob URL carries no extension, so only the metadata can tell.
+    const url = silence();
+    const player = native(url);
+    expect(player.hasAttribute('audio')).toBe(false);
+    await expect.poll(() => player.hasAttribute('audio')).toBe(true);
+    URL.revokeObjectURL(url);
+  });
+
+  it('follows a picture that appears or goes away mid-stream', async () => {
+    const url = silence();
+    const player = native(url);
+    await expect.poll(() => player.hasAttribute('audio')).toBe(true);
+    // A rendition switch changes the size and fires `resize`.
+    let width = 1280;
+    let height = 720;
+    Object.defineProperty(player.video, 'videoWidth', { get: () => width });
+    Object.defineProperty(player.video, 'videoHeight', { get: () => height });
+    player.video.dispatchEvent(new Event('resize'));
+    expect(player.hasAttribute('audio')).toBe(false);
+    width = 0;
+    height = 0;
+    player.video.dispatchEvent(new Event('resize'));
+    expect(player.hasAttribute('audio')).toBe(true);
+    URL.revokeObjectURL(url);
   });
 
   it('define() is idempotent', () => {

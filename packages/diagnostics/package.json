@@ -54,6 +54,6 @@
   },
   "peerDependencies": {
     "@mattebox/player": ">=0.3.1",
-    "mattebox": "^0.3.0"
+    "mattebox": "^0.4.0"
   }
 }

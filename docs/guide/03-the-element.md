@@ -30,11 +30,19 @@ page styles the playing state.
 | ---------------------------- | ----------------------------- | ----------------------------------------------------------- |
 | `paused`, `playing`, `ended` | The element                   | The video is in that state                                  |
 | `muted`                      | The element                   | The video is muted                                          |
+| `audio`                      | The element                   | The source has no picture                                   |
 | `fullscreen`                 | The bar, the button           | The player is the fullscreen element                        |
 | `pip`                        | The picture-in-picture button | The video is in the floating window                         |
 | `idle`                       | The bar                       | The bar is hidden for stillness                             |
 | `live`                       | The seek bar                  | The stream has an availability window                       |
 | `seekable`                   | The seek bar                  | The stream can be seeked: VOD, or a live window wide enough |
+
+`audio` comes from the source's type, the `type` attribute or the URL's
+extension, until the metadata arrives, and from the video's size after:
+zero by zero is sound alone. It follows a stream that moves to or from an
+audio-only rendition. The element only reports it; the box keeps its 16:9
+until the page says otherwise, for example
+`mattebox-player[audio] video { aspect-ratio: auto; height: 0; }`.
 
 ## Properties
 
