@@ -778,8 +778,10 @@ describe('the default composition', () => {
     const player = await custom();
     expect([...player.children].map((node) => node.localName)).toEqual([
       'video',
+      'mbx-title',
       'mbx-start-button',
       'mbx-error-screen',
+      'mbx-spinner',
       'mbx-control-bar',
     ]);
     const root = bar(player) as MbxControlBar;

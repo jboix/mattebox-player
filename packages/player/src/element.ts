@@ -10,7 +10,8 @@
  * flow under it for the panels row. A page that places none gets the
  * default composition for its mode appended to its light DOM. The element
  * reflects the video's state as attributes on itself, `paused`, `playing`,
- * `ended`, `muted` and `audio`, for the page's stylesheet and the controls alike.
+ * `ended`, `muted`, `audio`, `started` and `waiting`, for the page's
+ * stylesheet and the controls alike.
  *
  * No class fields, `#private` or otherwise: the ES2015 build would lower
  * them into runtime helpers, and the emit check bans helpers. Statics are
@@ -61,6 +62,10 @@ const STATE_EVENTS = [
   'volumechange',
   'loadedmetadata',
   'resize',
+  'playing',
+  'waiting',
+  'stalled',
+  'canplay',
 ];
 
 /** Every stage the engine ships. A narrower preset is optimization. */
@@ -167,6 +172,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private failure: PlayerError | null;
   /** Whether an attribute change is the element's own reflection, which must not write back to the video. */
   declare private reflecting: boolean;
+  /** The video has played once since its source was set: `started`, which tells a first play from a pause. */
+  declare private started: boolean;
+  /** The video waits for data: `waiting`, set on `waiting` and `stalled`, cleared once it can play. */
+  declare private waiting: boolean;
   declare private offs: Array<() => void>;
   /** Everything the element does to the player runs here, so it runs in order. */
   declare private queue: Promise<void>;
@@ -184,6 +193,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.current = null;
     this.failure = null;
     this.reflecting = false;
+    this.started = false;
+    this.waiting = false;
     this.offs = [];
     this.queue = Promise.resolve();
     this.pending = false;
@@ -194,6 +205,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.media.controls = true;
     for (const name of STATE_EVENTS) {
       this.media.addEventListener(name, () => {
+        this.note(name);
         this.reflect();
       });
     }
@@ -260,6 +272,22 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
   }
 
+  /** The two states the video does not hold: whether it has played once, and whether it waits for data. */
+  private note(event: string): void {
+    if (event === 'playing') {
+      this.started = true;
+      this.waiting = false;
+    } else if (event === 'waiting' || event === 'stalled') {
+      this.waiting = true;
+    } else if (event === 'canplay') {
+      this.waiting = false;
+    } else if (event === 'emptied') {
+      // A new source starts over: the title shows again before its first play.
+      this.started = false;
+      this.waiting = false;
+    }
+  }
+
   /** The video's state on the element, for `mattebox-player[paused]` and the like. */
   private reflect(): void {
     const video = this.media;
@@ -272,6 +300,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // a read can only ever change the attribute, never the video.
     this.toggleAttribute('muted', video.muted);
     this.toggleAttribute('audio', this.audio());
+    this.toggleAttribute('started', this.started);
+    this.toggleAttribute('waiting', this.waiting);
     this.reflecting = false;
   }
 

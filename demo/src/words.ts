@@ -58,6 +58,7 @@ export interface Words {
   readonly fsEnter: string;
   readonly fsExit: string;
   readonly errorTitle: string;
+  readonly loading: string;
   readonly retry: string;
   /** With `{seconds}`. */
   readonly skipBack: string;
@@ -122,6 +123,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Pantalla completa',
       fsExit: 'Surt de la pantalla completa',
       errorTitle: 'Error de reproducció',
+      loading: 'Carregant',
       retry: 'Torna-ho a provar',
       skipBack: 'Enrere {seconds} segons',
       skipForward: 'Endavant {seconds} segons',
@@ -179,6 +181,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Pantalla completa',
       fsExit: 'Salir de pantalla completa',
       errorTitle: 'Error de reproducción',
+      loading: 'Cargando',
       retry: 'Reintentar',
       skipBack: 'Retroceder {seconds} segundos',
       skipForward: 'Avanzar {seconds} segundos',
@@ -236,6 +239,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Plein écran',
       fsExit: 'Quitter le plein écran',
       errorTitle: 'Échec de la lecture',
+      loading: 'Chargement',
       retry: 'Réessayer',
       skipBack: 'Reculer de {seconds} secondes',
       skipForward: 'Avancer de {seconds} secondes',
@@ -293,6 +297,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Vollbild',
       fsExit: 'Vollbild verlassen',
       errorTitle: 'Wiedergabe fehlgeschlagen',
+      loading: 'Wird geladen',
       retry: 'Erneut versuchen',
       skipBack: '{seconds} Sekunden zurück',
       skipForward: '{seconds} Sekunden vor',
@@ -350,6 +355,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Schermo intero',
       fsExit: 'Esci da schermo intero',
       errorTitle: 'Riproduzione non riuscita',
+      loading: 'Caricamento',
       retry: 'Riprova',
       skipBack: 'Indietro di {seconds} secondi',
       skipForward: 'Avanti di {seconds} secondi',
@@ -407,6 +413,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'Ecrã inteiro',
       fsExit: 'Sair de ecrã inteiro',
       errorTitle: 'A reprodução falhou',
+      loading: 'A carregar',
       retry: 'Tentar de novo',
       skipBack: 'Recuar {seconds} segundos',
       skipForward: 'Avançar {seconds} segundos',
@@ -464,6 +471,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: '全屏',
       fsExit: '退出全屏',
       errorTitle: '播放失败',
+      loading: '加载中',
       retry: '重试',
       skipBack: '后退 {seconds} 秒',
       skipForward: '前进 {seconds} 秒',
@@ -521,6 +529,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: '全画面',
       fsExit: '全画面を終了',
       errorTitle: '再生に失敗しました',
+      loading: '読み込み中',
       retry: '再試行',
       skipBack: '{seconds} 秒戻る',
       skipForward: '{seconds} 秒進む',
@@ -578,6 +587,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: '전체 화면',
       fsExit: '전체 화면 종료',
       errorTitle: '재생에 실패했습니다',
+      loading: '불러오는 중',
       retry: '다시 시도',
       skipBack: '{seconds}초 뒤로',
       skipForward: '{seconds}초 앞으로',
@@ -635,6 +645,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'पूर्ण स्क्रीन',
       fsExit: 'पूर्ण स्क्रीन से बाहर निकलें',
       errorTitle: 'प्लेबैक विफल रहा',
+      loading: 'लोड हो रहा है',
       retry: 'फिर से कोशिश करें',
       skipBack: '{seconds} सेकंड पीछे',
       skipForward: '{seconds} सेकंड आगे',
@@ -692,6 +703,7 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       fsEnter: 'ملء الشاشة',
       fsExit: 'الخروج من ملء الشاشة',
       errorTitle: 'فشل التشغيل',
+      loading: 'جارٍ التحميل',
       retry: 'إعادة المحاولة',
       skipBack: 'الرجوع {seconds} ثانية',
       skipForward: 'التقدم {seconds} ثانية',
@@ -758,6 +770,8 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
         'label-keys': words.keys,
         'label-no-key': words.noKey,
       };
+    case 'mbx-spinner':
+      return { label: words.loading };
     case 'mbx-airplay-button':
       return { label: words.airplay, 'label-active': words.airplayActive };
     case 'mbx-cast-button':

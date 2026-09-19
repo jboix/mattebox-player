@@ -156,6 +156,27 @@ describe('<mattebox-player>', () => {
     expect(player.video.hasAttribute('poster')).toBe(false);
   });
 
+  it('reflects started after the first play, and waiting while data is awaited', () => {
+    document.body.innerHTML =
+      '<mattebox-player muted src="https://cdn.test/show.mp4"></mattebox-player>';
+    const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
+    const video = player.video;
+    expect(player.hasAttribute('started')).toBe(false);
+    expect(player.hasAttribute('waiting')).toBe(false);
+    video.dispatchEvent(new Event('waiting'));
+    expect(player.hasAttribute('waiting')).toBe(true);
+    video.dispatchEvent(new Event('playing'));
+    expect(player.hasAttribute('started')).toBe(true);
+    expect(player.hasAttribute('waiting')).toBe(false);
+    video.dispatchEvent(new Event('stalled'));
+    expect(player.hasAttribute('waiting')).toBe(true);
+    video.dispatchEvent(new Event('canplay'));
+    expect(player.hasAttribute('waiting')).toBe(false);
+    // A new source starts over.
+    video.dispatchEvent(new Event('emptied'));
+    expect(player.hasAttribute('started')).toBe(false);
+  });
+
   it('reflects audio from the source type before the metadata arrives', () => {
     document.body.innerHTML =
       '<mattebox-player muted src="https://cdn.test/show.mp3?token=1"></mattebox-player>';

@@ -3,7 +3,8 @@
  * while the video is paused, a replay once it has ended, gone while it
  * plays and while a fatal error is on screen. It sits in the player
  * beside the video, not in the bar, so it is over the poster and inside
- * fullscreen. The glyph is `icon-play` or `icon-replay`, the name
+ * fullscreen, and gone while the player waits for data, where the spinner
+ * takes the centre. The glyph is `icon-play` or `icon-replay`, the name
  * `label-play` or `label-replay`.
  */
 import type { PlayerError } from '@mattebox/player-core';
@@ -70,7 +71,7 @@ export class MbxStartButton extends Component {
 
   protected override attach(player: PlayerHost): void {
     const video = player.video;
-    this.listen(video, ['play', 'pause', 'ended'], () => {
+    this.listen(video, ['play', 'pause', 'ended', 'waiting', 'stalled', 'canplay'], () => {
       this.render();
     });
     this.listen(video, ['playing', 'loadstart'], () => {
@@ -139,6 +140,7 @@ export class MbxStartButton extends Component {
       'aria-label',
       this.getAttribute(`label-${state}`) ?? (state === 'play' ? 'Play' : 'Replay'),
     );
-    this.hidden = this.failed || !video.paused;
+    // The player reflects `waiting` first: it listens from its constructor.
+    this.hidden = this.failed || !video.paused || this.player?.hasAttribute('waiting') === true;
   }
 }

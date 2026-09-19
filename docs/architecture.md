@@ -76,6 +76,7 @@ page's glyph through a slot.
 | `mbx-airplay-button`                                                  | the video's WebKit AirPlay API, no namespace                                                            |
 | `mbx-cast-button`, `mbx-cast-screen` (`@mattebox/player-cast`)        | the Cast sender SDK on the page, no namespace; `engine.suspend()` and `engine.resume()` for the handoff |
 | `mbx-error-screen`, the error surface                                 | the core's `error` event                                                                                |
+| `mbx-title`, `mbx-spinner`                                            | the video's events, no namespace                                                                        |
 
 ## Builds
 

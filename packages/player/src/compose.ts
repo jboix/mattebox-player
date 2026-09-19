@@ -26,8 +26,10 @@ import {
   SKIP_BUTTON,
   SPACER,
   SPEED_MENU,
+  SPINNER,
   START_BUTTON,
   SUBTITLES_MENU,
+  TITLE,
   VOLUME,
 } from './tags.js';
 
@@ -52,7 +54,7 @@ export function composeBar(): HTMLElement[] {
     ...each(VOLUME, SPACER, SPEED_MENU, CHAPTERS_MENU, SUBTITLES_MENU, AUDIO_MENU),
     ...each(QUALITY_MENU, AIRPLAY_BUTTON, PIP_BUTTON, FULLSCREEN_BUTTON),
   );
-  return [...each(START_BUTTON, ERROR_SCREEN), bar];
+  return [...each(TITLE, START_BUTTON, ERROR_SCREEN, SPINNER), bar];
 }
 
 /** The row under the video. */

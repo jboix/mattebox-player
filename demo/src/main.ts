@@ -600,13 +600,29 @@ function controlMarkup(name: string, row: Row): string {
   return tag(tagName, { ...own, ...words(tagName, name) });
 }
 
+const SCREEN_TAGS: Readonly<Record<string, string>> = {
+  start: 'mbx-start-button',
+  error: 'mbx-error-screen',
+  spinner: 'mbx-spinner',
+  title: 'mbx-title',
+};
+
 /** The whole composition: the screens, and the bar with its rows. */
 function composition(): string {
   const lines: string[] = [];
-  for (const screen of screens) {
+  // The title first: its band paints under the other screens.
+  const ordered = [...screens].sort(
+    (a, b) => Number(b.dataset.screen === 'title') - Number(a.dataset.screen === 'title'),
+  );
+  for (const screen of ordered) {
     if (!screen.checked) continue;
-    const tagName = screen.dataset.screen === 'start' ? 'mbx-start-button' : 'mbx-error-screen';
-    lines.push(tag(tagName, words(tagName, '')));
+    const tagName = SCREEN_TAGS[screen.dataset.screen ?? ''] ?? 'mbx-error-screen';
+    // The title shows what the demo knows of the source: its name and its poster.
+    const own =
+      tagName === 'mbx-title'
+        ? { heading: playing, artwork: poster.value === '' ? null : poster.value }
+        : {};
+    lines.push(tag(tagName, { ...own, ...words(tagName, '') }));
   }
   // The cast screen comes with the cast button: one package, one toggle.
   if (enabled.has('cast')) lines.push(tag('mbx-cast-screen', words('mbx-cast-screen', '')));

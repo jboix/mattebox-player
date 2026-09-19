@@ -31,6 +31,8 @@ page styles the playing state.
 | `paused`, `playing`, `ended` | The element                   | The video is in that state                                  |
 | `muted`                      | The element                   | The video is muted                                          |
 | `audio`                      | The element                   | The source has no picture                                   |
+| `started`                    | The element                   | The video has played once since its source was set          |
+| `waiting`                    | The element                   | The video waits for data                                    |
 | `fullscreen`                 | The bar, the button           | The player is the fullscreen element                        |
 | `pip`                        | The picture-in-picture button | The video is in the floating window                         |
 | `airplay`                    | The AirPlay button            | The video plays on an AirPlay target                        |
@@ -110,8 +112,10 @@ as attributes, and takes a page's own glyph through a slot.
 
 ```html
 <mattebox-player src="…" controls="custom">
+  <mbx-title></mbx-title>
   <mbx-start-button></mbx-start-button>
   <mbx-error-screen></mbx-error-screen>
+  <mbx-spinner></mbx-spinner>
   <mbx-control-bar>
     <mbx-current-time></mbx-current-time>
     <mbx-seek-bar></mbx-seek-bar>
@@ -132,8 +136,10 @@ are all in: the document parsed, or the microtask after a scripted
 connect. It is this, and a page can start from it:
 
 ```html
+<mbx-title></mbx-title>
 <mbx-start-button></mbx-start-button>
 <mbx-error-screen></mbx-error-screen>
+<mbx-spinner></mbx-spinner>
 <mbx-control-bar>
   <mbx-current-time></mbx-current-time>
   <mbx-seek-bar></mbx-seek-bar>
@@ -211,7 +217,17 @@ quality, audio or subtitles menu and no live button.
 | `mbx-fullscreen-button` |                                           | `label-enter`, `label-exit`                                                                                                                                                                                    | `icon-enter`, `icon-exit`                | Fullscreen on the player, hidden without an API. Sets `fullscreen`                                                                                                                                                |
 | `mbx-start-button`      |                                           | `label-play`, `label-replay`                                                                                                                                                                                   | `icon-play`, `icon-replay`               | The large play over the picture while paused, a replay once ended, gone while playing, behind an error, and in a box too short to keep it above the bar                                                           |
 | `mbx-error-screen`      |                                           | `label-title`, `label-retry`                                                                                                                                                                                   |                                          | A fatal error over the picture, with the category, the code and a retry that loads `src` again                                                                                                                    |
+| `mbx-spinner`           |                                           | `label`                                                                                                                                                                                                        | `icon`                                   | A turning ring in the start button's place while the player carries `waiting`                                                                                                                                     |
+| `mbx-title`             | `heading`, `subheading`, `artwork`        |                                                                                                                                                                                                                |                                          | The artwork beside the two lines, above the bar. Shown while the video is paused, before the first play included; carries `playing` for the page's own rule                                                       |
 | `mbx-panels`            |                                           |                                                                                                                                                                                                                |                                          | The row under the video for native controls, hidden while every child is                                                                                                                                          |
+
+The title's content comes from its attributes, because the stream carries
+none of it. It goes first among the screens, so its band paints under the
+start button and the spinner. When it shows is CSS: by default while the video is paused,
+which includes before the first play. `mattebox-player[started] mbx-title {
+display: none }` keeps it to the time before the first play, like the
+poster, and `mattebox-player:hover mbx-title { display: flex }` brings it
+back on hover.
 
 Every menu carries `open` on itself while its popup shows, and the bar
 holds its fade while any descendant does. A popup never leaves the picture:
