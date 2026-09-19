@@ -13,14 +13,17 @@ engine. The engine feeds a MediaSource and never sets the element's `src`.
 The player is everything above that: deciding who feeds the element, and a
 UI on top.
 
-| Package                        | What it is                                                                                                 | Side effects                    |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `@mattebox/player-core`        | The headless layer: source resolution and the handler chain. About a kilobyte.                             | none                            |
-| `@mattebox/player`             | The `<mattebox-player>` custom element over the core, framework-free.                                      | registers the element on import |
-| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`: the stats, the charts, the browser's support and a report to send, inside the player. | registers the element on import |
+| Package                        | What it is                                                                                                 | Side effects                     |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `@mattebox/player-core`        | The headless layer: source resolution and the handler chain. About a kilobyte.                             | none                             |
+| `@mattebox/player`             | The `<mattebox-player>` custom element over the core, framework-free.                                      | registers the element on import  |
+| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`: the stats, the charts, the browser's support and a report to send, inside the player. | registers the element on import  |
+| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`: Chromecast from the player, over Google's sender SDK.         | registers the elements on import |
 
 An integrator with their own UI takes only the core. The engine is a peer
-dependency of all three, and the diagnostics is optional.
+dependency of all four, and the diagnostics and the cast are optional. The
+cast is a package of its own because its button loads Google's script onto
+the page; the AirPlay button, over Safari's own API, ships with the player.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">

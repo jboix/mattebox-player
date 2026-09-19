@@ -31,4 +31,13 @@ module.exports = [
     brotli: true,
     limit: '20 kB',
   },
+  {
+    name: '@mattebox/player-cast',
+    path: 'packages/cast/dist/cdn/mattebox-player-cast.min.js',
+    // The engine and the player are peers; the Cast sender SDK is a script
+    // the page loads at runtime and is never part of the download.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '8 kB',
+  },
 ];

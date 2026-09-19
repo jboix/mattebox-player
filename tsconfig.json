@@ -27,7 +27,8 @@
       "@mattebox/player": ["./packages/player/src/index.ts"],
       "@mattebox/player/element": ["./packages/player/src/element-entry.ts"],
       "@mattebox/player/elements/*": ["./packages/player/src/entries/*.ts"],
-      "@mattebox/player-diagnostics": ["./packages/diagnostics/src/index.ts"]
+      "@mattebox/player-diagnostics": ["./packages/diagnostics/src/index.ts"],
+      "@mattebox/player-cast": ["./packages/cast/src/index.ts"]
     }
   },
   "include": [

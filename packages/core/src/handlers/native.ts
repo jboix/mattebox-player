@@ -7,7 +7,7 @@
  * `CONFIG_ELEMENT_OCCUPIED` on one that already has a `src`.
  */
 import { mattebox } from 'mattebox';
-import type { CanHandle, Handler, HandlerEnvironment, Session, Source } from '../types.js';
+import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
 
 const NAME = 'native';
 
@@ -18,7 +18,7 @@ export function nativeHandler(): Handler {
     return env.video.canPlayType(source.type) as CanHandle;
   }
 
-  async function handle(source: Source, video: HTMLMediaElement): Promise<Session> {
+  async function handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession> {
     const held = mattebox.from(video);
     if (held !== null) await held.detach();
     // An engine session before this one may have left remote playback

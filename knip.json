@@ -22,6 +22,10 @@
     "packages/diagnostics": {
       "entry": ["src/index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/cast": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }
 }

@@ -10,7 +10,7 @@ import { mattebox } from 'mattebox';
 // `Preset` is only reachable through a preset subpath.
 import type { Preset, PresetOptions } from 'mattebox/presets/full';
 import { Declined } from '../errors.js';
-import type { CanHandle, Handler, HandlerEnvironment, Session, Source } from '../types.js';
+import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
 
 const NAME = 'mattebox';
 
@@ -82,7 +82,7 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
     return ensure().accepts(source.type) ? 'probably' : '';
   }
 
-  async function handle(source: Source, video: HTMLMediaElement): Promise<Session> {
+  async function handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession> {
     const held = ensure();
     // The alternative is the same URL: the engine plays it through
     // MediaSource, and an AirPlay target plays it on its own.
@@ -104,9 +104,9 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
       await held.detach();
     }
 
-    const session: Session = { handler: NAME, engine: held, dispose };
+    const session: HandlerSession = { handler: NAME, engine: held, dispose };
 
-    return new Promise<Session>((resolve, reject) => {
+    return new Promise<HandlerSession>((resolve, reject) => {
       let settled = false;
       const offs: Array<() => void> = [];
 
