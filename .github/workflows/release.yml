@@ -49,8 +49,9 @@ jobs:
       # semantic-release and its plugins are root dev dependencies, so the release
       # runs the exact versions in package-lock.json, installed above with
       # npm ci, rather than whatever the registry serves at run time. One run
-      # per package, in workspace order: the core first, then the element,
-      # whose prepare step points its dependency range at the core's version.
+      # per package, in workspace order: the core first, then the element. Each
+      # run's first prepare step writes the next version and every cross-package
+      # range together, before @semantic-release/npm re-resolves the tree.
       - name: Semantic Release per package (version commit + tag + Release + npm via OIDC)
         env:
           GITHUB_TOKEN: ${{ steps.bot-token.outputs.token }}

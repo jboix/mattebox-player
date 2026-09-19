@@ -4,13 +4,13 @@
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
-    "@semantic-release/npm",
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "../../scripts/sync-workspace-deps.sh"
+        "prepareCmd": "../../scripts/sync-workspace-deps.sh packages/player ${nextRelease.version}"
       }
     ],
+    "@semantic-release/npm",
     [
       "@semantic-release/git",
       {
