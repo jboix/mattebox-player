@@ -72,13 +72,29 @@ matteboxHandler({ preset: full });
 matteboxHandler({ stages: [hlsCmaf(), abr()] });
 ```
 
-| Option      | Is                                                             |
-| ----------- | -------------------------------------------------------------- |
-| `preset`    | A preset factory. Without one, `stages` are the whole stack.   |
-| `stages`    | Stages to compose. With a preset they merge by name.           |
-| `config`    | Kernel tuning overrides, passed through.                       |
-| `transport` | Network hooks and overrides, passed through.                   |
-| `without`   | Names of preset stages to leave out. Ignored without a preset. |
+| Option      | Is                                                                      |
+| ----------- | ----------------------------------------------------------------------- |
+| `preset`    | A preset factory. Without one, `stages` are the whole stack.            |
+| `stages`    | Stages to compose. With a preset they merge by name.                    |
+| `config`    | Kernel tuning overrides, passed through.                                |
+| `transport` | Network hooks and overrides, passed through.                            |
+| `without`   | Names of preset stages to leave out. Ignored without a preset.          |
+| `airplay`   | Whether to give the engine an AirPlay source alternative. Default true. |
+
+## AirPlay
+
+Safari opens a ManagedMediaSource only with remote playback disabled or
+with an AirPlay source alternative, so an engine session offers no AirPlay
+target by default. When the browser could also play the source itself,
+which for HLS is Safari and nothing else, the handler passes the source's
+own URL to the engine as that alternative: Safari plays the MediaSource,
+and the target the viewer picks plays the URL. `airplay: false` turns it
+off and attaches with remote playback disabled.
+
+The alternative has to be playable by the receiver without the engine.
+FairPlay is the case that is not: the key session the engine opens does not
+serve the receiver's own key request, so a DRM stream reaches the target
+and stops there.
 
 The handler builds one engine on first use and keeps it across loads:
 `unload` and `detach` return the kernel to its initial state. It is built

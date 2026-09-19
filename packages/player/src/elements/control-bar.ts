@@ -39,6 +39,7 @@ import type { Fullscreen } from '../controls/fullscreen.js';
 import { fullscreen } from '../controls/fullscreen.js';
 import type { PlayerHost } from '../host.js';
 import {
+  AIRPLAY_BUTTON,
   AUDIO_MENU,
   CHAPTERS_MENU,
   DRM_BADGE,
@@ -76,6 +77,7 @@ const PRIORITY: Readonly<Record<string, number>> = {
   [AUDIO_MENU]: 3,
   [QUALITY_MENU]: 3,
   [PIP_BUTTON]: 3,
+  [AIRPLAY_BUTTON]: 2,
   [SKIP_BUTTON]: 2,
   [SUBTITLES_MENU]: 1,
   [VOLUME]: 1,
