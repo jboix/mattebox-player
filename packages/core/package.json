@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A headless source handling layer over mattebox.",
   "author": "Josep Boix Requesens",
   "repository": {
