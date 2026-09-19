@@ -798,6 +798,7 @@ describe('the default composition', () => {
       'mbx-subtitles-menu',
       'mbx-audio-menu',
       'mbx-quality-menu',
+      'mbx-airplay-button',
       'mbx-pip-button',
       'mbx-fullscreen-button',
     ]);

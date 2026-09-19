@@ -188,6 +188,57 @@ describe('the handler chain in a browser', () => {
     expect(mattebox.from(video)).toBe(session.engine);
   });
 
+  it('gives the engine the source as an AirPlay alternative where the browser could play it', async () => {
+    // Only Safari answers anything for HLS, and only there does the
+    // alternative mean anything. Stubbed so every browser runs the test.
+    video.canPlayType = () => 'maybe';
+    await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
+
+    const sources = [...video.querySelectorAll('source')];
+    expect(sources).toHaveLength(2);
+    // The MediaSource first, the URL a target can play on its own second.
+    expect(sources[0]?.src.startsWith('blob:')).toBe(true);
+    expect(sources[1]?.src).toBe('https://cdn.test/hls/master.m3u8');
+    expect(sources[1]?.type).toBe('application/vnd.apple.mpegurl');
+    expect(video.disableRemotePlayback).not.toBe(true);
+  });
+
+  it('gives the engine no alternative for a source the browser cannot play', async () => {
+    video.canPlayType = () => '';
+    await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
+
+    expect(video.querySelectorAll('source')).toHaveLength(0);
+  });
+
+  it('gives the engine no alternative when the handler is built without one', async () => {
+    const net = network();
+    video.canPlayType = () => 'maybe';
+    await player.unload();
+    player = createPlayer(video, {
+      handlers: [
+        matteboxHandler({
+          preset: full,
+          transport: net.transport,
+          airplay: false,
+          ...(EME ? {} : { without: DRM_TIER }),
+        }),
+        nativeHandler(),
+      ],
+    });
+    await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
+
+    expect(video.querySelectorAll('source')).toHaveLength(0);
+  });
+
+  it('gives remote playback back to a native session the engine left it disabled on', async () => {
+    // What a ManagedMediaSource without an alternative leaves behind.
+    video.disableRemotePlayback = true;
+    const session = await player.load({ url: 'https://cdn.test/video/clip.mp4' });
+
+    expect(session.handler).toBe('native');
+    expect(video.disableRemotePlayback).toBe(false);
+  });
+
   it('reports MANIFEST_UNSUPPORTED once when no handler claims the source', async () => {
     const errors: PlayerError[] = [];
     player.on('error', (error) => errors.push(error));

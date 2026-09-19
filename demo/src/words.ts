@@ -47,6 +47,8 @@ export interface Words {
   readonly key: string;
   readonly keys: string;
   readonly noKey: string;
+  readonly airplay: string;
+  readonly airplayActive: string;
   readonly pipEnter: string;
   readonly pipExit: string;
   readonly fsEnter: string;
@@ -106,6 +108,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} clau: {statuses}',
       keys: '{count} claus: {statuses}',
       noKey: 'cap clau encara',
+      airplay: 'AirPlay',
+      airplayActive: 'Atura AirPlay',
       pipEnter: 'Imatge dins la imatge',
       pipExit: 'Surt de la imatge dins la imatge',
       fsEnter: 'Pantalla completa',
@@ -158,6 +162,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} clave: {statuses}',
       keys: '{count} claves: {statuses}',
       noKey: 'sin clave todavía',
+      airplay: 'AirPlay',
+      airplayActive: 'Detener AirPlay',
       pipEnter: 'Imagen en imagen',
       pipExit: 'Salir de imagen en imagen',
       fsEnter: 'Pantalla completa',
@@ -210,6 +216,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} clé : {statuses}',
       keys: '{count} clés : {statuses}',
       noKey: 'pas encore de clé',
+      airplay: 'AirPlay',
+      airplayActive: 'Arrêter AirPlay',
       pipEnter: 'Image dans l’image',
       pipExit: 'Quitter l’image dans l’image',
       fsEnter: 'Plein écran',
@@ -262,6 +270,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} Schlüssel: {statuses}',
       keys: '{count} Schlüssel: {statuses}',
       noKey: 'noch kein Schlüssel',
+      airplay: 'AirPlay',
+      airplayActive: 'AirPlay beenden',
       pipEnter: 'Bild im Bild',
       pipExit: 'Bild im Bild verlassen',
       fsEnter: 'Vollbild',
@@ -314,6 +324,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} chiave: {statuses}',
       keys: '{count} chiavi: {statuses}',
       noKey: 'nessuna chiave ancora',
+      airplay: 'AirPlay',
+      airplayActive: 'Interrompi AirPlay',
       pipEnter: 'Immagine nell’immagine',
       pipExit: 'Esci da immagine nell’immagine',
       fsEnter: 'Schermo intero',
@@ -366,6 +378,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} chave: {statuses}',
       keys: '{count} chaves: {statuses}',
       noKey: 'ainda sem chave',
+      airplay: 'AirPlay',
+      airplayActive: 'Parar AirPlay',
       pipEnter: 'Imagem na imagem',
       pipExit: 'Sair de imagem na imagem',
       fsEnter: 'Ecrã inteiro',
@@ -418,6 +432,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} 个密钥：{statuses}',
       keys: '{count} 个密钥：{statuses}',
       noKey: '尚无密钥',
+      airplay: 'AirPlay',
+      airplayActive: '停止 AirPlay',
       pipEnter: '画中画',
       pipExit: '退出画中画',
       fsEnter: '全屏',
@@ -470,6 +486,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: 'キー {count} 個: {statuses}',
       keys: 'キー {count} 個: {statuses}',
       noKey: 'キーはまだありません',
+      airplay: 'AirPlay',
+      airplayActive: 'AirPlay を停止',
       pipEnter: 'ピクチャインピクチャ',
       pipExit: 'ピクチャインピクチャを終了',
       fsEnter: '全画面',
@@ -522,6 +540,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '키 {count}개: {statuses}',
       keys: '키 {count}개: {statuses}',
       noKey: '아직 키 없음',
+      airplay: 'AirPlay',
+      airplayActive: 'AirPlay 중지',
       pipEnter: '화면 속 화면',
       pipExit: '화면 속 화면 종료',
       fsEnter: '전체 화면',
@@ -574,6 +594,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: '{count} कुंजी: {statuses}',
       keys: '{count} कुंजियाँ: {statuses}',
       noKey: 'अभी कोई कुंजी नहीं',
+      airplay: 'AirPlay',
+      airplayActive: 'AirPlay बंद करें',
       pipEnter: 'पिक्चर इन पिक्चर',
       pipExit: 'पिक्चर इन पिक्चर से बाहर निकलें',
       fsEnter: 'पूर्ण स्क्रीन',
@@ -626,6 +648,8 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       key: 'مفتاح واحد: {statuses}',
       keys: '{count} مفاتيح: {statuses}',
       noKey: 'لا يوجد مفتاح بعد',
+      airplay: 'AirPlay',
+      airplayActive: 'إيقاف AirPlay',
       pipEnter: 'صورة داخل صورة',
       pipExit: 'الخروج من صورة داخل صورة',
       fsEnter: 'ملء الشاشة',
@@ -697,6 +721,8 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
         'label-keys': words.keys,
         'label-no-key': words.noKey,
       };
+    case 'mbx-airplay-button':
+      return { label: words.airplay, 'label-active': words.airplayActive };
     case 'mbx-pip-button':
       return { 'label-enter': words.pipEnter, 'label-exit': words.pipExit };
     case 'mbx-fullscreen-button':

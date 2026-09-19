@@ -21,6 +21,11 @@ export function nativeHandler(): Handler {
   async function handle(source: Source, video: HTMLMediaElement): Promise<Session> {
     const held = mattebox.from(video);
     if (held !== null) await held.detach();
+    // An engine session before this one may have left remote playback
+    // disabled, which is what a ManagedMediaSource needs and what takes
+    // the AirPlay target away. The browser plays this source itself, so
+    // the target belongs back.
+    video.disableRemotePlayback = false;
     video.src = source.url;
 
     async function dispose(): Promise<void> {

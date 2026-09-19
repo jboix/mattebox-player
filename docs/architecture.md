@@ -72,6 +72,7 @@ page's glyph through a slot.
 | `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                     |
 | `mbx-seek-bar`, `mbx-chapters-menu`                                   | the video's chapters track, no namespace                                                                |
 | `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm` |
+| `mbx-airplay-button`                                                  | the video's WebKit AirPlay API, no namespace                                                            |
 | `mbx-error-screen`, the error surface                                 | the core's `error` event                                                                                |
 
 ## Builds

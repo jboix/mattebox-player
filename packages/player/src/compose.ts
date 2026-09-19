@@ -8,6 +8,7 @@
  * it and style it the way it would its own.
  */
 import {
+  AIRPLAY_BUTTON,
   AUDIO_MENU,
   CHAPTERS_MENU,
   CONTROL_BAR,
@@ -49,7 +50,7 @@ export function composeBar(): HTMLElement[] {
     document.createElement(PLAY_BUTTON),
     skip(10),
     ...each(VOLUME, SPACER, SPEED_MENU, CHAPTERS_MENU, SUBTITLES_MENU, AUDIO_MENU),
-    ...each(QUALITY_MENU, PIP_BUTTON, FULLSCREEN_BUTTON),
+    ...each(QUALITY_MENU, AIRPLAY_BUTTON, PIP_BUTTON, FULLSCREEN_BUTTON),
   );
   return [...each(START_BUTTON, ERROR_SCREEN), bar];
 }

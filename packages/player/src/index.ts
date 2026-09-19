@@ -5,6 +5,7 @@
  * `@mattebox/player/element` and the `@mattebox/player/elements/*` entries.
  */
 import type { MatteboxPlayerElement } from './element-entry.js';
+import type { MbxAirplayButton } from './entries/airplay-button.js';
 import type { MbxAudioMenu } from './entries/audio-menu.js';
 import type { MbxChaptersMenu } from './entries/chapters-menu.js';
 import type { MbxControlBar } from './entries/control-bar.js';
@@ -31,6 +32,7 @@ import type { MbxVolumeSlider } from './entries/volume-slider.js';
 
 export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
+export { MbxAirplayButton } from './entries/airplay-button.js';
 export { MbxAudioMenu } from './entries/audio-menu.js';
 export { MbxChaptersMenu } from './entries/chapters-menu.js';
 export { MbxControlBar } from './entries/control-bar.js';
@@ -77,6 +79,7 @@ declare global {
     'mbx-live-button': MbxLiveButton;
     'mbx-speed-menu': MbxSpeedMenu;
     'mbx-quality-menu': MbxQualityMenu;
+    'mbx-airplay-button': MbxAirplayButton;
     'mbx-audio-menu': MbxAudioMenu;
     'mbx-subtitles-menu': MbxSubtitlesMenu;
     'mbx-drm-badge': MbxDrmBadge;

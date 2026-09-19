@@ -14,6 +14,15 @@ import type { CanHandle, Handler, HandlerEnvironment, Session, Source } from '..
 
 const NAME = 'mattebox';
 
+/**
+ * Whether this source is one the browser could also play by itself, which
+ * is what an AirPlay target would have to do. Safari answers `maybe` for
+ * HLS; every other browser answers nothing for it.
+ */
+function nativeAlternative(source: Source, video: HTMLMediaElement): boolean {
+  return source.type !== undefined && video.canPlayType(source.type) !== '';
+}
+
 export interface MatteboxHandlerOptions {
   /** A preset factory, such as the default export of `mattebox/presets/full`. */
   readonly preset?: Preset;
@@ -24,6 +33,13 @@ export interface MatteboxHandlerOptions {
   readonly transport?: TransportConfig;
   /** Names of preset stages to leave out. Ignored without a preset. */
   readonly without?: readonly string[];
+  /**
+   * Whether to give the engine an AirPlay source alternative, the source's
+   * own URL, when the browser could play it natively. Default true: on
+   * Safari it is what makes an AirPlay target reachable during engine
+   * playback. False attaches the plain way, with remote playback disabled.
+   */
+  readonly airplay?: boolean;
 }
 
 /** Drops the absent keys: `exactOptionalPropertyTypes` rejects an explicit undefined. */
@@ -68,7 +84,20 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
 
   async function handle(source: Source, video: HTMLMediaElement): Promise<Session> {
     const held = ensure();
-    await held.attach(video);
+    // The alternative is the same URL: the engine plays it through
+    // MediaSource, and an AirPlay target plays it on its own.
+    const alternative = options.airplay !== false && nativeAlternative(source, video);
+    await held.attach(
+      video,
+      alternative
+        ? {
+            airplay: {
+              url: source.url,
+              ...(source.type === undefined ? {} : { type: source.type }),
+            },
+          }
+        : {},
+    );
 
     async function dispose(): Promise<void> {
       held.unload();
