@@ -1,1 +1,0 @@
-import{o as e}from"./index-BoLlfJ_m.js";var t=e(`kernel`,()=>[]);export{t as default};
