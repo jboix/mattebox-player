@@ -47,9 +47,16 @@ tries the next handler.
 interface Handler {
   name: string;
   canHandle(source: Source, env: { video: HTMLMediaElement; mse: boolean }): 'probably' | 'maybe' | '';
-  handle(source: Source, video: HTMLMediaElement): Promise<Session>;
+  handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession>;
 }
 ```
+
+A handler returns its claim on the element: its name, the engine feeding
+the element or null, and `dispose`. The chain runner adds `source`, the URL
+and the type it resolved, and the result is the `Session` the player holds
+and `sourcechange` carries. A control reads what is playing from
+`session.source`, because the element's `src` is the page's input and
+carries no type.
 
 ## The two handlers
 

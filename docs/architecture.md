@@ -11,6 +11,7 @@ usage, read the [guide](guide/README.md).
 | `@mattebox/player-core`        | Source resolution, the handler chain, the two handlers, the unified error event  | The engine (peer)                                |
 | `@mattebox/player`             | `<mattebox-player>`, the panels over the engine's namespaces                     | The core, the engine (peer)                      |
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report | The player (peer, types only), the engine (peer) |
+| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`, Chromecast over Google's sender SDK | The player (peer, types only), the engine (peer) |
 
 Three rules:
 
@@ -73,6 +74,7 @@ page's glyph through a slot.
 | `mbx-seek-bar`, `mbx-chapters-menu`                                   | the video's chapters track, no namespace                                                                |
 | `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm` |
 | `mbx-airplay-button`                                                  | the video's WebKit AirPlay API, no namespace                                                            |
+| `mbx-cast-button`, `mbx-cast-screen` (`@mattebox/player-cast`)        | the Cast sender SDK on the page, no namespace; `engine.suspend()` and `engine.resume()` for the handoff |
 | `mbx-error-screen`, the error surface                                 | the core's `error` event                                                                                |
 
 ## Builds

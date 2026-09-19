@@ -1,7 +1,7 @@
 {
   "name": "mattebox-player",
   "version": "0.0.0",
-  "description": "Workspace for @mattebox/player-core, @mattebox/player and @mattebox/player-diagnostics",
+  "description": "Workspace for @mattebox/player-core, @mattebox/player, @mattebox/player-diagnostics and @mattebox/player-cast",
   "private": true,
   "author": "Josep Boix Requesens",
   "repository": {
@@ -17,7 +17,8 @@
   "workspaces": [
     "packages/core",
     "packages/player",
-    "packages/diagnostics"
+    "packages/diagnostics",
+    "packages/cast"
   ],
   "devEngines": {
     "runtime": {
@@ -66,7 +67,7 @@
     "dependency-cruiser": "^18.2.0",
     "husky": "^9.1.7",
     "knip": "^6.35.1",
-    "mattebox": "^0.5.0",
+    "mattebox": "^0.6.0",
     "playwright": "^1.62.1",
     "publint": "^0.3.24",
     "remark-cli": "^12.0.1",

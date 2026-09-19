@@ -43,6 +43,7 @@ workspaces; `package-lock.json` is the one lockfile.
 | `packages/core`        | `@mattebox/player-core`                                         |
 | `packages/player`      | `@mattebox/player`, with its CDN entry under `cdn/`             |
 | `packages/diagnostics` | `@mattebox/player-diagnostics`, with its CDN entry under `cdn/` |
+| `packages/cast`        | `@mattebox/player-cast`, with its CDN entry under `cdn/`        |
 | `demo`                 | The demo page, a Vite app over the packages' sources            |
 | `test/e2e`             | The demo page suite, Vitest browser mode                        |
 | `docs/guide`           | The user guide, one chapter per topic                           |
@@ -51,7 +52,8 @@ workspaces; `package-lock.json` is the one lockfile.
 Typecheck, tests, and the demo resolve the packages to their sources (the
 `paths` in `tsconfig.json`, the aliases in the Vite and Vitest configs). The
 package builds resolve through `node_modules` to built output, so the core
-builds before the element, and the element before the diagnostics.
+builds before the element, and the element before the diagnostics and the
+cast.
 
 ## Rules
 

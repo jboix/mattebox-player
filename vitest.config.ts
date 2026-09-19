@@ -42,6 +42,7 @@ export default defineConfig({
       exclude: [
         'packages/player/src/**',
         'packages/diagnostics/src/**',
+        'packages/cast/src/**',
         'packages/core/src/index.ts',
         'packages/core/src/types.ts',
       ],

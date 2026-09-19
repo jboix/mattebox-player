@@ -9,6 +9,7 @@ import { Declined, fromEngineError, fromMediaError } from './errors.js';
 import { inferType } from './infer-type.js';
 import type {
   HandlerEnvironment,
+  HandlerSession,
   Player,
   PlayerError,
   PlayerEvent,
@@ -89,14 +90,16 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
 
     for (const handler of options.handlers) {
       if (handler.canHandle(resolved, env) === '') continue;
-      let session: Session;
+      let handled: HandlerSession;
       try {
-        session = await handler.handle(resolved, video);
+        handled = await handler.handle(resolved, video);
       } catch (cause) {
         // The handler claimed the source and then found it was not its own.
         if (cause instanceof Declined) continue;
         throw cause;
       }
+      // The runner adds the source, so a page's own handler gets it too.
+      const session: Session = { ...handled, source: resolved };
       if (mine !== generation) {
         // A later load was called while this one ran. It wins, so this
         // session is disposed and never becomes `player.session`.

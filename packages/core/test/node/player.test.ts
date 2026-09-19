@@ -1,4 +1,11 @@
-import type { CanHandle, Handler, PlayerError, Session, Source } from '@mattebox/player-core';
+import type {
+  CanHandle,
+  Handler,
+  HandlerSession,
+  PlayerError,
+  Session,
+  Source,
+} from '@mattebox/player-core';
 import { createPlayer, Declined } from '@mattebox/player-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -29,7 +36,7 @@ function stub(
       seen.push(source);
       return answer;
     },
-    handle: async (): Promise<Session> => {
+    handle: async (): Promise<HandlerSession> => {
       if (options.delay !== undefined) {
         await new Promise((resolve) => setTimeout(resolve, options.delay));
       }
@@ -47,6 +54,17 @@ function stub(
 }
 
 describe('createPlayer', () => {
+  it('adds the resolved source to the session, type inferred', async () => {
+    const stub_ = stub('a', 'maybe');
+    const player = createPlayer(video, { handlers: [stub_.handler] });
+    const session = await player.load({ url: 'https://cdn.example/v.m3u8' });
+    expect(session.source).toEqual({
+      url: 'https://cdn.example/v.m3u8',
+      type: 'application/vnd.apple.mpegurl',
+    });
+    expect(player.session?.source).toBe(session.source);
+  });
+
   it('takes the first non-empty answer, so a later probably loses to an earlier maybe', async () => {
     const first = stub('first', 'maybe');
     const second = stub('second', 'probably');

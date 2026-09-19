@@ -12,6 +12,7 @@
 import { inferType } from '@mattebox/player-core';
 import '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
+import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
 import full from 'mattebox/presets/full';
 import emeCore from 'mattebox/stages/eme-core';
@@ -478,6 +479,7 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
   ['quality', 'Quality', 'mbx-quality-menu'],
   ['drm', 'DRM lock', 'mbx-drm-badge'],
   ['airplay', 'AirPlay', 'mbx-airplay-button'],
+  ['cast', 'Chromecast', 'mbx-cast-button'],
   ['pip', 'PiP', 'mbx-pip-button'],
   ['fullscreen', 'Fullscreen', 'mbx-fullscreen-button'],
   ['diagnostics', 'Diagnostics', 'mbx-diagnostics'],
@@ -495,13 +497,14 @@ const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
     'quality',
     'drm',
     'airplay',
+    'cast',
     'pip',
     'fullscreen',
     'diagnostics',
   ],
 };
-/** What the element composes on its own: everything but the time left, the lock and the diagnostics, which is a package of its own. */
-const DEFAULT_OFF = new Set(['remaining-time', 'drm', 'diagnostics']);
+/** What the element composes on its own: everything but the time left, the lock, and the cast and the diagnostics, packages of their own. */
+const DEFAULT_OFF = new Set(['remaining-time', 'drm', 'cast', 'diagnostics']);
 const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'skip-back': '10',
   'skip-forward': '10',
@@ -605,6 +608,8 @@ function composition(): string {
     const tagName = screen.dataset.screen === 'start' ? 'mbx-start-button' : 'mbx-error-screen';
     lines.push(tag(tagName, words(tagName, '')));
   }
+  // The cast screen comes with the cast button: one package, one toggle.
+  if (enabled.has('cast')) lines.push(tag('mbx-cast-screen', words('mbx-cast-screen', '')));
   const on = (row: Row) => rows[row].filter((name) => enabled.has(name));
   const inner = [
     ...on('seek').map((name) => controlMarkup(name, 'seek')),
@@ -683,11 +688,15 @@ function markupFor(element: MatteboxPlayerElement): string {
           .map((line) => `  ${line}`)
           .join('\n')}\n`
       : '';
-  // The diagnostics element is a package of its own, so its import comes with it.
-  const extra =
-    controlsSelect.value === 'custom' && enabled.has('diagnostics')
-      ? "\n  import '@mattebox/player-diagnostics';"
-      : '';
+  // The cast and the diagnostics are packages of their own, so their imports come with them.
+  const extra = [
+    ...(controlsSelect.value === 'custom' && enabled.has('cast')
+      ? ["\n  import '@mattebox/player-cast';"]
+      : []),
+    ...(controlsSelect.value === 'custom' && enabled.has('diagnostics')
+      ? ["\n  import '@mattebox/player-diagnostics';"]
+      : []),
+  ].join('');
   const script = scripted
     ? `<script type="module">
   import { MatteboxPlayerElement } from '@mattebox/player';${extra}

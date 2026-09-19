@@ -49,6 +49,10 @@ export interface Words {
   readonly noKey: string;
   readonly airplay: string;
   readonly airplayActive: string;
+  readonly cast: string;
+  readonly castStop: string;
+  /** With `{device}`. */
+  readonly castingTo: string;
   readonly pipEnter: string;
   readonly pipExit: string;
   readonly fsEnter: string;
@@ -110,6 +114,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'cap clau encara',
       airplay: 'AirPlay',
       airplayActive: 'Atura AirPlay',
+      cast: 'Envia a la tele',
+      castStop: "Atura l'enviament",
+      castingTo: 'Enviant a {device}',
       pipEnter: 'Imatge dins la imatge',
       pipExit: 'Surt de la imatge dins la imatge',
       fsEnter: 'Pantalla completa',
@@ -164,6 +171,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'sin clave todavía',
       airplay: 'AirPlay',
       airplayActive: 'Detener AirPlay',
+      cast: 'Enviar a la tele',
+      castStop: 'Detener el envío',
+      castingTo: 'Enviando a {device}',
       pipEnter: 'Imagen en imagen',
       pipExit: 'Salir de imagen en imagen',
       fsEnter: 'Pantalla completa',
@@ -218,6 +228,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'pas encore de clé',
       airplay: 'AirPlay',
       airplayActive: 'Arrêter AirPlay',
+      cast: 'Diffuser sur la télé',
+      castStop: 'Arrêter la diffusion',
+      castingTo: 'Diffusion sur {device}',
       pipEnter: 'Image dans l’image',
       pipExit: 'Quitter l’image dans l’image',
       fsEnter: 'Plein écran',
@@ -272,6 +285,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'noch kein Schlüssel',
       airplay: 'AirPlay',
       airplayActive: 'AirPlay beenden',
+      cast: 'Auf den Fernseher streamen',
+      castStop: 'Streaming beenden',
+      castingTo: 'Wiedergabe auf {device}',
       pipEnter: 'Bild im Bild',
       pipExit: 'Bild im Bild verlassen',
       fsEnter: 'Vollbild',
@@ -326,6 +342,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'nessuna chiave ancora',
       airplay: 'AirPlay',
       airplayActive: 'Interrompi AirPlay',
+      cast: 'Trasmetti alla TV',
+      castStop: 'Interrompi la trasmissione',
+      castingTo: 'Trasmissione su {device}',
       pipEnter: 'Immagine nell’immagine',
       pipExit: 'Esci da immagine nell’immagine',
       fsEnter: 'Schermo intero',
@@ -380,6 +399,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'ainda sem chave',
       airplay: 'AirPlay',
       airplayActive: 'Parar AirPlay',
+      cast: 'Transmitir para a TV',
+      castStop: 'Parar a transmissão',
+      castingTo: 'A transmitir para {device}',
       pipEnter: 'Imagem na imagem',
       pipExit: 'Sair de imagem na imagem',
       fsEnter: 'Ecrã inteiro',
@@ -434,6 +456,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: '尚无密钥',
       airplay: 'AirPlay',
       airplayActive: '停止 AirPlay',
+      cast: '投放到电视',
+      castStop: '停止投放',
+      castingTo: '正在投放到 {device}',
       pipEnter: '画中画',
       pipExit: '退出画中画',
       fsEnter: '全屏',
@@ -488,6 +513,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'キーはまだありません',
       airplay: 'AirPlay',
       airplayActive: 'AirPlay を停止',
+      cast: 'テレビにキャスト',
+      castStop: 'キャストを停止',
+      castingTo: '{device} にキャスト中',
       pipEnter: 'ピクチャインピクチャ',
       pipExit: 'ピクチャインピクチャを終了',
       fsEnter: '全画面',
@@ -542,6 +570,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: '아직 키 없음',
       airplay: 'AirPlay',
       airplayActive: 'AirPlay 중지',
+      cast: 'TV로 전송',
+      castStop: '전송 중지',
+      castingTo: '{device}에 전송 중',
       pipEnter: '화면 속 화면',
       pipExit: '화면 속 화면 종료',
       fsEnter: '전체 화면',
@@ -596,6 +627,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'अभी कोई कुंजी नहीं',
       airplay: 'AirPlay',
       airplayActive: 'AirPlay बंद करें',
+      cast: 'टीवी पर कास्ट करें',
+      castStop: 'कास्ट बंद करें',
+      castingTo: '{device} पर कास्ट हो रहा है',
       pipEnter: 'पिक्चर इन पिक्चर',
       pipExit: 'पिक्चर इन पिक्चर से बाहर निकलें',
       fsEnter: 'पूर्ण स्क्रीन',
@@ -650,6 +684,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       noKey: 'لا يوجد مفتاح بعد',
       airplay: 'AirPlay',
       airplayActive: 'إيقاف AirPlay',
+      cast: 'إرسال إلى التلفاز',
+      castStop: 'إيقاف الإرسال',
+      castingTo: 'الإرسال إلى {device}',
       pipEnter: 'صورة داخل صورة',
       pipExit: 'الخروج من صورة داخل صورة',
       fsEnter: 'ملء الشاشة',
@@ -723,6 +760,16 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
       };
     case 'mbx-airplay-button':
       return { label: words.airplay, 'label-active': words.airplayActive };
+    case 'mbx-cast-button':
+      return { 'label-start': words.cast, 'label-stop': words.castStop };
+    case 'mbx-cast-screen':
+      return {
+        label: words.castingTo,
+        'label-stop': words.castStop,
+        'label-play': words.play,
+        'label-pause': words.pause,
+        'label-seek': words.seek,
+      };
     case 'mbx-pip-button':
       return { 'label-enter': words.pipEnter, 'label-exit': words.pipExit };
     case 'mbx-fullscreen-button':

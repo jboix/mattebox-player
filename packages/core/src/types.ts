@@ -23,16 +23,26 @@ export type CanHandle = 'probably' | 'maybe' | '';
 export interface Handler {
   readonly name: string;
   canHandle(source: Source, env: HandlerEnvironment): CanHandle;
-  handle(source: Source, video: HTMLMediaElement): Promise<Session>;
+  handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession>;
 }
 
-/** What a handler holds on the element until disposed. */
-export interface Session {
+/** What a handler returns: its claim on the element. The chain runner adds the source. */
+export interface HandlerSession {
   /** The name of the handler that won. */
   readonly handler: string;
   /** The engine feeding the element, or null for native playback. The UI feature-tests its namespaces. */
   readonly engine: Mattebox | null;
   dispose(): Promise<void>;
+}
+
+/** What a handler holds on the element until disposed, and what it plays. */
+export interface Session extends HandlerSession {
+  /**
+   * The source the chain resolved: the URL, and the type the page gave or
+   * the extension implied. A control reads it here because the element's
+   * `src` is the page's input and carries no type.
+   */
+  readonly source: Source;
 }
 
 /** One shape for the engine's errors and the element's `MediaError`. */

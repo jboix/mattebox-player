@@ -15,6 +15,9 @@ export default defineConfig({
       '@mattebox/player-diagnostics': fileURLToPath(
         new URL('../packages/diagnostics/src/index.ts', import.meta.url),
       ),
+      '@mattebox/player-cast': fileURLToPath(
+        new URL('../packages/cast/src/index.ts', import.meta.url),
+      ),
       '@mattebox/player': fileURLToPath(
         new URL('../packages/player/src/index.ts', import.meta.url),
       ),

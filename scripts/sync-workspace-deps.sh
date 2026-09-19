@@ -24,6 +24,8 @@ npm pkg set "version=$next" -w "$package"
 core=$(node -p "require('./packages/core/package.json').version")
 npm pkg set "dependencies.@mattebox/player-core=^$core" -w packages/player
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/diagnostics
+npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/cast
 
 player=$(node -p "require('./packages/player/package.json').version")
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/diagnostics
+npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/cast

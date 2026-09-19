@@ -59,6 +59,11 @@ export const STYLE = `
   object-fit: contain;
   aspect-ratio: auto 16 / 9;
 }
+/* The casting attribute is set by @mattebox/player-cast while a receiver
+   plays: its screen has the controls, and the bar and the start button
+   would drive a paused video nobody watches. The attribute is the whole
+   coupling. */
+:host([casting]) ::slotted(mbx-control-bar), :host([casting]) ::slotted(mbx-start-button) { display: none; }
 :host(:focus-visible) [part~="stage"] { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
 /* Fullscreen goes on the host, so every control the page placed inside
    comes along. The browser gives the host the whole screen with
