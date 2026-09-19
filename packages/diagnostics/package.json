@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-diagnostics",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "<mbx-diagnostics>: playback stats, charts, engine state and browser support inside <mattebox-player>, and a report to send.",
   "author": "Josep Boix Requesens",
   "repository": {
@@ -50,10 +50,10 @@
     "release:ci": "semantic-release"
   },
   "devDependencies": {
-    "@mattebox/player-core": "^0.1.0"
+    "@mattebox/player-core": "^0.2.0"
   },
   "peerDependencies": {
-    "@mattebox/player": ">=0.3.1",
+    "@mattebox/player": ">=0.4.0",
     "mattebox": "^0.5.0"
   }
 }
