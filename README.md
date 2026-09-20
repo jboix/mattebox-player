@@ -6,6 +6,8 @@
 [![Quality](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml/badge.svg)](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml)
 [![@mattebox/player](https://img.shields.io/npm/v/@mattebox/player?label=%40mattebox%2Fplayer)](https://www.npmjs.com/package/@mattebox/player)
 [![@mattebox/player-core](https://img.shields.io/npm/v/@mattebox/player-core?label=%40mattebox%2Fplayer-core)](https://www.npmjs.com/package/@mattebox/player-core)
+[![@mattebox/player-diagnostics](https://img.shields.io/npm/v/@mattebox/player-diagnostics?label=%40mattebox%2Fplayer-diagnostics)](https://www.npmjs.com/package/@mattebox/player-diagnostics)
+[![@mattebox/player-cast](https://img.shields.io/npm/v/@mattebox/player-cast?label=%40mattebox%2Fplayer-cast)](https://www.npmjs.com/package/@mattebox/player-cast)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 The Mattebox player is three packages over the [mattebox](https://github.com/jboix/mattebox)
@@ -20,10 +22,16 @@ UI on top.
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`: the stats, the charts, the browser's support and a report to send, inside the player. | registers the element on import  |
 | `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`: Chromecast from the player, over Google's sender SDK.         | registers the elements on import |
 
-An integrator with their own UI takes only the core. The engine is a peer
-dependency of all four, and the diagnostics and the cast are optional. The
-cast is a package of its own because its button loads Google's script onto
-the page; the AirPlay button, over Safari's own API, ships with the player.
+An integrator who wants a UI of their own has two options:
+
+1. Take only the core and build the UI elements themselves.
+2. Take the player and restyle it: every element carries a `part`, so the
+   page's CSS reaches all of it with `::part()`.
+
+The engine is a peer dependency of all four packages. The diagnostics and
+the cast are optional. The cast is a package of its own because its button
+loads Google's script onto the page. The AirPlay button uses Safari's own
+API and ships with the player.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">
@@ -78,12 +86,6 @@ session.engine?.quality.pin('720p');
 
 The [guide](docs/guide/README.md) covers the rest, starting with
 [Getting started](docs/guide/01-getting-started.md).
-
-## Status
-
-The core, the element, its panels and its controls ship, and the gates are
-green. The controls became elements in v3, and the
-[architecture](docs/architecture.md) lists the deliverables in order.
 
 ## Documentation
 
