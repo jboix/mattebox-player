@@ -18,7 +18,7 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/mattebox-player/assets/index-CtTTyPxq.js"></script>
+  <script type="module" crossorigin src="/mattebox-player/assets/index-C-IzcWrS.js"></script>
   <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-BLiBvWZp.css">
 </head>
 <body>
@@ -105,6 +105,8 @@
           <label class="check"><input type="checkbox" data-screen="title" checked /><span>Title</span></label>
         </div>
         <label class="field"><span>Poster URL</span><input type="url" id="poster" placeholder="https://…/poster.jpg" /></label>
+        <label class="field"><span>Thumbnails URL</span><input type="url" id="thumbnails" placeholder="https://…/thumbnails.vtt" /></label>
+        <label class="field"><span>Chapters URL</span><input type="url" id="chapters" placeholder="https://…/chapters.vtt" /></label>
         <div class="pair">
           <label class="field">
             <span>Preset</span>
@@ -191,6 +193,8 @@
             </select>
           </label>
         </div>
+        <label class="field"><span>Chromecast application id</span><input type="text" id="cast-receiver" value="6BCED548" placeholder="Empty for the Default Media Receiver" /></label>
+        <p class="hint">The Cast SDK keeps the first id for the page, so the page reloads when you change it with the cast button on.</p>
       </fieldset>
 
       <fieldset class="group" id="words">
