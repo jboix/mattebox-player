@@ -1,0 +1,1 @@
+import{o as e}from"./index-C45Pycje.js";var t=e(`kernel`,()=>[]);export{t as default};
