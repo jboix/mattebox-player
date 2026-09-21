@@ -1,1 +1,0 @@
-import{o as e}from"./index-Cgus6Z-t.js";var t=e(`kernel`,()=>[]);export{t as default};
