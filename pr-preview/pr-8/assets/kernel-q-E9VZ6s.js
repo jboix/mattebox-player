@@ -1,0 +1,1 @@
+import{o as e}from"./index-Cx3wgJR3.js";var t=e(`kernel`,()=>[]);export{t as default};
