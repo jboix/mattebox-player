@@ -129,6 +129,9 @@ function load(choice: Choice): void {
   else element.setAttribute('thumbnails', choice.thumbnails);
   if (choice.chapters === undefined) element.removeAttribute('chapters');
   else element.setAttribute('chapters', choice.chapters);
+  // The side shows what the source brought, and edits it from there.
+  thumbnails.value = choice.thumbnails ?? '';
+  chapters.value = choice.chapters ?? '';
   // A source that brings a poster fills the field; one that does not clears it.
   poster.value = choice.poster ?? '';
   attribute(element, 'poster', choice.poster ?? null);
@@ -446,6 +449,9 @@ const controlsSelect = byId<HTMLSelectElement>('controls');
 const flags = [...document.querySelectorAll<HTMLInputElement>('[data-flag]')];
 const looks = [...document.querySelectorAll<HTMLSelectElement>('[data-look]')];
 const poster = byId<HTMLInputElement>('poster');
+const thumbnails = byId<HTMLInputElement>('thumbnails');
+const chapters = byId<HTMLInputElement>('chapters');
+const castReceiver = byId<HTMLInputElement>('cast-receiver');
 const preset = byId<HTMLSelectElement>('preset');
 const markup = byId<HTMLPreElement>('markup');
 const screens = [...document.querySelectorAll<HTMLInputElement>('[data-screen]')];
@@ -515,6 +521,8 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   rates: '0.5 0.75 1 1.25 1.5 2',
   chapters: 'on',
 };
+/** The demo's own receiver, from the mattebox-receiver repository. Empty means the Default Media Receiver. */
+const CAST_RECEIVER = '6BCED548';
 
 /** The layout as the page holds it: every control in one row, ticked when the bar carries it. */
 const rows: Record<Row, string[]> = { seek: [], left: [], right: [] };
@@ -533,6 +541,7 @@ function defaults(): void {
   controlsSelect.value = 'custom';
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
   language.value = 'en';
+  castReceiver.value = CAST_RECEIVER;
 }
 defaults();
 
@@ -588,6 +597,8 @@ function controlMarkup(name: string, row: Row): string {
     own.chapters = knob('chapters');
   }
   if (name === 'speed') own.rates = knob('rates');
+  if (name === 'cast')
+    own.receiver = castReceiver.value.trim() === '' ? null : castReceiver.value.trim();
   if (name === 'volume') {
     // The group's two parts, written out so their words can be set.
     const inner = [
@@ -642,6 +653,9 @@ function composition(): string {
   return lines.join('\n');
 }
 
+/** A cast button was on the page, so the SDK's context has its receiver id. */
+let castConnected = false;
+
 /** What each element on the page carries, so an unchanged composition is left alone. */
 const applied = new WeakMap<HTMLElement, string>();
 
@@ -652,6 +666,7 @@ function applyComposition(element: MatteboxPlayerElement): void {
   applied.set(element, wanted);
   for (const child of [...element.children]) if (child.localName !== 'video') child.remove();
   if (wanted !== '') element.insertAdjacentHTML('beforeend', wanted);
+  if (wanted.includes('<mbx-cast-button')) castConnected = true;
 }
 
 /** Sets or removes an attribute, only where that changes it. */
@@ -666,6 +681,8 @@ function applyElement(element: MatteboxPlayerElement): void {
   for (const flag of flags)
     attribute(element, flag.dataset.flag as string, flag.checked ? '' : null);
   attribute(element, 'poster', poster.value.trim() === '' ? null : poster.value.trim());
+  attribute(element, 'thumbnails', thumbnails.value.trim() === '' ? null : thumbnails.value.trim());
+  attribute(element, 'chapters', chapters.value.trim() === '' ? null : chapters.value.trim());
   attribute(element, 'preset', preset.value === 'full' ? null : preset.value);
   for (const look of looks) {
     const name = look.dataset.look as string;
@@ -750,6 +767,7 @@ interface Preferences {
   readonly screens: Record<string, boolean>;
   readonly knobs: Record<string, string>;
   readonly language: string;
+  readonly castReceiver: string;
 }
 
 function savePreferences(): void {
@@ -764,6 +782,7 @@ function savePreferences(): void {
     screens: Object.fromEntries(screens.map((s) => [s.dataset.screen as string, s.checked])),
     knobs: Object.fromEntries(knobInputs.map((k) => [k.dataset.knob as string, k.value])),
     language: language.value,
+    castReceiver: castReceiver.value,
   };
   try {
     localStorage.setItem(PREFERENCES, JSON.stringify(prefs));
@@ -827,6 +846,7 @@ function loadPreferences(): void {
   ) {
     language.value = prefs.language;
   }
+  if (typeof prefs.castReceiver === 'string') castReceiver.value = prefs.castReceiver;
 }
 
 /** One row of the layout lists: a tick, a name, and a handle to drag it by. */
@@ -937,6 +957,15 @@ language.addEventListener('change', render);
 for (const flag of flags) flag.addEventListener('change', render);
 for (const look of looks) look.addEventListener('change', render);
 poster.addEventListener('change', render);
+thumbnails.addEventListener('change', render);
+chapters.addEventListener('change', render);
+castReceiver.addEventListener('change', () => {
+  render();
+  // The SDK's context is one per page and keeps the id of the first button
+  // that connected. After that, only a new page takes a new id. The
+  // preferences carry it over.
+  if (castConnected) location.reload();
+});
 preset.addEventListener('change', render);
 // The subtitles menu in the bar writes the same two attributes; the side follows it.
 new MutationObserver(() => {

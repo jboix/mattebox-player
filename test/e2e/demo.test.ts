@@ -174,6 +174,30 @@ it('the media options set the attributes the element forwards or reads', async (
   expect($('#markup').textContent).toContain('subtitle-size="large"');
 });
 
+it('the thumbnails and the chapters fields on the side reach the element', async () => {
+  const { $, player } = await mount({ row: 'none' });
+  await userEvent.fill($('#thumbnails'), 'https://example.com/thumbnails.vtt');
+  await userEvent.fill($('#chapters'), 'https://example.com/chapters.vtt');
+  await userEvent.tab();
+  expect(player().getAttribute('thumbnails')).toBe('https://example.com/thumbnails.vtt');
+  expect(player().getAttribute('chapters')).toBe('https://example.com/chapters.vtt');
+  expect($('#markup').textContent).toContain('chapters="https://example.com/chapters.vtt"');
+  await userEvent.clear($('#chapters'));
+  await userEvent.tab();
+  expect(player().hasAttribute('chapters')).toBe(false);
+});
+
+it("the cast button names the receiver the side gives, the demo's own by default", async () => {
+  const { $, bar } = await mount({ row: 'none' });
+  expect($<HTMLInputElement>('#cast-receiver').value).toBe('6BCED548');
+  // Edited before a cast button is on the page, so the page has no reason to reload.
+  await userEvent.fill($('#cast-receiver'), 'ABCD1234');
+  await userEvent.tab();
+  await setChecked($('#layout-right li[data-name="cast"] input'), true);
+  expect($('mbx-cast-button', bar()).getAttribute('receiver')).toBe('ABCD1234');
+  expect($('#markup').textContent).toContain('receiver="ABCD1234"');
+});
+
 it('the theme toggle switches rooms and remembers the choice', async () => {
   const first = await mount({ row: 'none' });
   const html = document.documentElement;
