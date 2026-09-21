@@ -1,1 +1,0 @@
-import{o as e}from"./index-C-IzcWrS.js";var t=e(`kernel`,()=>[]);export{t as default};
