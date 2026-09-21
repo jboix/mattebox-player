@@ -53,6 +53,14 @@ const CHAPTERS = 'chapters';
  */
 const CONTROLS = 'controls';
 
+/**
+ * Inline playback, on until the page writes `playsinline="false"`, the way
+ * `spellcheck` and `draggable` are on until told otherwise. An iPhone takes
+ * a video without `playsinline` to its own fullscreen on play, where no
+ * control the page placed shows. Changing it never reloads.
+ */
+const PLAYSINLINE = 'playsinline';
+
 /** The video's state, as attributes on the element, read on the events the video fires for it. */
 const STATE_EVENTS = [
   'play',
@@ -133,7 +141,7 @@ let defaults: MatteboxPlayerOptions = {};
 // biome-ignore lint/suspicious/noUnsafeDeclarationMerging: method overloads only, no properties
 export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   static get observedAttributes(): readonly string[] {
-    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS];
+    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS, PLAYSINLINE];
   }
 
   /**
@@ -203,6 +211,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Native until the `controls` attribute says otherwise, which arrives
     // through attributeChangedCallback: a constructor must not read attributes.
     this.media.controls = true;
+    // Inline is the default, and the player's own attribute has not arrived
+    // yet. Set as an attribute: not every browser has the `playsInline`
+    // property. The fullscreen button still reaches the iPhone's fullscreen,
+    // through `webkitEnterFullscreen`.
+    this.media.setAttribute(PLAYSINLINE, '');
     for (const name of STATE_EVENTS) {
       this.media.addEventListener(name, () => {
         this.note(name);
@@ -339,6 +352,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     if (name === CHAPTERS) {
       this.chapters();
+      return;
+    }
+    if (name === PLAYSINLINE) {
+      // On the video it is a boolean attribute, so off is absent.
+      this.media.toggleAttribute(PLAYSINLINE, this.getAttribute(PLAYSINLINE) !== 'false');
       return;
     }
     // The preset decides the chain, so it is the one attribute that rebuilds it.

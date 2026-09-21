@@ -17,6 +17,7 @@ events, and the controls that go inside it, over the picture under
 | `controls`            | `native` (the default), `custom` for the controls elements inside the player, or `none` for a page that draws its own. Changing it never reloads.       |
 | `subtitle-size`       | `small`, `medium`, `large` or `xlarge`, as the subtitles menu sets it. Default medium.                                                                  |
 | `subtitle-background` | `none`, `dark` or `solid`. Default dark.                                                                                                                |
+| `playsinline`         | Inline playback on an iPhone, on by default. `playsinline="false"` makes the iPhone go to fullscreen on play. Changing it never reloads.                |
 | `autoplay`            | Forwarded onto the video, as an attribute.                                                                                                              |
 | `muted`               | Forwarded onto the video, as an attribute and into its muted state. The element also reflects the video's muted state back into it.                     |
 | `poster`              | Forwarded onto the video, as an attribute.                                                                                                              |

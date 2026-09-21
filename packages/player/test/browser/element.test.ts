@@ -127,6 +127,27 @@ describe('<mattebox-player>', () => {
     expect(player?.shadowRoot).not.toBeNull();
   });
 
+  it('creates the video inline, so an iPhone does not take it to fullscreen on play', () => {
+    document.body.innerHTML = '<mattebox-player></mattebox-player>';
+    const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
+    expect(player.video.hasAttribute('playsinline')).toBe(true);
+    // On until told otherwise, like `spellcheck`: only "false" turns it off,
+    // and off is the attribute absent, because the video's is a boolean.
+    player.setAttribute('playsinline', 'false');
+    expect(player.video.hasAttribute('playsinline')).toBe(false);
+    player.setAttribute('playsinline', '');
+    expect(player.video.hasAttribute('playsinline')).toBe(true);
+    player.setAttribute('playsinline', 'false');
+    player.removeAttribute('playsinline');
+    expect(player.video.hasAttribute('playsinline')).toBe(true);
+  });
+
+  it('reads playsinline="false" from the markup', () => {
+    document.body.innerHTML = '<mattebox-player playsinline="false"></mattebox-player>';
+    const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
+    expect(player.video.hasAttribute('playsinline')).toBe(false);
+  });
+
   it('loads once when its attributes are set before it is connected', async () => {
     const player = new MatteboxPlayerElement({ handlers: chain() });
     let changes = 0;
