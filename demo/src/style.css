@@ -478,8 +478,13 @@ button:hover {
   border-bottom: 1px solid var(--rule);
 }
 
+/* The dialog is not a flag, so the flags' heading rule does not reach it: without this the title is the browser's own h2. */
 #content-dialog .flag-head h2 {
-  margin-right: auto;
+  margin: 0 auto 0 0;
+  font-family: var(--condensed);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 #content-dialog [role="tabpanel"] {
