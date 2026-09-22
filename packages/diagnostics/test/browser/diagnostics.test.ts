@@ -471,14 +471,13 @@ describe('the element', () => {
   });
 
   it('is the panel itself, open and in flow, when it is not in a bar', async () => {
-    const { player, element } = await mount([nativeHandler()], 'player');
+    const { element } = await mount([nativeHandler()], 'player');
     expect(element.hasAttribute('inline')).toBe(true);
     expect(inside(element, 'panel').hidden).toBe(false);
     expect(element.hasAttribute('open')).toBe(false);
     // In the stage's slot beside the video, under the picture.
     expect(element.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
     expect(rows(element, 'playback').handler).toBe('native');
-    expect(player.querySelector('mbx-panels')).not.toBeNull();
   });
 
   it('stops sampling and closes when removed, and starts again when put back', async () => {

@@ -11,7 +11,7 @@ import { MatteboxPlayerElement } from '@mattebox/player';
 import { nativeHandler } from '@mattebox/player-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cueLift } from '../../src/controls/cues.js';
-import { silence } from './helpers.js';
+import { compose, silence } from './helpers.js';
 
 /** Room for the browser under a full run. */
 const ROOM = { timeout: 5000 };
@@ -22,8 +22,8 @@ async function ready(seconds: number): Promise<MatteboxPlayerElement> {
   player.setAttribute('controls', 'custom');
   player.setAttribute('muted', '');
   player.setAttribute('src', silence(seconds));
+  player.append(...compose());
   document.body.append(player);
-  await expect.poll(() => player.querySelector('mbx-control-bar')).not.toBeNull();
   await expect.poll(() => player.video.readyState, ROOM).toBeGreaterThan(0);
   return player;
 }

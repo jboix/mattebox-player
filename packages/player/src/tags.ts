@@ -23,6 +23,5 @@ export const QUALITY_MENU = 'mbx-quality-menu';
 export const AUDIO_MENU = 'mbx-audio-menu';
 export const SUBTITLES_MENU = 'mbx-subtitles-menu';
 export const DRM_BADGE = 'mbx-drm-badge';
-export const PANELS = 'mbx-panels';
 export const VOLUME = 'mbx-volume';
 export const CHAPTERS_MENU = 'mbx-chapters-menu';

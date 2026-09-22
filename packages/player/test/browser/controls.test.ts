@@ -14,7 +14,7 @@ import type { ThumbnailsApi } from 'mattebox/stages/thumbnails';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { icon } from '../../src/controls/icons.js';
 import type { LiveApi, PdtApi } from '../../src/namespaces.js';
-import { fakeMedia, media, once, silence } from './helpers.js';
+import { compose, fakeMedia, media, once, silence } from './helpers.js';
 
 const IDLE_MS = 3000;
 
@@ -38,16 +38,17 @@ function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlaye
   return build([nativeHandler()], attributes);
 }
 
-/** The default composition arrives a microtask after the connect. */
+/** One task, for anything queued on the connect. */
 function settled(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** The element under custom controls, with its default bar in. */
+/** The element under custom controls, with a composition of every control in. */
 async function custom(
   attributes: Readonly<Record<string, string>> = {},
 ): Promise<MatteboxPlayerElement> {
   const player = mount({ controls: 'custom', ...attributes });
+  player.append(...compose());
   // Wide enough for every control: at the test page's width the bar
   // collapses its buttons, which the tests of the narrow bar set up for
   // themselves.
@@ -129,25 +130,48 @@ describe('the controls attribute', () => {
     expect(bar(player)).toBeNull();
   });
 
-  it('removes native controls and appends the default composition with controls="custom"', async () => {
+  it('removes native controls and appends nothing with controls="custom"', async () => {
     const player = mount({ controls: 'custom' });
     expect(player.video.hasAttribute('controls')).toBe(false);
-    // Not yet: the page's own children may still be on their way.
-    expect(bar(player)).toBeNull();
     await settled();
+    // The composition is the page's: a player with nothing inside stays empty.
+    expect(bar(player)).toBeNull();
+    expect([...player.children].map((node) => node.localName)).toEqual(['video']);
+  });
+
+  it('slots a bar the page wrote into the stage, over the picture', async () => {
+    const player = await custom();
     const root = bar(player);
-    expect(root).not.toBeNull();
     expect(root?.parentElement).toBe(player);
-    expect(root?.querySelector('mbx-play-button')).not.toBeNull();
-    // Beside the video, and slotted into the stage over it.
     expect(root?.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
   });
 
-  it('removes native controls and draws no bar with controls="none"', async () => {
+  it('removes native controls and appends nothing with controls="none"', async () => {
     const player = mount({ controls: 'none' });
     await settled();
     expect(player.video.hasAttribute('controls')).toBe(false);
-    expect(bar(player)).toBeNull();
+    expect([...player.children].map((node) => node.localName)).toEqual(['video']);
+  });
+
+  it('hides every child but the video with controls="none", and shows them again after', async () => {
+    const player = await custom();
+    // A page's own element inside the player hides the same way.
+    const own = document.createElement('div');
+    player.append(own);
+    const shown = (node: Element | null): boolean =>
+      node !== null && getComputedStyle(node).display !== 'none';
+    expect(shown(bar(player))).toBe(true);
+    player.setAttribute('controls', 'none');
+    expect(shown(player.video)).toBe(true);
+    for (const node of player.children) {
+      if (node !== player.video) expect(shown(node)).toBe(false);
+    }
+    // The children stay: the page keeps its composition and turns it off.
+    expect(bar(player)?.isConnected).toBe(true);
+    expect(own.isConnected).toBe(true);
+    player.setAttribute('controls', 'custom');
+    expect(shown(bar(player))).toBe(true);
+    expect(shown(own)).toBe(true);
   });
 
   it('leaves a bar the page wrote alone, and appends nothing beside it', async () => {
@@ -182,7 +206,7 @@ describe('the controls attribute', () => {
     expect(inner(playButton(player)).getAttribute('aria-label')).toBe('Play');
   });
 
-  it('swaps the default bar in and out as the attribute changes, without reloading the source', async () => {
+  it('changes the mode without reloading the source', async () => {
     const player = mount({ src: silence(), muted: '' });
     let changes = 0;
     player.addEventListener('sourcechange', () => {
@@ -193,24 +217,14 @@ describe('the controls attribute', () => {
 
     player.setAttribute('controls', 'custom');
     expect(player.video.hasAttribute('controls')).toBe(false);
-    expect(bar(player)).not.toBeNull();
     player.setAttribute('controls', 'none');
-    expect(bar(player)).toBeNull();
+    expect(player.video.hasAttribute('controls')).toBe(false);
     player.removeAttribute('controls');
     expect(player.video.hasAttribute('controls')).toBe(true);
 
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(changes).toBe(1);
     expect(player.video.getAttribute('src')).toBe(loaded);
-  });
-
-  it('takes back only the default it appended when the mode changes', async () => {
-    const player = await custom();
-    const own = document.createElement('mbx-play-button');
-    player.append(own);
-    player.setAttribute('controls', 'native');
-    expect(bar(player)).toBeNull();
-    expect(own.isConnected).toBe(true);
   });
 });
 
@@ -553,7 +567,7 @@ describe('the box', () => {
     const player = mount();
     player.style.width = '320px';
     player.style.height = '400px';
-    // What the panels row is under native controls: a block child in flow.
+    // A block child the page puts in flow, such as the diagnostics panel under native controls.
     const row = document.createElement('div');
     row.style.height = '20px';
     player.append(row);
@@ -720,6 +734,7 @@ describe('the shortcuts', () => {
       return Promise.resolve();
     };
     player.setAttribute('controls', 'custom');
+    player.append(...compose());
     await settled();
     press(player, 'f');
     expect(asked).toBe(1);
@@ -1050,6 +1065,7 @@ describe('the fullscreen button', () => {
     player.matches = (selector: string) =>
       selector === ':fullscreen' ? inside : matches(selector);
     player.setAttribute('controls', 'custom');
+    player.append(...compose());
     await settled();
     const button = control(player, 'mbx-fullscreen-button');
     inner(button).click();
@@ -1264,7 +1280,7 @@ interface FakeParts {
   bufferGoal?: number;
 }
 
-/** An engine of the namespaces the row reads, and what the panels under native controls touch. */
+/** An engine of the namespaces the bar's controls read. */
 function fakeEngine(parts: FakeParts): Mattebox {
   return {
     on: () => () => undefined,
@@ -1292,6 +1308,7 @@ async function over(
   attributes: Readonly<Record<string, string>> = {},
 ): Promise<MatteboxPlayerElement> {
   const player = build(handlers, { controls: 'custom', src: SOURCE, ...attributes });
+  player.append(...compose());
   await settled();
   await expect.poll(() => player.engine).not.toBeNull();
   return player;
@@ -1824,7 +1841,7 @@ describe('the menu primitive, through the speed menu', () => {
   });
 });
 
-/** An engine with tracks, and what the row and the panels read besides. */
+/** An engine with tracks, and what the bar's controls read besides. */
 function tracksEngine(
   available: ReadonlyArray<{ id: string; contentType: string; lang?: string; role?: string }>,
 ): Mattebox & { active: string | null; chosen: string[] } {
@@ -1930,8 +1947,7 @@ describe('the subtitles menu over a stubbed session', () => {
   });
 
   it('hides for a native session', async () => {
-    const player = mount({ controls: 'custom', muted: '', src: silence(), type: 'audio/wav' });
-    await settled();
+    const player = await custom({ muted: '', src: silence(), type: 'audio/wav' });
     await expect.poll(() => player.player?.session?.handler).toBe('native');
     expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);
     expect(control(player, 'mbx-audio-menu').hidden).toBe(true);

@@ -659,9 +659,23 @@ let castConnected = false;
 /** What each element on the page carries, so an unchanged composition is left alone. */
 const applied = new WeakMap<HTMLElement, string>();
 
-/** Replaces the controls inside `element` with the composition, under custom controls. */
+/**
+ * What goes inside the player when the bar does not: the diagnostics alone,
+ * placed in the player itself, where the element is its panel under the
+ * picture. Nothing else has a place outside the bar.
+ */
+function inlineComposition(): string {
+  return enabled.has('diagnostics') ? controlMarkup('diagnostics', 'right') : '';
+}
+
+/** What goes inside the player for the mode on the side. */
+function childrenFor(): string {
+  return controlsSelect.value === 'custom' ? composition() : inlineComposition();
+}
+
+/** Replaces the controls inside `element` with the composition for the mode. */
 function applyComposition(element: MatteboxPlayerElement): void {
-  const wanted = controlsSelect.value === 'custom' ? composition() : '';
+  const wanted = childrenFor();
   if (applied.get(element) === wanted) return;
   applied.set(element, wanted);
   for (const child of [...element.children]) if (child.localName !== 'video') child.remove();
@@ -714,19 +728,20 @@ function markupFor(element: MatteboxPlayerElement): string {
   for (const flag of flags) if (flag.checked) attributes.push(flag.dataset.flag as string);
   if (controlsSelect.value !== 'native') attributes.push(`controls="${controlsSelect.value}"`);
   const inner = attributes.map((a) => `\n  ${a}`).join('');
+  const composed = childrenFor();
   const children =
-    controlsSelect.value === 'custom'
-      ? `\n${composition()
+    composed === ''
+      ? ''
+      : `\n${composed
           .split('\n')
           .map((line) => `  ${line}`)
-          .join('\n')}\n`
-      : '';
+          .join('\n')}\n`;
   // The cast and the diagnostics are packages of their own, so their imports come with them.
   const extra = [
     ...(controlsSelect.value === 'custom' && enabled.has('cast')
       ? ["\n  import '@mattebox/player-cast';"]
       : []),
-    ...(controlsSelect.value === 'custom' && enabled.has('diagnostics')
+    ...(composed.includes('<mbx-diagnostics')
       ? ["\n  import '@mattebox/player-diagnostics';"]
       : []),
   ].join('');

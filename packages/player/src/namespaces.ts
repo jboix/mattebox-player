@@ -6,7 +6,7 @@
  * only through a `declare module` merge in the stage that contributes it,
  * and of the three a player shows, one merge is unreachable and one does not
  * exist. So the casts live here, once, and the
- * panels read a plain optional shape.
+ * controls read a plain optional shape.
  */
 import type { Mattebox } from 'mattebox';
 import type { DrmApi } from 'mattebox/stages/eme-core';

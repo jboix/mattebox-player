@@ -6,12 +6,12 @@
  * OS media session already find them.
  *
  * The controls are elements the page places inside, beside the video, and
- * the stage slots them: over the picture for the bar and the screens, in
- * flow under it for the panels row. A page that places none gets the
- * default composition for its mode appended to its light DOM. The element
- * reflects the video's state as attributes on itself, `paused`, `playing`,
- * `ended`, `muted`, `audio`, `started` and `waiting`, for the page's
- * stylesheet and the controls alike.
+ * the stage slots them over the picture. The element appends none of its
+ * own: the composition is the page's in every mode, and `none` hides every
+ * child but the video. The element reflects the video's state as
+ * attributes on itself, `paused`, `playing`, `ended`, `muted`, `audio`,
+ * `started` and `waiting`, for the page's stylesheet and the controls
+ * alike.
  *
  * No class fields, `#private` or otherwise: the ES2015 build would lower
  * them into runtime helpers, and the emit check bans helpers. Statics are
@@ -21,14 +21,13 @@
 import type { Handler, Player, PlayerError, Session, Source } from '@mattebox/player-core';
 import { createPlayer, inferType, matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
-import { composeBar, composePanels } from './compose.js';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
 import { STYLE } from './style.js';
 import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
-import { CONTROL_BAR, PANELS, PLAYER } from './tags.js';
+import { PLAYER } from './tags.js';
 
 /** Attributes forwarded onto the video as attributes, never as properties. */
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
@@ -47,9 +46,10 @@ const CHAPTERS = 'chapters';
 
 /**
  * The one attribute whose meaning the element owns: `native` keeps the
- * browser's controls on the video, `custom` swaps them for the bar, `none`
- * leaves the video bare for a page that draws its own. Anything else is
- * `native`. Changing it swaps the bar without touching the session.
+ * browser's controls on the video, `custom` swaps them for the controls the
+ * page placed inside, `none` takes the browser's off and hides every child
+ * but the video. Anything else is `native`. Changing it never touches the
+ * session.
  */
 const CONTROLS = 'controls';
 
@@ -160,15 +160,6 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private readonly media: HTMLVideoElement;
   /** Wraps the slot: the picture, and the controls over it or under it. */
   declare private readonly stage: HTMLDivElement;
-  /** The default composition this element appended, to take back when the mode changes. */
-  declare private composed: HTMLElement[];
-  /**
-   * Whether the children are all in. While the parser is still inside the
-   * element, a page's own bar has not arrived yet, and appending the
-   * default then would leave two. So the decision waits for the document
-   * to be parsed, or for the microtask after a scripted connect.
-   */
-  declare private settled: boolean;
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
@@ -193,8 +184,6 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   constructor(options?: MatteboxPlayerOptions) {
     super();
     this.options = options ?? defaults;
-    this.composed = [];
-    this.settled = false;
     this.focusable = false;
     this.track = null;
     this.core = null;
@@ -257,8 +246,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /**
    * The fatal error of the current load, or null once a load starts or
    * playback resumes. The `error` event says when; this says what, for a
-   * control that attaches after the event, such as the default composition
-   * behind a source that fails while the page is still parsing.
+   * control that attaches after the event, such as an error screen parsed
+   * after a source that failed while the page was still loading.
    */
   get error(): PlayerError | null {
     return this.failure;
@@ -268,21 +257,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (this.media.parentNode !== this) this.append(this.media);
     for (const name of FORWARDED) this.forward(name);
     this.reflect();
-    if (!this.settled) this.settle();
     this.reload();
-  }
-
-  /** Decides on the default composition once the children are all in, then on every mode change. */
-  private settle(): void {
-    const done = (): void => {
-      this.settled = true;
-      this.mode();
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', done, { once: true });
-    } else {
-      queueMicrotask(done);
-    }
   }
 
   /** The two states the video does not hold: whether it has played once, and whether it waits for data. */
@@ -369,9 +344,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   }
 
   /**
-   * Applies the `controls` attribute: the video's own controls, the
-   * tabindex, and the default composition for the mode where the page
-   * wrote none. The controls themselves are elements and attach on their own.
+   * Applies the `controls` attribute: the video's own controls and the
+   * tabindex. The controls themselves are elements the page placed, and
+   * they attach on their own; the element appends none.
    */
   private mode(): void {
     const value = this.getAttribute(CONTROLS);
@@ -388,14 +363,6 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       // tabindex keeps it.
       this.tabIndex = 0;
       this.focusable = true;
-    }
-    if (!this.settled) return;
-    for (const node of this.composed) node.remove();
-    this.composed = [];
-    const own = custom ? CONTROL_BAR : PANELS;
-    if (this.querySelector(`:scope > ${own}`) === null) {
-      this.composed = custom ? composeBar() : composePanels();
-      this.append(...this.composed);
     }
   }
 
@@ -459,7 +426,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (error.fatal) {
       this.failure = error;
       // Under custom controls the error screen element is the surface, and
-      // the row under the video stays quiet, as the panels do.
+      // the element's own row under the video stays quiet.
       if (this.getAttribute(CONTROLS) !== 'custom') this.surface.show(error);
     }
     this.emit('error', error);

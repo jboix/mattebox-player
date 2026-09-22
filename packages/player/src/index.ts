@@ -16,7 +16,6 @@ import type { MbxErrorScreen } from './entries/error-screen.js';
 import type { MbxFullscreenButton } from './entries/fullscreen-button.js';
 import type { MbxLiveButton } from './entries/live-button.js';
 import type { MbxMuteButton } from './entries/mute-button.js';
-import type { MbxPanels } from './entries/panels.js';
 import type { MbxPipButton } from './entries/pip-button.js';
 import type { MbxPlayButton } from './entries/play-button.js';
 import type { MbxQualityMenu } from './entries/quality-menu.js';
@@ -45,7 +44,6 @@ export { MbxErrorScreen } from './entries/error-screen.js';
 export { MbxFullscreenButton } from './entries/fullscreen-button.js';
 export { MbxLiveButton } from './entries/live-button.js';
 export { MbxMuteButton } from './entries/mute-button.js';
-export { MbxPanels } from './entries/panels.js';
 export { MbxPipButton } from './entries/pip-button.js';
 export { MbxPlayButton } from './entries/play-button.js';
 export { MbxQualityMenu } from './entries/quality-menu.js';
@@ -90,6 +88,5 @@ declare global {
     'mbx-subtitles-menu': MbxSubtitlesMenu;
     'mbx-drm-badge': MbxDrmBadge;
     'mbx-chapters-menu': MbxChaptersMenu;
-    'mbx-panels': MbxPanels;
   }
 }

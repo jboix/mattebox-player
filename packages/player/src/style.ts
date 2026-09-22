@@ -35,8 +35,7 @@ export const STYLE = `
   --mbx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 /* The stage is a column as tall as the host, so the picture is centred
-   in whatever height the page gives, and the panels row under native
-   controls keeps its place below the picture. The height comes from the
+   in whatever height the page gives. The height comes from the
    page, or from the browser in fullscreen, and not from a display on the
    host: a page's own "mattebox-player { display: block }" beats a :host()
    rule, so nothing here may depend on one. */
@@ -64,12 +63,16 @@ export const STYLE = `
    would drive a paused video nobody watches. The attribute is the whole
    coupling. */
 :host([casting]) ::slotted(mbx-control-bar), :host([casting]) ::slotted(mbx-start-button) { display: none; }
+/* controls="none" hides every child but the video, so a page keeps its
+   composition in place and turns it off with one attribute. A normal rule
+   from the page still wins over this one, the way it does over any rule
+   here. */
+:host([controls="none"]) ::slotted(:not(video)) { display: none; }
 :host(:focus-visible) [part~="stage"] { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
 /* Fullscreen goes on the host, so every control the page placed inside
    comes along. The browser gives the host the whole screen with
-   !important; the picture takes what the panels row leaves. The error
-   surface, which sits under the stage in the page, goes over its foot
-   instead. */
+   !important; the picture takes all of it. The error surface, which sits
+   under the stage in the page, goes over its foot instead. */
 :host(:fullscreen) ::slotted(video) { flex: 1; }
 :host(:fullscreen) [part~="error"] { position: absolute; left: 0; right: 0; bottom: 0; }
 :host(:-webkit-full-screen) ::slotted(video) { flex: 1; }

@@ -1,5 +1,5 @@
 /**
- * The demo page in three browsers: the element upgrades and its panels
+ * The demo page in three browsers: the element upgrades and its controls
  * render, and the options on the side shape the element and the markup. The
  * rows that reach the internet are not asserted on: this suite proves the
  * page, the routing it can do locally, and the element inside it.
@@ -57,7 +57,7 @@ it('the extensionless entry falls through to the native handler', async () => {
   // A choice closes the chooser and the status says who took it.
   expect(visible($('#content-dialog'))).toBe(false);
   await expect.poll(() => $('#status').textContent, { timeout: 15_000 }).toMatch(/the browser/);
-  // Native playback means no engine, so no engine panels under the video.
+  // Native playback means no engine, so nothing of the engine's shows.
   const root = player().shadowRoot;
   expect(root === null ? -1 : root.querySelectorAll('[part~="quality"]').length).toBe(0);
 });
@@ -70,6 +70,16 @@ it('the controls option swaps the bar for the native controls, and the markup fo
   expect($('mattebox-player > video').getAttribute('controls')).toBe('');
   expect($$('mattebox-player > mbx-control-bar')).toHaveLength(0);
   expect($('#markup').textContent).not.toContain('controls=');
+  // Native is the video alone, until the diagnostics are ticked: then the
+  // panel sits in the player itself, under the picture, and the markup says so.
+  expect($$('mattebox-player > *')).toHaveLength(1);
+  await setChecked($('#layout-right li[data-name="diagnostics"] input'), true);
+  expect($$('mattebox-player > mbx-diagnostics')).toHaveLength(1);
+  expect($('mattebox-player > mbx-diagnostics').hasAttribute('inline')).toBe(true);
+  expect($('#markup').textContent).toContain('<mbx-diagnostics');
+  expect($('#markup').textContent).toContain("import '@mattebox/player-diagnostics'");
+  await setChecked($('#layout-right li[data-name="diagnostics"] input'), false);
+  expect($$('mattebox-player > *')).toHaveLength(1);
 });
 
 it('the layout lists, the knobs and the language shape the bar and the markup', async () => {

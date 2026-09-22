@@ -165,3 +165,28 @@ export function media(video: HTMLVideoElement): FakeMedia {
   if (fake === undefined) throw new Error('not a fake video');
   return fake;
 }
+
+/**
+ * A composition with every control the player ships, for the tests that
+ * exercise them. The player appends no bar of its own under `custom`, so
+ * each test places what it reads.
+ */
+export function compose(): HTMLElement[] {
+  const each = (...tags: string[]): HTMLElement[] => tags.map((tag) => document.createElement(tag));
+  const skip = (seconds: number): HTMLElement => {
+    const node = document.createElement('mbx-skip-button');
+    node.setAttribute('seconds', String(seconds));
+    return node;
+  };
+  const bar = document.createElement('mbx-control-bar');
+  bar.append(
+    ...each('mbx-current-time', 'mbx-seek-bar', 'mbx-duration', 'mbx-live-button'),
+    skip(-10),
+    document.createElement('mbx-play-button'),
+    skip(10),
+    ...each('mbx-volume', 'mbx-spacer', 'mbx-speed-menu', 'mbx-chapters-menu'),
+    ...each('mbx-subtitles-menu', 'mbx-audio-menu', 'mbx-quality-menu'),
+    ...each('mbx-airplay-button', 'mbx-pip-button', 'mbx-fullscreen-button'),
+  );
+  return [...each('mbx-title', 'mbx-start-button', 'mbx-error-screen', 'mbx-spinner'), bar];
+}

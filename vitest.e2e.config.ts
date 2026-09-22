@@ -60,7 +60,7 @@ function browserProject(browser: Browser, order: number) {
   };
 }
 
-// The demo page in three browsers: the element upgrades, its panels render,
+// The demo page in three browsers: the element upgrades, its controls render,
 // and the options on the side shape the markup. Stream playback is the
 // engine's E2E suite, not this one. The unit and browser tiers run under
 // vitest.config.ts.

@@ -10,7 +10,7 @@ import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler } from '@mattebox/player-core';
 import { nativeHandler } from '@mattebox/player-core';
 import { afterEach, describe, expect, it } from 'vitest';
-import { fakeMedia, media, once } from './helpers.js';
+import { compose, fakeMedia, media, once } from './helpers.js';
 
 /**
  * The chapter files, served over HTTP the way a page serves them: WebKit
@@ -49,6 +49,7 @@ function build(
   const player = new MatteboxPlayerElement({ handlers });
   fakeMedia(player.video);
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
+  if (attributes.controls === 'custom') player.append(...compose());
   document.body.append(player);
   return player;
 }
@@ -290,14 +291,13 @@ describe('the chapters menu', () => {
     expect(items(menu)[2]?.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('works under native controls, in the panels row', async () => {
-    const player = build([nativeHandler()], { muted: '' });
+  it('works for a native session, which has chapters the same way', async () => {
+    const player = build([nativeHandler()], { controls: 'custom', muted: '' });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const menu = player.querySelector('mbx-panels > mbx-chapters-menu');
+    const menu = player.querySelector('mbx-control-bar > mbx-chapters-menu');
     expect(menu).not.toBeNull();
     expect((menu as HTMLElement).hidden).toBe(true);
     addChapters(player);
     await expect.poll(() => (menu as HTMLElement).hidden).toBe(false);
-    await expect.poll(() => player.querySelector('mbx-panels')?.hidden).toBe(false);
   });
 });

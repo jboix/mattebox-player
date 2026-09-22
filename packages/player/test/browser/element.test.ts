@@ -6,7 +6,7 @@ import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import { afterEach, describe, expect, it } from 'vitest';
-import { silence } from './helpers.js';
+import { compose, silence } from './helpers.js';
 
 const HLS_MASTER = `#EXTM3U
 #EXT-X-VERSION:7
@@ -91,13 +91,21 @@ function settled(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-/** The panels row under the video, and the controls in it that are on screen, by tag. */
-function panels(player: MatteboxPlayerElement): { row: HTMLElement | null; shown: string[] } {
-  const row = player.querySelector('mbx-panels');
-  const shown = [...(row?.children ?? [])]
-    .filter((node) => !(node as HTMLElement).hidden)
+/** The menus in the bar that are on screen, by tag. */
+function shown(player: MatteboxPlayerElement): string[] {
+  return [...player.querySelectorAll('mbx-control-bar > *')]
+    .filter((node) => node.localName.endsWith('-menu') && !(node as HTMLElement).hidden)
     .map((node) => node.localName);
-  return { row, shown };
+}
+
+/** The element under custom controls with a composition of every control, over `src`. */
+function composed(src: string): MatteboxPlayerElement {
+  const player = mount({ controls: 'custom', src });
+  player.append(...compose());
+  // Wide enough for every button: at the test page's width the bar
+  // collapses its menus.
+  player.style.width = '800px';
+  return player;
 }
 
 /** Every item of a menu's popup, by text. */
@@ -245,32 +253,34 @@ describe('<mattebox-player>', () => {
     }).not.toThrow();
   });
 
-  it('appends the panels row under native controls, and the menus its namespaces support', async () => {
+  it('appends nothing in any mode: native is the video alone', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
     await settled();
-    const { row } = panels(player);
-    expect(row).not.toBeNull();
-    // In flow under the picture, in the stage's slot beside the video.
-    expect(row?.assignedSlot?.parentElement?.getAttribute('part')).toBe('stage');
-    expect([...(row?.children ?? [])].map((node) => node.localName)).toEqual([
-      'mbx-quality-menu',
-      'mbx-audio-menu',
-      'mbx-subtitles-menu',
-      'mbx-chapters-menu',
-      'mbx-live-button',
-      'mbx-drm-badge',
-    ]);
-
+    const children = (): string[] => [...player.children].map((node) => node.localName);
+    expect(children()).toEqual(['video']);
+    expect(player.video.hasAttribute('controls')).toBe(true);
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    await expect.poll(() => panels(player).shown).toContain('mbx-quality-menu');
+    expect(children()).toEqual(['video']);
+    for (const mode of ['custom', 'none', 'native']) {
+      player.setAttribute('controls', mode);
+      await settled();
+      expect(children()).toEqual(['video']);
+      expect(player.video.hasAttribute('controls')).toBe(mode === 'native');
+    }
+  });
+
+  it('shows the menus its namespaces support, and hides the rest', async () => {
+    const player = composed('https://cdn.test/hls/master.m3u8');
+    await settled();
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    await expect.poll(() => shown(player)).toContain('mbx-quality-menu');
     // The manifest declares one muxed track, so there is nothing to choose
-    // between; the stream is VOD, so there is no edge; no key session opened.
-    expect(panels(player).shown).toEqual(['mbx-quality-menu']);
-    expect(row?.hidden).toBe(false);
+    // between, and there is no text. The speed menu needs no namespace.
+    expect(shown(player)).toEqual(['mbx-speed-menu', 'mbx-quality-menu']);
   });
 
   it('offers auto plus every rendition in the quality menu', async () => {
-    const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
+    const player = composed('https://cdn.test/hls/master.m3u8');
     await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     const quality = player.querySelector('mbx-quality-menu');
@@ -278,49 +288,22 @@ describe('<mattebox-player>', () => {
   });
 
   it('shows the audio menu when the manifest carries alternate audio', async () => {
-    const player = mount({ src: 'https://cdn.test/hls/alt.m3u8' });
+    const player = composed('https://cdn.test/hls/alt.m3u8');
     await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    await expect.poll(() => panels(player).shown).toContain('mbx-audio-menu');
+    await expect.poll(() => shown(player)).toContain('mbx-audio-menu');
     expect(texts(player.querySelector('mbx-audio-menu'))).toEqual(['en · main', 'fr · alternate']);
   });
 
-  it('hides the row and shows no error for a native source', async () => {
+  it('shows no error for a native source', async () => {
     const url = silence();
     const player = mount({ src: url, type: 'audio/wav' });
     await settled();
     await expect.poll(() => player.player?.session?.handler).toBe('native');
     await expect.poll(() => player.video.readyState).toBeGreaterThan(0);
     expect(player.engine).toBeNull();
-    expect(panels(player).shown).toEqual([]);
-    expect(panels(player).row?.hidden).toBe(true);
     expect(player.shadowRoot?.querySelector<HTMLElement>('[part~="error"]')?.hidden).toBe(true);
     URL.revokeObjectURL(url);
-  });
-
-  it('leaves a panels row the page wrote alone', async () => {
-    const player = new MatteboxPlayerElement({ handlers: chain() });
-    const own = document.createElement('mbx-panels');
-    own.append(document.createElement('mbx-quality-menu'));
-    player.append(own);
-    document.body.append(player);
-    await settled();
-    expect(player.querySelectorAll('mbx-panels').length).toBe(1);
-    expect(panels(player).row).toBe(own);
-  });
-
-  it('swaps the panels row for the bar and back as the mode changes', async () => {
-    const player = mount();
-    await settled();
-    expect(panels(player).row).not.toBeNull();
-    expect(player.querySelector('mbx-control-bar')).toBeNull();
-    player.setAttribute('controls', 'custom');
-    expect(panels(player).row).toBeNull();
-    expect(player.querySelector('mbx-control-bar')).not.toBeNull();
-    player.setAttribute('controls', 'none');
-    expect(panels(player).row).not.toBeNull();
-    expect(player.querySelector('mbx-control-bar')).toBeNull();
-    expect(player.video.hasAttribute('controls')).toBe(false);
   });
 
   it('shows the error surface with the code when no handler claims the source', async () => {
@@ -404,6 +387,7 @@ describe('the menus over an engine session', () => {
 
   async function engineReady(url: string): Promise<MatteboxPlayerElement> {
     const player = mount({ controls: 'custom', src: url });
+    player.append(...compose());
     // Wide enough for every button: at the test page's width the bar
     // collapses its menus, and these tests open them.
     player.style.width = '800px';
@@ -439,9 +423,8 @@ describe('the menus over an engine session', () => {
     return node.shadowRoot?.querySelector('[part~="popup"]') as HTMLElement;
   }
 
-  it('hides the panels row and carries the quality menu instead', async () => {
+  it('carries the quality menu, and hides the audio and subtitles menus without a choice', async () => {
     const player = await engineReady('https://cdn.test/hls/master.m3u8');
-    expect(player.querySelector('mbx-panels')).toBeNull();
     const quality = control(player, 'mbx-quality-menu');
     await expect.poll(() => quality.hidden).toBe(false);
     expect(texts(quality)).toEqual(['Auto', '270p', '720p']);
