@@ -78,8 +78,9 @@ you had to reach around.
 
 Documentation, comments, commit messages, and user-facing strings use direct language.
 
-- Write plain declarative sentences. State the fact, then at most one sentence of why.
-- Write subject, verb, object. Address the reader as "you" and say what they can do: "You can restyle every control from the page's CSS with `::part()`", never "Every element carries a `part`, so the page styles all of it". This applies to every text, the README included.
+- Write short, plain sentences. Subject, verb, object. One fact per sentence: "Every control has a `part`. The page styles it with `::part()`", never "Every element carries a `part`, so the page styles all of it".
+- State the fact, then at most one sentence of why.
+- Reference text names the thing and what it does: "`src` sets the source URL". Tutorial text, where the reader follows steps, says "you": "Install the engine next to the player". Do not start sentence after sentence with "you", and do not write "you can" for a fact.
 - No em-dashes. Use commas, colons, parentheses, periods.
 - No rambling, aphorisms, or clever turns. No "X is what makes Y"; write the fact or "Y because X".
 - No idioms or unusual verbs. Name things for what they are. No cute jargon.

@@ -3,10 +3,12 @@
   @mattebox/player-core
 </h1>
 
-The headless layer of the [Mattebox player](https://github.com/jboix/mattebox-player):
+The layer of the
+[Mattebox player](https://github.com/jboix/mattebox-player) without a UI:
 source resolution and the handler chain over the
-[mattebox](https://github.com/jboix/mattebox) engine. No DOM writes except
-assigning `src` in the native handler. No side effects on import.
+[mattebox](https://github.com/jboix/mattebox) engine. For a page with its
+own UI. No DOM writes, except that the native handler assigns `src`. No
+side effects on import.
 
 ```sh
 npm install @mattebox/player-core mattebox
@@ -24,4 +26,4 @@ const session = await player.load({ url: 'https://example.com/vod/master.m3u8' }
 ```
 
 The [guide](https://github.com/jboix/mattebox-player/blob/main/docs/guide/README.md)
-covers the rest.
+explains the rest.

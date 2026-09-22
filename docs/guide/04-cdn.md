@@ -1,13 +1,16 @@
 # 04 CDN
 
-This chapter covers using the element from a script tag.
+This chapter explains how to use the player from a script tag.
 
 ## Two tags
 
-The player's bundle carries the core and the element, and reads the engine
-from the `mattebox` global. Load the engine bundle first;
-`mattebox.min.js` carries the `full` preset, and the engine's guide, chapter
-14, lists the narrower bundles. The page picks the engine's size.
+The page loads two bundles: the engine first, then the player. The player's
+bundle contains the core and the element, and reads the engine from the
+`mattebox` global.
+
+`mattebox.min.js` contains the `full` preset. The engine's guide, chapter
+14, lists the smaller bundles. The page picks the engine bundle, and with
+it the size of the engine.
 
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8"></mattebox-player>
@@ -17,22 +20,23 @@ from the `mattebox` global. Load the engine bundle first;
 ```
 
 Deferred scripts run in document order, so the player finds the engine.
-Pin both versions in the URL. An unpinned URL follows the latest release
-and can change under a live page.
+
+Pin both versions in the URL. A URL without a version follows the latest
+release, and the code can change under a published page.
 
 ## The matteboxPlayer global
 
-| Member                                 | Is                                 |
+| Member                                 | What it is                         |
 | -------------------------------------- | ---------------------------------- |
 | `matteboxPlayer.MatteboxPlayerElement` | The element class, already defined |
 
-The `preset` attribute names the preset the engine bundle carries; with a
-CDN engine there is one, `mattebox.preset`.
+The `preset` attribute names a preset the engine bundle contains. A CDN
+engine bundle contains one preset, `mattebox.preset`.
 
 ## Integrity
 
-A pinned URL can have a subresource integrity hash, and a page with a
-content security policy needs one. Compute it from the published file.
+A pinned URL can have a subresource integrity hash. A page with a content
+security policy needs one. Compute the hash from the published file.
 
 ```sh
 curl -s https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js \

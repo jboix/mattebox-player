@@ -4,11 +4,14 @@
 </h1>
 
 The `<mattebox-player>` custom element of the
-[Mattebox player](https://github.com/jboix/mattebox-player): a real
-`<video>` with native controls, panels for what the video cannot show, and
-under `controls="custom"` a bar of controls that are elements the page
-places inside it, over the [mattebox](https://github.com/jboix/mattebox)
-engine. Importing the package registers every element.
+[Mattebox player](https://github.com/jboix/mattebox-player), over the
+[mattebox](https://github.com/jboix/mattebox) engine.
+
+- A real `<video>` with native controls, and nothing else.
+- Under `controls="custom"`, a bar of controls that are elements placed inside the player: quality, tracks, live, DRM, errors and the rest.
+- Under `controls="none"`, nothing.
+
+The import registers every element.
 
 ```sh
 npm install @mattebox/player mattebox
@@ -23,4 +26,4 @@ npm install @mattebox/player mattebox
 ```
 
 The [guide](https://github.com/jboix/mattebox-player/blob/main/docs/guide/README.md)
-covers the rest.
+explains the rest.
