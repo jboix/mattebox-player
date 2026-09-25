@@ -1,0 +1,1 @@
+import{o as e}from"./index-CKvq7CsK.js";var t=e(`kernel`,()=>[]);export{t as default};
