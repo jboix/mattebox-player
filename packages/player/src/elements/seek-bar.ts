@@ -26,18 +26,21 @@
  * previews, not frames of the video.
  *
  * The preview above the pointer carries the time and a picture of that
- * time, the first the session offers of two. The decoded I-frame from
- * `engine.trick.frameAt`, when the track decodes in this browser. The last
- * frame stays until the next one arrives, so the picture never flickers
- * while the engine decodes. The tile from `engine.thumbnails`: a rectangle
- * of a sprite, drawn by background position at the sprite's own size. Both
- * scale to `--mbx-preview-width`, so a page sets the size with one token.
+ * time from the sources `preview` names, in order of preference: `frames`
+ * and `tiles`, "frames tiles" by default, `none` for no picture. A frame
+ * is the decoded I-frame from `engine.trick.frameAt`, when the track
+ * decodes in this browser; the last one stays until the next arrives, so
+ * the picture never flickers while the engine decodes. A tile comes from
+ * `engine.thumbnails`: a rectangle of a sprite, drawn by background
+ * position at the sprite's own size. Both scale to `--mbx-preview-width`,
+ * so a page sets the size with one token.
  *
  * Chapters divide the track: one gap per chapter boundary, cut through
  * every layer with a mask, so the played and the buffered spans read per
- * chapter, and the preview names the chapter under the pointer. They are
- * the video's own chapters track, see `controls/chapters.ts`.
- * `chapters="none"` leaves the track whole and the preview without a name.
+ * chapter, and the preview names the chapter under the pointer. They come
+ * from the session, see `controls/chapters.ts`. `chapters` lists what the
+ * bar does with them: `divided` and `titles`, both by default, one of
+ * them alone, or `none`.
  *
  * `step` is what an arrow key moves the playhead by and `page` what Page
  * Up and Page Down do, in seconds. The name comes from `label`; what a
@@ -46,6 +49,7 @@
  * sits in the bar's seek row unless the page says otherwise.
  */
 
+import type { Thumbnail } from 'mattebox/stages/thumbnails';
 import type { Chapter } from '../controls/chapters.js';
 import { chapterAt, chapters, followChapters } from '../controls/chapters.js';
 import type { Span } from '../controls/ranges.js';
@@ -62,6 +66,9 @@ import { number, SLIDER_STYLE, seekRow, style } from './shared.js';
 
 /** What a drag does, chosen when the pointer takes the thumb. */
 type Drag = 'none' | 'seek' | 'scrub';
+
+/** Where the preview's picture comes from: decoded I-frames, or thumbnail tiles. */
+type Preview = 'frames' | 'tiles';
 
 const STEP = 5;
 const PAGE = 30;
@@ -141,7 +148,7 @@ function gaps(list: readonly Chapter[], span: Span): string {
 
 export class MbxSeekBar extends Component {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters', 'scrub'];
+    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters', 'scrub', 'preview'];
   }
 
   declare private readonly bar: Slider;
@@ -233,14 +240,23 @@ export class MbxSeekBar extends Component {
     return live(this.player?.engine ?? null) !== undefined;
   }
 
-  /** Whether the chapters divide the track and name the preview. */
-  private chaptered(): boolean {
-    return this.getAttribute('chapters') !== 'none' && this.list.length > 0;
+  /** Whether the chapters do `use`: `divided` the track, or name the preview with their `titles`. */
+  private chaptered(use: 'divided' | 'titles'): boolean {
+    if (this.list.length === 0) return false;
+    const value = this.getAttribute('chapters');
+    if (value === null) return true;
+    const words = value.split(/\s+/);
+    // A value naming neither, as `on` did, keeps both.
+    return (
+      words.includes(use) ||
+      !words.some((word) => word === 'divided' || word === 'titles' || word === 'none')
+    );
   }
 
   /** The gaps at the chapter boundaries, on every layer of the track at once. */
   private paintChapters(): void {
-    const mask = this.chaptered() && this.list.length > 1 ? gaps(this.list, this.range) : '';
+    const mask =
+      this.chaptered('divided') && this.list.length > 1 ? gaps(this.list, this.range) : '';
     const key = `${mask}|${this.range.start}|${this.range.end}`;
     if (key === this.divided) return;
     this.divided = key;
@@ -368,59 +384,80 @@ export class MbxSeekBar extends Component {
     return Number.isFinite(set) && set > 0 ? set : PREVIEW_WIDTH;
   }
 
-  /** The tile for a time, if the track has one, drawn at its size and scaled to fit. */
-  private paintTile(when: number): void {
-    const found = optional(this.player?.engine ?? null).thumbnails?.at(when) ?? null;
-    this.image.hidden = found === null;
-    if (found === null) return;
-    const scale = this.previewWidth() / found.width;
-    this.image.style.width = `${found.width * scale}px`;
-    this.image.style.height = `${found.height * scale}px`;
-    this.tile.style.width = `${found.width}px`;
-    this.tile.style.height = `${found.height}px`;
-    this.tile.style.backgroundImage = `url("${found.url}")`;
-    this.tile.style.backgroundPosition = `-${found.x}px -${found.y}px`;
+  /** The preview's picture sources from `preview`, in order of preference: frames then tiles by default. */
+  private sources(): Preview[] {
+    const value = this.getAttribute('preview');
+    if (value === 'none') return [];
+    const own = (value ?? '')
+      .split(/\s+/)
+      .filter((word): word is Preview => word === 'frames' || word === 'tiles');
+    return own.length > 0 ? own : ['frames', 'tiles'];
+  }
+
+  /** `tile`, or none, drawn at its size and scaled to fit. */
+  private paintTile(tile: Thumbnail | null): void {
+    this.image.hidden = tile === null;
+    if (tile === null) return;
+    const scale = this.previewWidth() / tile.width;
+    this.image.style.width = `${tile.width * scale}px`;
+    this.image.style.height = `${tile.height * scale}px`;
+    this.tile.style.width = `${tile.width}px`;
+    this.tile.style.height = `${tile.height}px`;
+    this.tile.style.backgroundImage = `url("${tile.url}")`;
+    this.tile.style.backgroundPosition = `-${tile.x}px -${tile.y}px`;
     this.tile.style.transform = `scale(${scale})`;
   }
 
   /**
-   * The picture in the preview: the decoded I-frame once one is on screen,
-   * the tile until then. A scrub already shows the position in the video,
-   * so the preview shows none meanwhile.
+   * The picture in the preview, from the sources `preview` names, the first
+   * that answers winning. A decoded frame arrives later than a tile, so
+   * while frames lead, the tile stands in until one is on screen, and the
+   * last frame stays until the next one arrives. A scrub already shows the
+   * position in the video, so the preview shows none meanwhile.
    */
   private paintPicture(when: number): void {
-    if (this.drag === 'scrub') {
-      this.image.hidden = true;
-      this.frameCanvas.hidden = true;
-      return;
-    }
-    const trick = optional(this.player?.engine ?? null).trick;
+    const sources = this.drag === 'scrub' ? [] : this.sources();
+    const api = optional(this.player?.engine ?? null);
+    const trick = api.trick;
     // `previews` turns false once the engine knows no frame will come, such
     // as for TS I-frames; the tile shows then, without asking again.
-    if (trick?.previews === true) {
+    const frames = sources.includes('frames') && trick?.previews === true;
+    const tile = sources.includes('tiles') ? (api.thumbnails?.at(when) ?? null) : null;
+    if (tile !== null && (sources[0] === 'tiles' || !frames)) {
+      // A frame still decoding for an earlier position must not replace it.
       this.asked += 1;
-      const request = this.asked;
-      const width = this.previewWidth();
-      // Null for a call a newer one replaced, and while the track's
-      // segments load. The tile stays then.
-      void trick.frameAt(when, { width: Math.round(width * devicePixelRatio) }).then(
-        (bitmap) => {
-          if (bitmap === null || request < this.shown || this.preview.hidden) return;
-          this.shown = request;
-          // The engine keeps the bitmap in its cache: drawn, never closed here.
-          const canvas = this.frameCanvas;
-          canvas.width = bitmap.width;
-          canvas.height = bitmap.height;
-          canvas.style.width = `${width}px`;
-          canvas.style.height = `${(bitmap.height / bitmap.width) * width}px`;
-          canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
-          canvas.hidden = false;
-          this.image.hidden = true;
-        },
-        () => undefined,
-      );
+      this.shown = this.asked;
+      this.frameCanvas.hidden = true;
+      this.paintTile(tile);
+      return;
     }
-    if (this.frameCanvas.hidden) this.paintTile(when);
+    if (!frames || trick === undefined) {
+      this.frameCanvas.hidden = true;
+      this.paintTile(null);
+      return;
+    }
+    this.asked += 1;
+    const request = this.asked;
+    const width = this.previewWidth();
+    // Null for a call a newer one replaced, and while the track's segments
+    // load. What is on screen stays then.
+    void trick.frameAt(when, { width: Math.round(width * devicePixelRatio) }).then(
+      (bitmap) => {
+        if (bitmap === null || request < this.shown || this.preview.hidden) return;
+        this.shown = request;
+        // The engine keeps the bitmap in its cache: drawn, never closed here.
+        const canvas = this.frameCanvas;
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${(bitmap.height / bitmap.width) * width}px`;
+        canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+        canvas.hidden = false;
+        this.image.hidden = true;
+      },
+      () => undefined,
+    );
+    if (this.frameCanvas.hidden) this.paintTile(tile);
   }
 
   private paintBuffered(video: HTMLVideoElement): void {
@@ -463,7 +500,7 @@ export class MbxSeekBar extends Component {
     this.preview.hidden = false;
     const when = at(part, this.range);
     this.time.textContent = this.label(when);
-    const chapter = this.chaptered() ? this.list[chapterAt(this.list, when)] : undefined;
+    const chapter = this.chaptered('titles') ? this.list[chapterAt(this.list, when)] : undefined;
     this.caption.hidden = chapter === undefined || chapter.title === '';
     this.caption.textContent = chapter?.title ?? '';
     this.paintPicture(when);

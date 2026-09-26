@@ -1861,6 +1861,35 @@ describe('the seek bar over an I-frame track', () => {
     expect(player.video.currentTime).toBeCloseTo(6, 0);
   });
 
+  it('prefers the tile under preview="tiles frames", and decodes a frame where there is none', async () => {
+    const bitmap = await createImageBitmap(new ImageData(320, 180));
+    const trick = { ...trickApi(bitmap), frameAt: vi.fn(() => Promise.resolve(bitmap)) };
+    // Twenty seconds, the tile track covering the first ten.
+    const player = await session({ trick, thumbnails: track() }, 20);
+    const element = control(player, 'mbx-seek-bar');
+    element.setAttribute('preview', 'tiles frames');
+    hover(element, 0.25);
+    expect(trick.frameAt).not.toHaveBeenCalled();
+    expect(inside(element, 'preview-image').hidden).toBe(false);
+    hover(element, 0.75);
+    expect(trick.frameAt).toHaveBeenCalledTimes(1);
+    await expect.poll(() => inside(element, 'preview-frame').hidden).toBe(false);
+  });
+
+  it('asks for no frame under preview="tiles", and shows no picture under "none"', async () => {
+    const trick = { ...trickApi(), previews: true, frameAt: vi.fn(() => Promise.resolve(null)) };
+    const player = await session({ trick, thumbnails: track() }, 20);
+    const element = control(player, 'mbx-seek-bar');
+    element.setAttribute('preview', 'tiles');
+    hover(element, 0.75);
+    expect(trick.frameAt).not.toHaveBeenCalled();
+    expect(inside(element, 'preview-image').hidden).toBe(true);
+    element.setAttribute('preview', 'none');
+    hover(element, 0.25);
+    expect(inside(element, 'preview-image').hidden).toBe(true);
+    expect(inside(element, 'preview-time').textContent).toBe('0:05');
+  });
+
   it('shows the tile and asks for no frame when previews cannot work, as for TS I-frames', async () => {
     const trick = { ...trickApi(), previews: false, frameAt: vi.fn(() => Promise.resolve(null)) };
     const player = await session({ trick, thumbnails: track() });

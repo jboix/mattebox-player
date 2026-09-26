@@ -237,6 +237,22 @@ describe('the seek bar with chapters', () => {
     expect(inside(bar, 'preview-title').hidden).toBe(true);
   });
 
+  it('names the chapters alone under chapters="titles", and divides alone under "divided"', async () => {
+    const player = await ready();
+    const bar = seekBar(player);
+    addChapters(player);
+    player.video.dispatchEvent(new Event('timeupdate'));
+    bar.setAttribute('chapters', 'titles');
+    expect(mask(bar)).toBe('');
+    hover(bar, 0.5);
+    expect(inside(bar, 'preview-title').hidden).toBe(false);
+    expect(inside(bar, 'preview-title').textContent).toBe('Middle');
+    bar.setAttribute('chapters', 'divided');
+    expect(mask(bar)).toContain('linear-gradient');
+    hover(bar, 0.5);
+    expect(inside(bar, 'preview-title').hidden).toBe(true);
+  });
+
   it('follows a track that arrives later', async () => {
     const player = await ready();
     const bar = seekBar(player);
