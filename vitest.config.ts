@@ -43,6 +43,7 @@ export default defineConfig({
         'packages/player/src/**',
         'packages/diagnostics/src/**',
         'packages/cast/src/**',
+        'packages/tv/src/**',
         'packages/core/src/index.ts',
         'packages/core/src/types.ts',
       ],

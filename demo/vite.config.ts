@@ -18,6 +18,7 @@ export default defineConfig({
       '@mattebox/player-cast': fileURLToPath(
         new URL('../packages/cast/src/index.ts', import.meta.url),
       ),
+      '@mattebox/player-tv': fileURLToPath(new URL('../packages/tv/src/index.ts', import.meta.url)),
       '@mattebox/player': fileURLToPath(
         new URL('../packages/player/src/index.ts', import.meta.url),
       ),

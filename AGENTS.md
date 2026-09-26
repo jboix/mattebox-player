@@ -12,7 +12,9 @@ The **Mattebox player** is four packages in one npm workspace over the
 controls), `@mattebox/player-diagnostics` (the `<mbx-diagnostics>`
 control, a package of its own because of its weight) and
 `@mattebox/player-cast` (Chromecast, a package of its own because it loads
-Google's sender SDK onto the page). Read
+Google's sender SDK onto the page) and `@mattebox/player-tv` (the remote
+control on a TV, a package of its own because most pages never run on
+one). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in
@@ -29,8 +31,8 @@ you had to reach around.
 
 2. **Runtime dependencies are the engine and the core.** Nothing else.
    The engine is a peer of every package; the core is a dependency of the
-   element. The diagnostics and cast packages take the player's public types
-   and nothing at runtime, which the emit check proves. The Cast sender SDK
+   element. The diagnostics, cast and TV packages take the player's public
+   types and nothing at runtime, which the emit check proves. The Cast sender SDK
    is a script the page loads, never a dependency. Do not add a dependency
    to work around a problem.
 

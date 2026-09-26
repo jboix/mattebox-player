@@ -16,25 +16,25 @@ module.exports = {
         'so the checkable invariant is the one that matters: anything else under the core is a ' +
         'reach into its internals.',
       severity: 'error',
-      from: { path: '^packages/(player|diagnostics|cast)/' },
+      from: { path: '^packages/(player|diagnostics|cast|tv)/' },
       to: { path: '^packages/core/src/', pathNot: '^packages/core/src/index\\.ts$' },
     },
     {
-      name: 'diagnostics-and-cast-reach-the-player-through-its-entry',
+      name: 'side-packages-reach-the-player-through-its-entry',
       comment:
-        "The diagnostics and cast elements are controls of the page's own kind: they take the " +
+        "The diagnostics, cast and TV elements are controls of the page's own kind: they take the " +
         "player's public types from its entry and nothing from its internals.",
       severity: 'error',
-      from: { path: '^packages/(diagnostics|cast)/' },
+      from: { path: '^packages/(diagnostics|cast|tv)/' },
       to: { path: '^packages/player/src/', pathNot: '^packages/player/src/index\\.ts$' },
     },
     {
-      name: 'the-player-never-imports-the-diagnostics-or-the-cast',
-      comment: 'The diagnostics and cast packages are optional; the player must not know them.',
+      name: 'the-player-never-imports-the-side-packages',
+      comment: 'The diagnostics, cast and TV packages are optional; the player must not know them.',
       severity: 'error',
       from: { path: '^packages/(core|player)/' },
       to: {
-        path: '^packages/(diagnostics|cast)/|node_modules/@mattebox/player-(diagnostics|cast)/',
+        path: '^packages/(diagnostics|cast|tv)/|node_modules/@mattebox/player-(diagnostics|cast|tv)/',
       },
     },
     {
@@ -47,7 +47,7 @@ module.exports = {
       name: 'runtime-deps-are-the-engine-and-the-core',
       comment:
         'Only the engine (a peer) and the core (a workspace package) may be imported at runtime. ' +
-        'The diagnostics and cast packages read the player for its types alone, which the emit check proves.',
+        'The diagnostics, cast and TV packages read the player for its types alone, which the emit check proves.',
       severity: 'error',
       from: { path: '^packages/[^/]+/(src|cdn)/' },
       to: {

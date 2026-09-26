@@ -30,4 +30,8 @@ export const alias = [
     find: '@mattebox/player-cast',
     replacement: fileURLToPath(new URL('packages/cast/src/index.ts', import.meta.url)),
   },
+  {
+    find: '@mattebox/player-tv',
+    replacement: fileURLToPath(new URL('packages/tv/src/index.ts', import.meta.url)),
+  },
 ];

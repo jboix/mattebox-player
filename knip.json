@@ -26,6 +26,10 @@
     "packages/cast": {
       "entry": ["src/index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/tv": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }
 }

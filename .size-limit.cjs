@@ -40,4 +40,13 @@ module.exports = [
     brotli: true,
     limit: '8 kB',
   },
+  {
+    name: '@mattebox/player-tv',
+    path: 'packages/tv/dist/cdn/mattebox-player-tv.min.js',
+    // The player is a peer, read for its types alone. The TV plan fixed the
+    // spatial navigation at 1.5 kB; the key codes and Back ride with it.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '2 kB',
+  },
 ];

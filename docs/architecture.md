@@ -12,6 +12,7 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player`             | `<mattebox-player>`, the controls over the engine's namespaces                   | The core, the engine (peer)                      |
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report | The player (peer, types only), the engine (peer) |
 | `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`, Chromecast over Google's sender SDK | The player (peer, types only), the engine (peer) |
+| `@mattebox/player-tv`          | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back             | The player (peer, types only)                    |
 
 The packages follow four rules:
 
@@ -91,10 +92,10 @@ Every package has the same builds as the engine:
 
 - Modern ESM under `dist/`, from `tsc`.
 - ES2015 ESM under `dist/es2015/`, from Rolldown. This is the default export condition.
-- A minified IIFE under `dist/cdn/`, for the element, the diagnostics and the cast.
+- A minified IIFE under `dist/cdn/`, for the element, the diagnostics, the cast and the TV navigation.
 
-The IIFE globals are `matteboxPlayer`, `matteboxPlayerDiagnostics` and
-`matteboxPlayerCast`.
+The IIFE globals are `matteboxPlayer`, `matteboxPlayerDiagnostics`,
+`matteboxPlayerCast` and `matteboxPlayerTv`.
 
 The player's CDN bundle contains the core and reads the engine from the
 `mattebox` global. The page picks the engine bundle, and with it the size
