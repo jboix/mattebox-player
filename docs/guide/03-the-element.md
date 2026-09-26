@@ -454,12 +454,19 @@ player, these keys work from every control:
 | `m`                            | Mutes or unmutes                                                 |
 | `f`                            | Enters or leaves fullscreen                                      |
 | Left, Right                    | Seeks by the `seek-step` of the bar                              |
+| Play/Pause, Play, Pause        | The media keys a remote or a keyboard sends: play or pause       |
+| Stop                           | Pauses. The source stays                                         |
+| Fast Forward, Rewind           | Seek by the `seek-step` of the bar                               |
 | Up, Down, Page keys, Home, End | On a slider, moves it by its step, by its page, or to its end    |
 | Up, Down, Home, End, Escape    | In a menu, moves the selection. Escape closes the menu           |
 
 A click on the video plays or pauses. Under `custom` the player sets
 `tabindex="0"` on itself, so the shortcuts still work after a click on the
 video. A page that set its own `tabindex` keeps it.
+
+A key another handler already prevented is left alone. A handler that
+listens on the player in the capture phase runs first, and takes a key by
+preventing it.
 
 ## Native controls
 

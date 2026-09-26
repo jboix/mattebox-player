@@ -731,6 +731,43 @@ describe('the shortcuts', () => {
     expect(player.video.currentTime).toBe(5);
   });
 
+  it('plays, pauses, stops and seeks with the media keys a remote sends', async () => {
+    const player = await ready(30);
+    press(player, 'MediaPlayPause');
+    await once(player.video, 'play');
+    press(player, 'MediaPause');
+    await once(player.video, 'pause');
+    press(player, 'MediaPlay');
+    await once(player.video, 'play');
+    // Stop pauses; the source stays.
+    press(player, 'MediaStop');
+    await once(player.video, 'pause');
+    press(player, 'MediaFastForward');
+    expect(player.video.currentTime).toBe(5);
+    press(player, 'MediaRewind');
+    expect(player.video.currentTime).toBe(0);
+  });
+
+  it('leaves a key another handler prevented, in the bar, the slider and the menu', async () => {
+    const player = await ready(30);
+    // A handler that decides first, as a spatial navigation does in the capture phase.
+    const first = (event: Event): void => {
+      event.preventDefault();
+    };
+    player.addEventListener('keydown', first, { capture: true });
+    press(player, 'ArrowRight');
+    expect(player.video.currentTime).toBe(0);
+    const seek = knob(control(player, 'mbx-seek-bar'));
+    press(seek, 'ArrowRight');
+    expect(player.video.currentTime).toBe(0);
+    const menu = control(player, 'mbx-speed-menu');
+    inner(menu).click();
+    const focusedBefore = menu.shadowRoot?.activeElement;
+    press(popup(menu), 'ArrowDown');
+    expect(menu.shadowRoot?.activeElement).toBe(focusedBefore);
+    player.removeEventListener('keydown', first, { capture: true });
+  });
+
   it('ignores keys with a modifier, and keys pressed outside the element', async () => {
     const player = await ready();
     player.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));

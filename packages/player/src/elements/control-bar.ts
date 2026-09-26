@@ -18,8 +18,11 @@
  *
  * The shortcuts listen on the player, so they hear every key pressed
  * inside it, and only there: Space and `k` toggle play, `m` mutes, `f`
- * toggles fullscreen, the arrows seek by `seek-step`. Space is left to a
- * focused button, which is its own. A click on the video toggles play.
+ * toggles fullscreen, the arrows seek by `seek-step`. The media keys a
+ * remote or a keyboard sends do the same: play and pause, Stop pauses,
+ * fast forward and rewind seek by `seek-step`. Space is left to a
+ * focused button, which is its own. A key another handler prevented is
+ * left alone. A click on the video toggles play.
  * Fullscreen goes on the player itself, so the bar comes along.
  *
  * A narrow bar collapses the buttons row by `priority`: each child carries
@@ -306,10 +309,25 @@ export class MbxControlBar extends Component {
       case 'F':
         this.screen?.toggle();
         break;
+      // The media keys, which remotes and many keyboards send. UI Events
+      // KeyboardEvent key values, Multimedia keys.
+      case 'MediaPlayPause':
+        toggle(video);
+        break;
+      case 'MediaPlay':
+        void video.play().catch(() => undefined);
+        break;
+      // Stop pauses: the source stays, as a viewer expects on a remote.
+      case 'MediaPause':
+      case 'MediaStop':
+        video.pause();
+        break;
       case 'ArrowLeft':
+      case 'MediaRewind':
         video.currentTime = Math.max(0, video.currentTime - number(this, 'seek-step', SEEK_STEP));
         break;
       case 'ArrowRight':
+      case 'MediaFastForward':
         video.currentTime = Math.min(
           end(video),
           video.currentTime + number(this, 'seek-step', SEEK_STEP),

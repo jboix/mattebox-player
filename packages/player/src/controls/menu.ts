@@ -238,6 +238,8 @@ export function menu(options: MenuOptions): Menu {
   }
 
   function key(event: KeyboardEvent): void {
+    // Handled already, by a handler that decides first.
+    if (event.defaultPrevented) return;
     const list = items();
     const index = list.indexOf(focused() as HTMLButtonElement);
     let next: number;

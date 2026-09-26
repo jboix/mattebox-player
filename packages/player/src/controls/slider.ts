@@ -127,6 +127,9 @@ export function slider(options: SliderOptions): Slider {
   }
 
   function key(event: KeyboardEvent): void {
+    // Handled already, by a handler that decides first, such as a spatial
+    // navigation listening on the player in the capture phase.
+    if (event.defaultPrevented) return;
     let next: number;
     switch (event.key) {
       case 'ArrowRight':
