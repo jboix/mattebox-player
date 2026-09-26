@@ -597,6 +597,7 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   chapters: 'divided titles',
   scrub: 'true',
   preview: 'frames tiles',
+  'key-mode': 'instant',
 };
 /** The demo's own receiver, from the mattebox-receiver repository. Empty means the Default Media Receiver. */
 const CAST_RECEIVER = '6BCED548';
@@ -678,6 +679,7 @@ function controlMarkup(name: string, row: Row): string {
     own.chapters = knob('chapters');
     own.scrub = knob('scrub');
     own.preview = knob('preview');
+    own['key-mode'] = knob('key-mode');
   }
   if (name === 'speed') own.rates = knob('rates');
   if (name === 'cast')
