@@ -36,11 +36,12 @@ const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 const OWN = ['src', 'type', 'preset', 'license-url', 'thumbnails'];
 
 /**
- * The chapters track URL. A `<track kind="chapters">` on the video, hidden
- * so its cues load and nothing is drawn: chapters are the browser's own
- * text track, which the seek bar and the chapters menu read, and which a
- * page can also put there itself. Changing it swaps the track and never
- * reloads the source.
+ * The chapters file URL. A session with the engine's `chapters` namespace
+ * loads it there: through the engine's transport, so request hooks apply,
+ * and in every format the engine reads. Any other session gets a
+ * `<track kind="chapters">` on the video, hidden so its cues load and
+ * nothing is drawn. The seek bar and the chapters menu read either.
+ * Changing it never reloads the source.
  */
 const CHAPTERS = 'chapters';
 
@@ -163,8 +164,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
-  /** The chapters track element, while the `chapters` attribute names one. */
+  /** The chapters track element, while the `chapters` attribute names one and the engine takes none. */
   declare private track: HTMLTrackElement | null;
+  /** The chapters URL the current session's engine was given, or null. */
+  declare private given: string | null;
   declare private readonly options: MatteboxPlayerOptions;
   declare private core: Player | null;
   declare private current: Session | null;
@@ -186,6 +189,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.options = options ?? defaults;
     this.focusable = false;
     this.track = null;
+    this.given = null;
     this.core = null;
     this.current = null;
     this.failure = null;
@@ -366,9 +370,21 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
   }
 
-  /** Keeps a hidden chapters track on the video for the `chapters` attribute, or none. */
+  /** Hands the `chapters` attribute to the engine, or keeps a hidden chapters track on the video for it. */
   private chapters(): void {
     const url = this.getAttribute(CHAPTERS);
+    const engine = this.current?.engine ?? null;
+    const api = engine === null ? undefined : namespaces(engine).chapters;
+    if (api !== undefined) {
+      this.track?.remove();
+      this.track = null;
+      if (url === this.given) return;
+      this.given = url;
+      // An empty list removes the chapters the attribute loaded.
+      if (url === null) api.set([]);
+      else void api.load(url).catch(() => undefined);
+      return;
+    }
     if (url === null) {
       this.track?.remove();
       this.track = null;
@@ -457,12 +473,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       return;
     }
     this.current = session;
+    this.given = null;
     this.configure(session);
     // The engine's attach empties the media element to reset its resource
     // selection (`kernel/mse.ts`), and the chapters track goes with the
     // `<source>` children it means. Wanted: the track to survive attach.
     // Had to: put it back once the session is in. The surface that would
     // make it one call: an attach that removes `<source>` children alone.
+    // A session with the engine's chapters takes the URL there instead.
     this.chapters();
   }
 

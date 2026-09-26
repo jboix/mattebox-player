@@ -6,6 +6,7 @@ export const PLAY_BUTTON = 'mbx-play-button';
 export const MUTE_BUTTON = 'mbx-mute-button';
 export const VOLUME_SLIDER = 'mbx-volume-slider';
 export const SKIP_BUTTON = 'mbx-skip-button';
+export const SCAN_BUTTON = 'mbx-scan-button';
 export const PIP_BUTTON = 'mbx-pip-button';
 export const AIRPLAY_BUTTON = 'mbx-airplay-button';
 export const FULLSCREEN_BUTTON = 'mbx-fullscreen-button';

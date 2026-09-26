@@ -10,7 +10,9 @@ import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler } from '@mattebox/player-core';
 import { nativeHandler } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
+import type { ChaptersApi } from 'mattebox/stages/chapters';
 import type { ThumbnailsApi } from 'mattebox/stages/thumbnails';
+import type { TrickApi } from 'mattebox/stages/trick-play';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { icon } from '../../src/controls/icons.js';
 import type { LiveApi, PdtApi } from '../../src/namespaces.js';
@@ -805,9 +807,11 @@ describe('the default composition', () => {
       'mbx-seek-bar',
       'mbx-duration',
       'mbx-live-button',
+      'mbx-scan-button',
       'mbx-skip-button',
       'mbx-play-button',
       'mbx-skip-button',
+      'mbx-scan-button',
       'mbx-volume',
       'mbx-spacer',
       'mbx-speed-menu',
@@ -819,8 +823,8 @@ describe('the default composition', () => {
       'mbx-pip-button',
       'mbx-fullscreen-button',
     ]);
-    expect(root.children[4]?.getAttribute('seconds')).toBe('-10');
-    expect(root.children[6]?.getAttribute('seconds')).toBe('10');
+    expect(root.children[5]?.getAttribute('seconds')).toBe('-10');
+    expect(root.children[7]?.getAttribute('seconds')).toBe('10');
   });
 
   it('names every button, and hides every glyph from the accessibility tree', async () => {
@@ -1277,19 +1281,30 @@ interface FakeParts {
   readonly live?: LiveApi;
   readonly pdt?: PdtApi;
   readonly thumbnails?: ThumbnailsApi;
+  readonly chapters?: ChaptersApi;
+  readonly trick?: TrickApi;
+  /** The engine's events, by name, for a test to fire. */
+  readonly events?: Map<string, Set<() => void>>;
   bufferGoal?: number;
 }
 
 /** An engine of the namespaces the bar's controls read. */
 function fakeEngine(parts: FakeParts): Mattebox {
   return {
-    on: () => () => undefined,
+    on: (name: string, fn: () => void) => {
+      const set = parts.events?.get(name) ?? new Set<() => void>();
+      set.add(fn);
+      parts.events?.set(name, set);
+      return () => set.delete(fn);
+    },
     quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
     tracks: { available: [], active: () => null, select() {} },
     stats: { snapshot: () => ({ scheduling: { bufferGoal: parts.bufferGoal ?? 30 } }) },
     ...(parts.live === undefined ? {} : { live: parts.live }),
     ...(parts.pdt === undefined ? {} : { pdt: parts.pdt }),
     ...(parts.thumbnails === undefined ? {} : { thumbnails: parts.thumbnails }),
+    ...(parts.chapters === undefined ? {} : { chapters: parts.chapters }),
+    ...(parts.trick === undefined ? {} : { trick: parts.trick }),
   } as unknown as Mattebox;
 }
 
@@ -1483,6 +1498,34 @@ describe('the seek bar', () => {
     expect(player.video.currentTime).toBeCloseTo(8, 0);
   });
 
+  it('pauses a playing video while the pointer holds the thumb, and plays on the release', async () => {
+    const player = await ready(10);
+    await player.video.play();
+    const element = control(player, 'mbx-seek-bar');
+    pointer(element, 'pointerdown', 0.2);
+    pointer(element, 'pointermove', 0.4);
+    expect(player.video.paused).toBe(true);
+    // The drag's pause is not the viewer's: the buttons show the state from before.
+    expect(player.getAttribute('scrubbing')).toBe('playing');
+    await expect.poll(() => control(player, 'mbx-start-button').hidden).toBe(true);
+    await expect
+      .poll(() => inner(control(player, 'mbx-play-button')).getAttribute('aria-label'))
+      .toBe('Pause');
+    pointer(element, 'pointerup', 0.6, 0);
+    await expect.poll(() => player.video.paused).toBe(false);
+    expect(player.hasAttribute('scrubbing')).toBe(false);
+    expect(player.video.currentTime).toBeCloseTo(6, 0);
+  });
+
+  it('leaves a paused video paused after the drag', async () => {
+    const player = await ready(10);
+    const element = control(player, 'mbx-seek-bar');
+    pointer(element, 'pointerdown', 0.2);
+    pointer(element, 'pointerup', 0.6, 0);
+    await once(player.video, 'seeked');
+    expect(player.video.paused).toBe(true);
+  });
+
   it('lets the thumb go on a move with no button held, when the pointerup never reached it', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');
@@ -1659,36 +1702,38 @@ describe('the live button', () => {
   });
 });
 
+/** A track with one tile over the first ten seconds: a 320 by 180 rectangle at (320, 0) of a sprite. */
+function track(): ThumbnailsApi {
+  const tile = {
+    url: 'https://cdn.example/sprite.jpg',
+    start: 0,
+    end: 10,
+    x: 320,
+    y: 0,
+    width: 320,
+    height: 180,
+  };
+  return {
+    load: () => Promise.resolve(1),
+    at: (time: number) => (time >= 0 && time < 10 ? tile : null),
+    image: () => Promise.resolve(tile.url),
+    all: [tile],
+    source: 'app',
+  };
+}
+
+function hover(element: HTMLElement, fraction: number): void {
+  const rect = inside(element, 'rail').getBoundingClientRect();
+  knob(element).dispatchEvent(
+    new PointerEvent('pointermove', {
+      bubbles: true,
+      clientX: rect.left + rect.width * fraction,
+      clientY: rect.top + rect.height / 2,
+    }),
+  );
+}
+
 describe('the preview over a thumbnail track', () => {
-  /** A track with one tile over the first ten seconds: a 320 by 180 rectangle at (320, 0) of a sprite. */
-  function track(): ThumbnailsApi {
-    const tile = {
-      url: 'https://cdn.example/sprite.jpg',
-      start: 0,
-      end: 10,
-      x: 320,
-      y: 0,
-      width: 320,
-      height: 180,
-    };
-    return {
-      load: () => Promise.resolve(1),
-      at: (time: number) => (time >= 0 && time < 10 ? tile : null),
-      all: [tile],
-    };
-  }
-
-  function hover(element: HTMLElement, fraction: number): void {
-    const rect = inside(element, 'rail').getBoundingClientRect();
-    knob(element).dispatchEvent(
-      new PointerEvent('pointermove', {
-        bubbles: true,
-        clientX: rect.left + rect.width * fraction,
-        clientY: rect.top + rect.height / 2,
-      }),
-    );
-  }
-
   it('draws the tile above the pointer, scaled to the preview width', async () => {
     const player = await session({ thumbnails: track() });
     player.style.width = '600px';
@@ -1722,6 +1767,217 @@ describe('the preview over a thumbnail track', () => {
     expect(inside(element, 'preview-time').textContent).toBe('0:15');
     hover(element, 0.25);
     expect(inside(element, 'preview-image').hidden).toBe(false);
+  });
+});
+
+/** A trick namespace that records what the bar and the buttons ask of it. */
+function trickApi(
+  frame: ImageBitmap | null = null,
+  events?: Map<string, Set<() => void>>,
+): TrickApi & { readonly calls: string[] } {
+  const calls: string[] = [];
+  let rate = 1;
+  return {
+    calls,
+    available: true,
+    get rate() {
+      return rate;
+    },
+    setRate(next: number) {
+      calls.push(`rate ${next}`);
+      rate = next;
+      for (const fn of events?.get('trick:rate') ?? []) fn();
+    },
+    scrubbing: false,
+    scrubStart() {
+      calls.push('start');
+    },
+    scrubTo(time: number) {
+      calls.push(`to ${Math.round(time)}`);
+    },
+    scrubEnd(time?: number) {
+      calls.push(time === undefined ? 'end' : `end ${Math.round(time)}`);
+    },
+    frameAt: () => Promise.resolve(frame),
+    previews: frame !== null,
+  };
+}
+
+/** A pointer event on the seek bar's slider at a fraction of its rail. */
+function pointer(element: HTMLElement, type: string, fraction: number, buttons = 1): void {
+  const rect = inside(element, 'rail').getBoundingClientRect();
+  knob(element).dispatchEvent(
+    new PointerEvent(type, {
+      bubbles: true,
+      button: 0,
+      buttons,
+      clientX: rect.left + rect.width * fraction,
+      clientY: rect.top + rect.height / 2,
+    }),
+  );
+}
+
+describe('the seek bar over an I-frame track', () => {
+  it('scrubs through the engine while dragging, and ends the scrub where it lets go', async () => {
+    const trick = trickApi();
+    const player = await session({ trick });
+    const element = control(player, 'mbx-seek-bar');
+    pointer(element, 'pointerdown', 0.2);
+    pointer(element, 'pointermove', 0.4);
+    pointer(element, 'pointerup', 0.6, 0);
+    expect(trick.calls).toEqual(['start', 'to 2', 'to 4', 'end 6']);
+  });
+
+  it('ends the scrub where it stands when the drag is cancelled', async () => {
+    const trick = trickApi();
+    const player = await session({ trick });
+    const element = control(player, 'mbx-seek-bar');
+    pointer(element, 'pointerdown', 0.3);
+    knob(element).dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }));
+    await Promise.resolve();
+    expect(trick.calls).toEqual(['start', 'to 3', 'end 3']);
+  });
+
+  it('seeks instead under scrub="false"', async () => {
+    const trick = trickApi();
+    const player = await session({ trick });
+    const element = control(player, 'mbx-seek-bar');
+    element.setAttribute('scrub', 'false');
+    pointer(element, 'pointerdown', 0.2);
+    pointer(element, 'pointerup', 0.6, 0);
+    expect(trick.calls).toEqual([]);
+    await once(player.video, 'seeked');
+    expect(player.video.currentTime).toBeCloseTo(6, 0);
+  });
+
+  it('shows the tile and asks for no frame when previews cannot work, as for TS I-frames', async () => {
+    const trick = { ...trickApi(), previews: false, frameAt: vi.fn(() => Promise.resolve(null)) };
+    const player = await session({ trick, thumbnails: track() });
+    const element = control(player, 'mbx-seek-bar');
+    hover(element, 0.5);
+    expect(trick.frameAt).not.toHaveBeenCalled();
+    expect(inside(element, 'preview-image').hidden).toBe(false);
+  });
+
+  it('shows the decoded frame in the preview once it arrives', async () => {
+    const bitmap = await createImageBitmap(new ImageData(320, 180));
+    const player = await session({ trick: trickApi(bitmap) });
+    const element = control(player, 'mbx-seek-bar');
+    hover(element, 0.5);
+    const frame = inside(element, 'preview-frame') as HTMLCanvasElement;
+    await expect.poll(() => frame.hidden).toBe(false);
+    expect(frame.style.width).toBe('160px');
+    expect(frame.style.height).toBe('90px');
+  });
+});
+
+describe('the scan buttons', () => {
+  it('hide without an I-frame track', async () => {
+    const player = await ready(10);
+    for (const button of player.querySelectorAll('mbx-scan-button')) {
+      expect(button.hidden).toBe(true);
+    }
+  });
+
+  it('step up through the rates, then back to normal speed', async () => {
+    const trick = trickApi();
+    const player = await session({ trick });
+    const forward = player.querySelector('mbx-scan-button:not([direction])') as HTMLElement;
+    const button = inner(forward);
+    expect(forward.hidden).toBe(false);
+    button.click();
+    expect(forward.hasAttribute('scanning')).toBe(true);
+    expect(button.getAttribute('aria-pressed')).toBe('true');
+    expect(inside(forward, 'rate').textContent).toBe('4×');
+    button.click();
+    button.click();
+    button.click();
+    expect(trick.calls).toEqual(['rate 4', 'rate 8', 'rate 16', 'rate 1']);
+    expect(forward.hasAttribute('scanning')).toBe(false);
+  });
+
+  it('hide on a live stream too short to seek, as the seek bar does', async () => {
+    const player = await session({ live: liveApi(8), bufferGoal: 30, trick: trickApi() });
+    await expect.poll(() => player.hasAttribute('seekable')).toBe(false);
+    for (const button of player.querySelectorAll('mbx-scan-button')) {
+      await expect.poll(() => button.hidden).toBe(true);
+    }
+  });
+
+  it('follow a rate the other button or the page set, through trick:rate', async () => {
+    const events = new Map<string, Set<() => void>>();
+    const trick = trickApi(null, events);
+    const player = await session({ trick, events });
+    const forward = player.querySelector('mbx-scan-button:not([direction])') as HTMLElement;
+    const backward = player.querySelector('mbx-scan-button[direction="backward"]') as HTMLElement;
+    inner(forward).click();
+    expect(forward.hasAttribute('scanning')).toBe(true);
+    inner(backward).click();
+    expect(backward.hasAttribute('scanning')).toBe(true);
+    expect(forward.hasAttribute('scanning')).toBe(false);
+    trick.setRate(1);
+    expect(backward.hasAttribute('scanning')).toBe(false);
+  });
+
+  it('rewind at negative rates, and start over from the other direction', async () => {
+    const trick = trickApi();
+    const player = await session({ trick });
+    const backward = player.querySelector('mbx-scan-button[direction="backward"]') as HTMLElement;
+    const forward = player.querySelector('mbx-scan-button:not([direction])') as HTMLElement;
+    backward.setAttribute('rates', '3 6');
+    inner(forward).click();
+    inner(backward).click();
+    inner(backward).click();
+    expect(trick.calls).toEqual(['rate 4', 'rate -3', 'rate -6']);
+    expect(inner(backward).getAttribute('aria-label')).toBe('Rewind');
+  });
+});
+
+describe('chapters from the engine', () => {
+  function chaptersApi(images: boolean[]): ChaptersApi {
+    const all = images.map((image, i) => ({
+      id: String(i),
+      start: i * 4,
+      end: i * 4 + 4,
+      title: `Part ${i + 1}`,
+      ...(image ? { image: { url: `https://cdn.example/${i}.jpg` } } : {}),
+    }));
+    return {
+      load: () => Promise.resolve(all.length),
+      set: () => all.length,
+      at: () => null,
+      all,
+      source: 'app',
+    };
+  }
+
+  it('fill the menu and divide the bar, with pictures when every chapter has one', async () => {
+    const player = await session({ chapters: chaptersApi([true, true]) });
+    const menu = control(player, 'mbx-chapters-menu');
+    expect(menu.hidden).toBe(false);
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Part 10:00', 'Part 20:04']);
+    const pictures = [...(menu.shadowRoot?.querySelectorAll('[part~="item-image"]') ?? [])];
+    expect(pictures.map((node) => (node as HTMLImageElement).src)).toEqual([
+      'https://cdn.example/0.jpg',
+      'https://cdn.example/1.jpg',
+    ]);
+  });
+
+  it('leave the pictures out when one chapter has none', async () => {
+    const player = await session({ chapters: chaptersApi([true, false]) });
+    const menu = control(player, 'mbx-chapters-menu');
+    expect(menu.shadowRoot?.querySelectorAll('[part~="item-image"]').length).toBe(0);
+  });
+
+  it('follow the engine when its chapters change', async () => {
+    const events = new Map<string, Set<() => void>>();
+    const api = { ...chaptersApi([]), all: [] as ChaptersApi['all'] };
+    const player = await session({ chapters: api, events });
+    const menu = control(player, 'mbx-chapters-menu');
+    expect(menu.hidden).toBe(true);
+    api.all = chaptersApi([false]).all;
+    for (const fn of events.get('chapters:changed') ?? []) fn();
+    expect(menu.hidden).toBe(false);
   });
 });
 

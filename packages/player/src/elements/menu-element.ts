@@ -22,7 +22,7 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
     const root = this.attachShadow({ mode: 'open' });
     this.menu = menu({
       host: this,
-      ceiling: () => this.player?.video.getBoundingClientRect().top ?? null,
+      picture: () => this.player?.video.getBoundingClientRect() ?? null,
       back: (page) => fill(this.getAttribute('label-back') ?? 'Back from {page}', { page }),
     });
     this.slots = iconSlots(states, glyphs);

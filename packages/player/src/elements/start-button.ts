@@ -1,7 +1,8 @@
 /**
  * <mbx-start-button>: the large play in the middle of the picture, shown
  * while the video is paused, a replay once it has ended, gone while it
- * plays and while a fatal error is on screen. It sits in the player
+ * plays, while a fatal error is on screen, and while the seek bar holds
+ * the video paused for a drag (the player carries `scrubbing`). It sits in the player
  * beside the video, not in the bar, so it is over the poster and inside
  * fullscreen, and gone while the player waits for data, where the spinner
  * takes the centre. The glyph is `icon-play` or `icon-replay`, the name
@@ -82,6 +83,9 @@ export class MbxStartButton extends Component {
       this.failed = false;
       this.render();
     });
+    this.observe(player, ['scrubbing'], () => {
+      this.render();
+    });
     const failure = (event: Event): void => {
       const error = (event as CustomEvent<PlayerError>).detail;
       if (!error.fatal) return;
@@ -141,6 +145,11 @@ export class MbxStartButton extends Component {
       this.getAttribute(`label-${state}`) ?? (state === 'play' ? 'Play' : 'Replay'),
     );
     // The player reflects `waiting` first: it listens from its constructor.
-    this.hidden = this.failed || !video.paused || this.player?.hasAttribute('waiting') === true;
+    const player = this.player;
+    this.hidden =
+      this.failed ||
+      !video.paused ||
+      player?.hasAttribute('waiting') === true ||
+      player?.hasAttribute('scrubbing') === true;
   }
 }

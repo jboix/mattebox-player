@@ -178,12 +178,16 @@ export function compose(): HTMLElement[] {
     node.setAttribute('seconds', String(seconds));
     return node;
   };
+  const rewind = document.createElement('mbx-scan-button');
+  rewind.setAttribute('direction', 'backward');
   const bar = document.createElement('mbx-control-bar');
   bar.append(
     ...each('mbx-current-time', 'mbx-seek-bar', 'mbx-duration', 'mbx-live-button'),
+    rewind,
     skip(-10),
     document.createElement('mbx-play-button'),
     skip(10),
+    document.createElement('mbx-scan-button'),
     ...each('mbx-volume', 'mbx-spacer', 'mbx-speed-menu', 'mbx-chapters-menu'),
     ...each('mbx-subtitles-menu', 'mbx-audio-menu', 'mbx-quality-menu'),
     ...each('mbx-airplay-button', 'mbx-pip-button', 'mbx-fullscreen-button'),

@@ -114,6 +114,8 @@ export const MENU_STYLE = `${BUTTON_STYLE}
   cursor: pointer;
 }
 [part~="item"]:hover { background: rgba(255, 255, 255, 0.12); }
+[part~="item-text"] { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+[part~="item-image"] { flex: none; width: 64px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 2px; background: rgba(255, 255, 255, 0.08); }
 [part~="item-detail"] { margin-left: auto; color: var(--mbx-muted); font-variant-numeric: tabular-nums; }
 [part~="item"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
 [part~="page-item"] { position: relative; padding-right: 28px; }

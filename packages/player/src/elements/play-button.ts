@@ -4,7 +4,9 @@
  * thing back on click. The glyph is a slot per state, so a page drops its
  * own SVG into `icon-play`, `icon-pause` or `icon-replay`; the name is on
  * the button, from `label-play`, `label-pause` and `label-replay`, where a
- * screen reader reads it.
+ * screen reader reads it. While the seek bar holds the video paused for a
+ * drag, the button shows the state from before the drag, which the player
+ * carries as `scrubbing`.
  */
 import { icon } from '../controls/icons.js';
 import type { PlayerHost } from '../host.js';
@@ -53,13 +55,18 @@ export class MbxPlayButton extends Component {
     this.listen(player.video, ['play', 'pause', 'ended', 'emptied'], () => {
       this.render();
     });
+    this.observe(player, ['scrubbing'], () => {
+      this.render();
+    });
     this.render();
   }
 
   protected override render(): void {
     const video = this.player?.video;
     if (video === undefined) return;
-    const state: State = video.ended ? 'replay' : video.paused ? 'play' : 'pause';
+    const held = this.player?.getAttribute('scrubbing') ?? null;
+    const paused = held === null ? video.paused : held === 'paused';
+    const state: State = video.ended ? 'replay' : paused ? 'play' : 'pause';
     show(this.slots, state);
     this.button.setAttribute('aria-label', this.getAttribute(`label-${state}`) ?? LABELS[state]);
   }

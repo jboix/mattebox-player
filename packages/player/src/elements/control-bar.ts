@@ -46,6 +46,7 @@ import {
   MUTE_BUTTON,
   PIP_BUTTON,
   QUALITY_MENU,
+  SCAN_BUTTON,
   SKIP_BUTTON,
   SPACER,
   SPEED_MENU,
@@ -63,7 +64,7 @@ const SEEK_STEP = 5;
  * What goes first when the row is too narrow, by tag: the slider, which
  * takes the most room for the least; then the diagnostics, the lock and
  * the menus a viewer rarely opens; then the menus for the picture and the
- * sound; then the skips; then the mute and the subtitles. The subtitles
+ * sound; then the skips and the scans; then the mute and the subtitles. The subtitles
  * menu goes last of the menus because it is the one a viewer may need.
  * The diagnostics is another package's, named here as a string. A
  * `priority` attribute on the control replaces its default.
@@ -79,6 +80,7 @@ const PRIORITY: Readonly<Record<string, number>> = {
   [PIP_BUTTON]: 3,
   [AIRPLAY_BUTTON]: 2,
   [SKIP_BUTTON]: 2,
+  [SCAN_BUTTON]: 2,
   [SUBTITLES_MENU]: 1,
   [VOLUME]: 1,
   [MUTE_BUTTON]: 1,

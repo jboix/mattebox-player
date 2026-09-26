@@ -14,7 +14,9 @@
  * anywhere else closes it too.
  *
  * The popup never leaves the picture: on opening it takes the room above
- * the button down to `ceiling()` as its height and scrolls past that. The
+ * the button up to the top of `picture()` as its height and scrolls past
+ * that, and the room from its right edge to the picture's left as its
+ * width, where a long item ends in an ellipsis. The
  * element that owns the menu carries `open` while the popup shows, which
  * the bar reads to hold its fade.
  */
@@ -25,8 +27,11 @@ export interface MenuGroup {
   readonly name: string;
   /** A heading, or none for a menu of one group. */
   readonly label?: string;
-  /** Each item's id, its text, and a detail drawn at its end, such as a chapter's time. */
-  readonly items: ReadonlyArray<readonly [string, string, string?]>;
+  /**
+   * Each item's id, its text, a detail drawn at its end, such as a chapter's
+   * time, and the URL of a picture drawn at its start.
+   */
+  readonly items: ReadonlyArray<readonly [string, string, string?, string?]>;
   readonly value: string;
   readonly onSelect: (value: string) => void;
 }
@@ -43,8 +48,8 @@ export type MenuEntry = MenuGroup | MenuPage;
 export interface MenuOptions {
   /** The element the menu belongs to: it carries `open`, and a pointer inside it is not outside. */
   readonly host: HTMLElement;
-  /** The top of the picture, in viewport pixels, which the popup never rises above. */
-  readonly ceiling: () => number | null;
+  /** The picture, in viewport pixels, which the popup never leaves. */
+  readonly picture: () => DOMRect | null;
   /** The name of the Back item, from the page it leaves: "Back from {page}". */
   readonly back: (page: string) => string;
 }
@@ -62,6 +67,16 @@ export interface Menu {
 
 /** Air between the popup's top and the picture's. */
 const AIR = 8;
+
+/** An item's picture. Decorative: the item's text names it. Loaded when the popup first shows it. */
+function picture(url: string): HTMLImageElement {
+  const node = el('img', 'item-image');
+  node.alt = '';
+  node.loading = 'lazy';
+  node.decoding = 'async';
+  node.src = url;
+  return node;
+}
 
 function isPage(entry: MenuEntry): entry is MenuPage {
   return 'entries' in entry;
@@ -101,12 +116,15 @@ export function menu(options: MenuOptions): Menu {
     if (!event.composedPath().includes(host)) close();
   }
 
-  /** Whatever room there is above the button down to the ceiling, so the popup never leaves the picture. */
+  /** Whatever room there is above the button and left of the popup's right edge, so the popup never leaves the picture. */
   function fit(): void {
-    const top = options.ceiling();
-    if (top === null) return;
-    const room = button.getBoundingClientRect().top - top - AIR;
+    const picture = options.picture();
+    if (picture === null) return;
+    const room = button.getBoundingClientRect().top - picture.top - AIR;
     popup.style.maxHeight = `${Math.max(0, Math.floor(room))}px`;
+    // The popup is anchored at the host's right edge and grows leftwards.
+    const wide = host.getBoundingClientRect().right - picture.left - AIR;
+    popup.style.maxWidth = `${Math.max(0, Math.floor(wide))}px`;
   }
 
   function clear(): void {
@@ -160,13 +178,19 @@ export function menu(options: MenuOptions): Menu {
         section.setAttribute('aria-label', entry.label);
         section.append(el('div', `section-label ${entry.name}-label`, entry.label));
       }
-      for (const [id, text, detail] of entry.items) {
+      for (const [id, text, detail, image] of entry.items) {
         const choice = item(`item ${entry.name}-item`, text, () => {
           close();
           button.focus();
           entry.onSelect(id);
         });
         if (detail !== undefined) choice.append(el('span', 'item-detail', detail));
+        if (image !== undefined) {
+          // The text in a box of its own, so a long title ends in an ellipsis beside the picture.
+          const [, ...rest] = choice.childNodes;
+          choice.replaceChildren(el('span', 'item-text', text), ...rest);
+          choice.prepend(picture(image));
+        }
         choice.value = id;
         choice.setAttribute('role', 'menuitemradio');
         const on = id === entry.value;

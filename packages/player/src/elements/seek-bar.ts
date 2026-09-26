@@ -9,18 +9,29 @@
  * `live-window` forward buffer goals long, the goal read from the engine.
  * Below that the bar hides. VOD is always seekable. The element sets
  * `live` and `seekable` on the player, which the time and the live button
- * read.
+ * read, and `scrubbing` while a pointer holds the thumb: `playing` or
+ * `paused`, the state before the drag, which the play buttons show
+ * instead of the drag's own pause.
  *
  * Reads happen on the events the video already fires; the live window has
  * no event of its own and moves with the clock, so `timeupdate` covers it.
- * While a pointer holds the thumb, the played layer follows the pointer and
- * `currentTime` is written at most once per frame, so the bar never fights
- * a slow seek. The element carries `dragging` meanwhile.
+ * While a pointer holds the thumb, the played layer follows the pointer.
+ * The element carries `dragging` meanwhile. With an I-frame track
+ * (`engine.trick.available`), the drag scrubs: the video pauses and shows
+ * the I-frame at every position, and the release seeks there. See the
+ * engine guide's trick play chapter. `scrub="false"` turns this off.
+ * Otherwise the video pauses, `currentTime` is written at most once per
+ * frame, so the bar never fights a slow seek, and the release resumes
+ * playback if it was playing. Thumbnail tiles never drive a drag: they are
+ * previews, not frames of the video.
  *
- * The preview above the pointer carries the time and, when the session's
- * `engine.thumbnails` answers for that time, the tile: a rectangle of a
- * sprite, drawn by background position at the sprite's own size and scaled
- * down to `--mbx-preview-width`, so a page sets the size with one token.
+ * The preview above the pointer carries the time and a picture of that
+ * time, the first the session offers of two. The decoded I-frame from
+ * `engine.trick.frameAt`, when the track decodes in this browser. The last
+ * frame stays until the next one arrives, so the picture never flickers
+ * while the engine decodes. The tile from `engine.thumbnails`: a rectangle
+ * of a sprite, drawn by background position at the sprite's own size. Both
+ * scale to `--mbx-preview-width`, so a page sets the size with one token.
  *
  * Chapters divide the track: one gap per chapter boundary, cut through
  * every layer with a mask, so the played and the buffered spans read per
@@ -48,6 +59,9 @@ import type { PlayerHost } from '../host.js';
 import { fill } from '../labels.js';
 import { Component } from './component.js';
 import { number, SLIDER_STYLE, seekRow, style } from './shared.js';
+
+/** What a drag does, chosen when the pointer takes the thumb. */
+type Drag = 'none' | 'seek' | 'scrub';
 
 const STEP = 5;
 const PAGE = 30;
@@ -98,6 +112,7 @@ const STYLE = `${SLIDER_STYLE}
   pointer-events: none;
 }
 [part~="preview-image"] { position: relative; overflow: hidden; border-radius: 2px; }
+[part~="preview-frame"] { display: block; border-radius: 2px; }
 [part~="preview-tile"] { position: absolute; top: 0; left: 0; transform-origin: top left; background-repeat: no-repeat; }
 [part~="preview-time"] { padding: 0 4px; }
 [part~="preview-title"] { max-width: 240px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; }
@@ -126,7 +141,7 @@ function gaps(list: readonly Chapter[], span: Span): string {
 
 export class MbxSeekBar extends Component {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters'];
+    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters', 'scrub'];
   }
 
   declare private readonly bar: Slider;
@@ -138,6 +153,15 @@ export class MbxSeekBar extends Component {
   declare private readonly tile: HTMLElement;
   declare private readonly time: HTMLElement;
   declare private readonly caption: HTMLElement;
+  declare private readonly frameCanvas: HTMLCanvasElement;
+  declare private drag: Drag;
+  /** The last position of the drag, which a cancelled drag settles at. */
+  declare private dragged: number | null;
+  /** Whether the video played when a seeking drag began, so the release resumes it. */
+  declare private resume: boolean;
+  /** Frames asked for, and the newest one on screen, so a late frame never replaces a newer one. */
+  declare private asked: number;
+  declare private shown: number;
   declare private range: Span;
   /** The chapters as last drawn, so the mask is written only when they change. */
   declare private divided: string;
@@ -152,6 +176,11 @@ export class MbxSeekBar extends Component {
     this.frame = 0;
     this.divided = '';
     this.list = [];
+    this.drag = 'none';
+    this.dragged = null;
+    this.resume = false;
+    this.asked = 0;
+    this.shown = 0;
     const root = this.attachShadow({ mode: 'open' });
     this.bar = slider({
       step: () => number(this, 'step', STEP),
@@ -161,6 +190,8 @@ export class MbxSeekBar extends Component {
       },
       onDrag: (on) => {
         this.toggleAttribute('dragging', on);
+        if (on) this.dragStart();
+        else this.dragEnd();
       },
     });
     this.buffered = el('div', 'buffered');
@@ -179,7 +210,9 @@ export class MbxSeekBar extends Component {
     this.caption.hidden = true;
     this.image.append(this.tile);
     this.image.hidden = true;
-    this.preview.append(this.image, this.caption, this.time);
+    this.frameCanvas = el('canvas', 'preview-frame');
+    this.frameCanvas.hidden = true;
+    this.preview.append(this.frameCanvas, this.image, this.caption, this.time);
     this.preview.hidden = true;
     this.bar.root.append(this.preview);
     this.bar.root.addEventListener('pointermove', (event) => {
@@ -239,6 +272,59 @@ export class MbxSeekBar extends Component {
     return wall(this.player?.engine ?? null, time) ?? `-${format(this.range.end - time)}`;
   }
 
+  /** Scrubs when the session has an I-frame track and the page allows it; seeks otherwise. */
+  private dragStart(): void {
+    const trick = optional(this.player?.engine ?? null).trick;
+    this.dragged = null;
+    // The pause below is the drag's, not the viewer's: the player says so,
+    // with the state from before, which the play buttons keep showing.
+    const before = this.player?.video.paused === false ? 'playing' : 'paused';
+    this.player?.setAttribute('scrubbing', before);
+    if (trick?.available === true && this.getAttribute('scrub') !== 'false') {
+      trick.scrubStart();
+      this.drag = 'scrub';
+    } else {
+      // Paused for the drag, the way the scrub is: the picture follows the
+      // pointer, and playback waits for the release.
+      const video = this.player?.video;
+      this.resume = video !== undefined && !video.paused;
+      video?.pause();
+      this.drag = 'seek';
+    }
+  }
+
+  /**
+   * The pointer let go. A release writes its own input next, in the same
+   * task, and that settles the drag. A cancelled drag writes none, so the
+   * drag settles at its last position once the task is over.
+   */
+  private dragEnd(): void {
+    queueMicrotask(() => {
+      if (this.drag !== 'none') this.settle(this.dragged);
+    });
+  }
+
+  /** Ends the drag at `value`, or where it stands when there is none. */
+  private settle(value: number | null): void {
+    const drag = this.drag;
+    this.drag = 'none';
+    this.dragged = null;
+    const player = this.player;
+    if (player === null) return;
+    if (drag === 'scrub') {
+      const trick = optional(player.engine).trick;
+      if (value === null) trick?.scrubEnd();
+      else trick?.scrubEnd(value);
+    } else {
+      if (value !== null) player.video.currentTime = value;
+      if (this.resume) void player.video.play().catch(() => undefined);
+      this.resume = false;
+    }
+    // After the play, which clears `paused` at once, so the start button
+    // never shows between the release and the resume.
+    player.removeAttribute('scrubbing');
+  }
+
   private input(value: number): void {
     const video = this.player?.video;
     if (video === undefined) return;
@@ -247,7 +333,15 @@ export class MbxSeekBar extends Component {
       // The release, or a key: written now, and it supersedes whatever a
       // frame queued during the drag was about to write.
       this.pending = null;
-      video.currentTime = value;
+      if (this.drag !== 'none') this.settle(value);
+      else video.currentTime = value;
+      return;
+    }
+    this.dragged = value;
+    if (this.drag === 'scrub') {
+      // The engine writes `currentTime` on every move; the browser drops a
+      // seek a newer one supersedes, so no throttle is needed here.
+      optional(this.player?.engine ?? null).trick?.scrubTo(value);
       return;
     }
     this.pending = value;
@@ -287,6 +381,46 @@ export class MbxSeekBar extends Component {
     this.tile.style.backgroundImage = `url("${found.url}")`;
     this.tile.style.backgroundPosition = `-${found.x}px -${found.y}px`;
     this.tile.style.transform = `scale(${scale})`;
+  }
+
+  /**
+   * The picture in the preview: the decoded I-frame once one is on screen,
+   * the tile until then. A scrub already shows the position in the video,
+   * so the preview shows none meanwhile.
+   */
+  private paintPicture(when: number): void {
+    if (this.drag === 'scrub') {
+      this.image.hidden = true;
+      this.frameCanvas.hidden = true;
+      return;
+    }
+    const trick = optional(this.player?.engine ?? null).trick;
+    // `previews` turns false once the engine knows no frame will come, such
+    // as for TS I-frames; the tile shows then, without asking again.
+    if (trick?.previews === true) {
+      this.asked += 1;
+      const request = this.asked;
+      const width = this.previewWidth();
+      // Null for a call a newer one replaced, and while the track's
+      // segments load. The tile stays then.
+      void trick.frameAt(when, { width: Math.round(width * devicePixelRatio) }).then(
+        (bitmap) => {
+          if (bitmap === null || request < this.shown || this.preview.hidden) return;
+          this.shown = request;
+          // The engine keeps the bitmap in its cache: drawn, never closed here.
+          const canvas = this.frameCanvas;
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${(bitmap.height / bitmap.width) * width}px`;
+          canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+          canvas.hidden = false;
+          this.image.hidden = true;
+        },
+        () => undefined,
+      );
+    }
+    if (this.frameCanvas.hidden) this.paintTile(when);
   }
 
   private paintBuffered(video: HTMLVideoElement): void {
@@ -332,7 +466,7 @@ export class MbxSeekBar extends Component {
     const chapter = this.chaptered() ? this.list[chapterAt(this.list, when)] : undefined;
     this.caption.hidden = chapter === undefined || chapter.title === '';
     this.caption.textContent = chapter?.title ?? '';
-    this.paintTile(when);
+    this.paintPicture(when);
     const whole = this.bar.root.getBoundingClientRect();
     const half = this.preview.offsetWidth / 2;
     const x = rect.left - whole.left + part * rect.width;
@@ -342,6 +476,8 @@ export class MbxSeekBar extends Component {
   private leave(): void {
     this.hover.hidden = true;
     this.preview.hidden = true;
+    // The next hover starts from the tile, not a frame from elsewhere on the bar.
+    this.frameCanvas.hidden = true;
   }
 
   protected override attach(player: PlayerHost): void {
@@ -349,8 +485,9 @@ export class MbxSeekBar extends Component {
       this.render();
     };
     this.listen(player.video, EVENTS, tick);
-    this.keep(followChapters(player.video, tick));
+    this.keep(followChapters(player, tick));
     this.listen(player, ['sourcechange'], () => {
+      this.drag = 'none';
       this.leave();
       this.render();
     });
@@ -361,9 +498,11 @@ export class MbxSeekBar extends Component {
     cancelAnimationFrame(this.frame);
     this.frame = 0;
     this.pending = null;
+    if (this.drag !== 'none') this.settle(null);
     this.leave();
     player.removeAttribute('live');
     player.removeAttribute('seekable');
+    player.removeAttribute('scrubbing');
   }
 
   protected override render(): void {
@@ -374,7 +513,7 @@ export class MbxSeekBar extends Component {
     const api = live(engine);
     const on = api !== undefined;
     this.range = span(video, engine);
-    this.list = chapters(video);
+    this.list = chapters(video, engine);
     this.bar.label(this.getAttribute('label') ?? 'Seek');
     this.bar.range(this.range.start, this.range.end);
     this.paintBuffered(video);

@@ -1,10 +1,12 @@
 /**
  * <mbx-chapters-menu>: the chapters of the video as a list, each with its
  * start time, the one the playhead is in checked; choosing one seeks to its
- * start. The chapters are the video's own chapters text track, from the
- * player's `chapters` attribute or a `<track>` the page put there, so the
- * menu works for every session, native included, and hides while the
- * video has none. The name comes from `label`.
+ * start. The chapters are the engine's when the session holds some, and
+ * the video's own chapters text track otherwise, see `controls/chapters.ts`,
+ * so the menu works for every session, native included, and hides while
+ * there are none. Each item shows the chapter's picture when every chapter
+ * has one: a list where some rows have a picture and some do not reads as
+ * broken. The name comes from `label`.
  */
 import { chapterAt, chapters, followChapters } from '../controls/chapters.js';
 import { format } from '../controls/time.js';
@@ -34,7 +36,7 @@ export class MbxChaptersMenu extends MenuElement {
     const tick = (): void => {
       this.render();
     };
-    this.keep(followChapters(player.video, tick));
+    this.keep(followChapters(player, tick));
     // The clock too: WebKit fires no `cuechange` for a hidden track, and the
     // render is a no-op while the chapter is the same.
     this.listen(player.video, ['timeupdate', 'seeked', 'emptied', 'loadedmetadata'], tick);
@@ -46,15 +48,16 @@ export class MbxChaptersMenu extends MenuElement {
     super.render();
     const video = this.player?.video;
     if (video === undefined) return;
-    const list = chapters(video);
+    const list = chapters(video, this.player?.engine ?? null);
     this.hidden = list.length === 0;
     const current = String(chapterAt(list, video.currentTime));
-    const items = list.map((chapter, i): readonly [string, string, string] => [
-      String(i),
-      chapter.title,
-      format(chapter.start),
-    ]);
-    const key = `${current}|${items.map(([, title, start]) => `${start} ${title}`).join('\n')}`;
+    const pictured = list.every((chapter) => chapter.image !== undefined);
+    const items = list.map((chapter, i): readonly [string, string, string, string?] =>
+      pictured && chapter.image !== undefined
+        ? [String(i), chapter.title, format(chapter.start), chapter.image]
+        : [String(i), chapter.title, format(chapter.start)],
+    );
+    const key = `${current}|${items.map((item) => item.slice(1).join(' ')).join('\n')}`;
     if (key === this.drawn) return;
     this.drawn = key;
     this.menu.fill([
