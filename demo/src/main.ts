@@ -15,12 +15,13 @@ import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
 import full from 'mattebox/presets/full';
+import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
 import emeCore from 'mattebox/stages/eme-core';
 // Imported, not referenced from the HTML: the file lives outside the demo
 // root, and only an import gives it a URL the dev server and the build serve.
 import logoUrl from '../../docs/logo.svg';
 import type { StreamEntry } from './catalogue.js';
-import { STREAMS } from './catalogue.js';
+import { STREAMS, tagsOf } from './catalogue.js';
 import type { BusinessUnit, Composition, IlResource, SearchResult } from './srgssr.js';
 import {
   BUSINESS_UNITS,
@@ -65,6 +66,13 @@ function wire(element: MatteboxPlayerElement): void {
     if (event.detail === null) return;
     const won = event.detail.handler;
     say(`${playing}, through ${won === 'mattebox' ? 'the engine' : 'the browser'}`, 'ok');
+    // The session fires this once its manifest is in, so the chapters land
+    // on this load and not the one before. A native session has no
+    // `engine.chapters`, and the chapters go unused.
+    const list = appChapters;
+    appChapters = [];
+    const api = (event.detail.engine as { chapters?: ChaptersApi } | null)?.chapters;
+    if (list.length > 0 && api !== undefined) api.set(list);
   });
   element.addEventListener('error', (event) => {
     if (event.detail.fatal) say(`${event.detail.category}: ${event.detail.code}`, 'bad');
@@ -108,8 +116,13 @@ interface Choice {
   readonly thumbnails?: string;
   readonly chapters?: string;
   readonly poster?: string;
+  /** Chapters a content API gave, which the session gets through `engine.chapters.set`. */
+  readonly appChapters?: readonly ChapterInput[];
   readonly clearKeys?: Readonly<Record<string, string>>;
 }
+
+/** The chapters the next session gets through `engine.chapters.set`, once its manifest is in. */
+let appChapters: readonly ChapterInput[] = [];
 
 /** One door for every way of choosing a source. Whatever is not given is cleared, and the chooser closes. */
 function load(choice: Choice): void {
@@ -117,6 +130,7 @@ function load(choice: Choice): void {
   say(`loading ${playing}…`);
   contentDialog.close();
   const element = elementFor(choice.clearKeys);
+  appChapters = choice.appChapters ?? [];
   // The source goes last so the attributes that describe it are already in
   // place: every one of them reloads, and only the last load counts.
   element.removeAttribute('src');
@@ -171,7 +185,15 @@ for (const stream of STREAMS) {
   const meta = document.createElement('span');
   meta.className = 'result-meta';
   meta.textContent = stream.url;
-  button.append(title, meta);
+  const tags = document.createElement('span');
+  tags.className = 'tags';
+  for (const text of tagsOf(stream)) {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.textContent = text;
+    tags.append(tag);
+  }
+  button.append(title, tags, meta);
   button.addEventListener('click', () => {
     chooseStream(stream);
   });
@@ -293,6 +315,24 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
     name.className = 'composition-title';
     name.textContent = c.title;
     composition.append(name);
+    if (c.chapters.length > 0 || c.fullLength !== undefined) {
+      const note = document.createElement('p');
+      note.className = 'hint';
+      if (c.chapters.length > 0) {
+        note.textContent = `${c.chapters.length} chapters from the IL, set through engine.chapters.set.`;
+      } else if (c.fullLength !== undefined) {
+        const urn = c.fullLength;
+        note.textContent = 'This clip is cut from an episode, which has the chapters. ';
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.textContent = 'Open the episode';
+        open.addEventListener('click', () => {
+          void resolve(urn);
+        });
+        note.append(open);
+      }
+      composition.append(note);
+    }
     if (c.resources.length === 0) {
       const none = document.createElement('p');
       none.className = 'hint';
@@ -357,6 +397,7 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
         type: resource.mimeType,
         ...(license === null ? {} : { licenseUrl: license }),
         ...(c.imageUrl === undefined ? {} : { poster: `${c.imageUrl}?width=1280&format=jpg` }),
+        ...(c.chapters.length === 0 ? {} : { appChapters: c.chapters }),
       });
       tell(`playing ${c.title}${license === null ? '' : ' (DRM)'}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -474,9 +515,11 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
   ['duration', 'Duration', 'mbx-duration'],
   ['remaining-time', 'Time left', 'mbx-remaining-time'],
   ['live', 'Live', 'mbx-live-button'],
+  ['scan-back', 'Rewind', 'mbx-scan-button'],
   ['skip-back', 'Skip back', 'mbx-skip-button'],
   ['play', 'Play / pause', 'mbx-play-button'],
   ['skip-forward', 'Skip forward', 'mbx-skip-button'],
+  ['scan-forward', 'Fast forward', 'mbx-scan-button'],
   ['volume', 'Volume', 'mbx-volume'],
   ['speed', 'Speed', 'mbx-speed-menu'],
   ['chapters', 'Chapters', 'mbx-chapters-menu'],
@@ -494,7 +537,7 @@ const LABELS = new Map(CONTROLS.map(([name, label]) => [name, label]));
 const TAGS = new Map(CONTROLS.map(([name, , tag]) => [name, tag]));
 const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
   seek: ['current-time', 'seek-bar', 'duration', 'remaining-time', 'live'],
-  left: ['skip-back', 'play', 'skip-forward', 'volume'],
+  left: ['scan-back', 'skip-back', 'play', 'skip-forward', 'scan-forward', 'volume'],
   right: [
     'speed',
     'chapters',
@@ -519,7 +562,9 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'seek-page': '30',
   'live-window': '3',
   rates: '0.5 0.75 1 1.25 1.5 2',
+  'scan-rates': '4 8 16',
   chapters: 'on',
+  scrub: 'true',
 };
 /** The demo's own receiver, from the mattebox-receiver repository. Empty means the Default Media Receiver. */
 const CAST_RECEIVER = '6BCED548';
@@ -577,6 +622,8 @@ function words(tagName: string, name: string): Record<string, string | null> {
   const out: Record<string, string | null> = { ...attributesFor(tagName, chosen.words) };
   if (name === 'skip-back') out.label = chosen.words.skipBack;
   if (name === 'skip-forward') out.label = chosen.words.skipForward;
+  if (name === 'scan-back') out.label = chosen.words.scanBack;
+  if (name === 'scan-forward') out.label = chosen.words.scanForward;
   return out;
 }
 
@@ -590,11 +637,14 @@ function controlMarkup(name: string, row: Row): string {
   if (row !== 'seek' && seekRow.includes(name)) own.slot = '';
   if (name === 'skip-back') own.seconds = `-${knob('skip-back') ?? '10'}`;
   if (name === 'skip-forward') own.seconds = knob('skip-forward') ?? '10';
+  if (name === 'scan-back') own.direction = 'backward';
+  if (name === 'scan-back' || name === 'scan-forward') own.rates = knob('scan-rates');
   if (name === 'seek-bar') {
     own.step = knob('seek-step');
     own.page = knob('seek-page');
     own['live-window'] = knob('live-window');
     own.chapters = knob('chapters');
+    own.scrub = knob('scrub');
   }
   if (name === 'speed') own.rates = knob('rates');
   if (name === 'cast')

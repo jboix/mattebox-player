@@ -42,8 +42,16 @@ it('the chooser opens from the masthead and lists the demo streams', async () =>
   await userEvent.click($('#open-content'));
   expect(visible($('#content-dialog'))).toBe(true);
   const entries = $$('#stream-list li');
-  expect(entries).toHaveLength(16);
+  expect(entries).toHaveLength(25);
   expect(entries.at(-1)?.textContent).toContain('Extensionless URL');
+  // Each entry names what it carries.
+  const tags = (text: string) =>
+    [...(entries.find((li) => li.textContent?.includes(text))?.querySelectorAll('.tag') ?? [])].map(
+      (tag) => tag.textContent,
+    );
+  expect(tags('Tears of Steel')).toEqual(['chapters']);
+  expect(tags('chapters in the manifest')).toContain('I-frames');
+  expect(tags('Angel One')).toEqual(['DRM']);
 });
 
 it('the extensionless entry falls through to the native handler', async () => {

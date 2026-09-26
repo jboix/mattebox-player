@@ -497,12 +497,12 @@ button:hover {
   padding: 0.3rem 0.6rem;
 }
 
-/* Four rows in view; the rest scroll inside, so the form under it stays put. */
+/* Four rows with their tags in view; the rest scroll inside, so the form under it stays put. */
 .picks {
   list-style: none;
   margin: var(--step) 0 0;
   padding: 0;
-  max-height: 13.5rem;
+  max-height: 21rem;
   overflow-y: auto;
   border: 1px solid var(--rule);
 }
@@ -539,6 +539,28 @@ button:hover {
 
 .result-title {
   display: block;
+}
+
+/* What a stream carries, so a reader finds the one with chapters or I-frames. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.tags:empty {
+  display: none;
+}
+
+.tag {
+  padding: 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
 }
 
 #composition {
@@ -750,4 +772,11 @@ button:hover {
       background-color 120ms ease,
       color 120ms ease;
   }
+}
+
+/* A field with a tooltip says so: its name is underlined, and the pointer asks. */
+label[title] > span {
+  text-decoration: underline dotted var(--ink-soft);
+  text-underline-offset: 0.2em;
+  cursor: help;
 }

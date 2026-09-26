@@ -6,6 +6,8 @@
  * adapted from pillarbox-web.
  */
 
+import type { ChapterInput } from 'mattebox/stages/chapters';
+
 const IL_HOST = 'il.srgssr.ch';
 export const BUSINESS_UNITS = ['srf', 'rts', 'rsi', 'rtr', 'swi'] as const;
 export type BusinessUnit = (typeof BUSINESS_UNITS)[number];
@@ -44,6 +46,51 @@ export interface Composition {
   readonly title: string;
   readonly imageUrl?: string;
   readonly resources: readonly IlResource[];
+  /** The chapters of the full-length media, for `engine.chapters.set`. */
+  readonly chapters: readonly ChapterInput[];
+  /** The URN of the episode a clip is cut from, which has the chapters. */
+  readonly fullLength?: string;
+}
+
+/** One chapter of a media composition, as the IL describes it. */
+interface IlChapter {
+  readonly urn: string;
+  readonly title: string;
+  readonly type?: string;
+  readonly mediaType?: string;
+  readonly imageUrl?: string;
+  readonly fullLengthUrn?: string;
+  /** Milliseconds into the full-length media. */
+  readonly fullLengthMarkIn?: number;
+  readonly fullLengthMarkOut?: number;
+  readonly resourceList?: IlResource[];
+}
+
+/**
+ * The chapters of the main chapter, the way pillarbox-web reads them: only
+ * a video episode has any, and they are the chapters that point into it
+ * with the same media type. The IL times are milliseconds into the
+ * full-length media; the engine takes seconds.
+ */
+function chaptersOf(main: IlChapter, list: readonly IlChapter[]): ChapterInput[] {
+  if (main.type !== 'EPISODE' || main.mediaType === 'AUDIO') return [];
+  const out: ChapterInput[] = [];
+  for (const chapter of list) {
+    if (chapter.fullLengthUrn !== main.urn || chapter.mediaType !== main.mediaType) continue;
+    if (chapter.fullLengthMarkIn === undefined) continue;
+    out.push({
+      id: chapter.urn,
+      start: chapter.fullLengthMarkIn / 1000,
+      ...(chapter.fullLengthMarkOut === undefined ? {} : { end: chapter.fullLengthMarkOut / 1000 }),
+      title: chapter.title,
+      // The IL image service scales on request; the menu draws 64 pixels wide.
+      ...(chapter.imageUrl === undefined
+        ? {}
+        : { image: { url: `${chapter.imageUrl}?width=160&format=jpg` } }),
+      data: { urn: chapter.urn },
+    });
+  }
+  return out;
 }
 
 export async function searchMedia(
@@ -81,19 +128,17 @@ export async function fetchComposition(urn: string, signal: AbortSignal): Promis
   if (!response.ok) throw new Error(`media composition failed: HTTP ${response.status}`);
   const data = (await response.json()) as {
     chapterUrn: string;
-    chapterList?: Array<{
-      urn: string;
-      title: string;
-      imageUrl?: string;
-      resourceList?: IlResource[];
-    }>;
+    chapterList?: IlChapter[];
   };
-  const chapter = (data.chapterList ?? []).find((c) => c.urn === data.chapterUrn);
+  const list = data.chapterList ?? [];
+  const chapter = list.find((c) => c.urn === data.chapterUrn);
   if (chapter === undefined) throw new Error('media composition has no main chapter');
   return {
     title: chapter.title,
     ...(chapter.imageUrl === undefined ? {} : { imageUrl: chapter.imageUrl }),
     resources: chapter.resourceList ?? [],
+    chapters: chaptersOf(chapter, list),
+    ...(chapter.fullLengthUrn === undefined ? {} : { fullLength: chapter.fullLengthUrn }),
   };
 }
 
