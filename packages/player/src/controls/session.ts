@@ -37,9 +37,23 @@ export function span(video: HTMLVideoElement, engine: Mattebox | null): Span {
   return window(video.duration, spans(video.seekable), on);
 }
 
-/** The engine's forward buffer goal in seconds, which lives on the diagnostics snapshot and nowhere else. */
+/** The goal each engine had outside a scan or a scrub. */
+const settled = new WeakMap<Mattebox, number>();
+
+/**
+ * The engine's forward buffer goal in seconds, which lives on the
+ * diagnostics snapshot and nowhere else. A scan multiplies the goal by its
+ * rate and a scrub shrinks it (engine guide, trick play), so meanwhile the
+ * goal from before stands: a live bar must not hide in the middle of a scan.
+ */
 export function bufferGoal(engine: Mattebox | null): number | null {
-  return engine?.stats.snapshot().scheduling.bufferGoal ?? null;
+  if (engine === null) return null;
+  const trick = optional(engine).trick;
+  const held = trick !== undefined && (trick.rate !== 1 || trick.scrubbing);
+  if (held) return settled.get(engine) ?? null;
+  const goal = engine.stats.snapshot().scheduling.bufferGoal;
+  settled.set(engine, goal);
+  return goal;
 }
 
 /** The wall clock at a presentation time, when the session can say it. */

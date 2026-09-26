@@ -389,10 +389,11 @@ Each child has a `priority`, and the bar hides the highest number first:
 
 | Priority | Controls                                                               |
 | -------- | ---------------------------------------------------------------------- |
+| 6        | The scan buttons                                                       |
 | 5        | The volume slider                                                      |
 | 4        | The diagnostics, the DRM lock, the speed and chapters menus            |
 | 3        | The audio and quality menus, picture in picture                        |
-| 2        | The skips and the scans                                                |
+| 2        | The skips                                                              |
 | 1        | The subtitles menu, the mute button and the volume group               |
 | 0        | Everything else. Never hidden: play and fullscreen stay at every width |
 

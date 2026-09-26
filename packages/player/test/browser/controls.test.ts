@@ -451,6 +451,17 @@ describe('the bar when narrow', () => {
     await expect.poll(() => collapsed(player)).toEqual([]);
   });
 
+  it('drops the scan buttons first, before the volume slider', async () => {
+    const player = await session({ trick: trickApi() });
+    const root = bar(player) as MbxControlBar;
+    player.style.width = '800px';
+    await laidOut();
+    await expect.poll(() => collapsed(player)).toEqual([]);
+    // A few pixels short of what the buttons need: the scans go, and only they.
+    player.style.width = `${need(root) - 4}px`;
+    await expect.poll(() => collapsed(player)).toEqual(['mbx-scan-button', 'mbx-scan-button']);
+  });
+
   it('marks nothing that is not shown: a hidden menu takes no room', async () => {
     const player = await custom();
     // The quality menu hides on a native session, so it is never the one to go.
@@ -1894,6 +1905,19 @@ describe('the scan buttons', () => {
     button.click();
     expect(trick.calls).toEqual(['rate 4', 'rate 8', 'rate 16', 'rate 1']);
     expect(forward.hasAttribute('scanning')).toBe(false);
+  });
+
+  it('keep the live bar through a scan, which multiplies the buffer goal', async () => {
+    // Eight seconds of window over a 2 s goal: three goals fit, so the bar shows.
+    const parts: FakeParts = { live: liveApi(8), bufferGoal: 2, trick: trickApi() };
+    const player = await session(parts);
+    await expect.poll(() => player.hasAttribute('seekable')).toBe(true);
+    parts.trick?.setRate(8);
+    parts.bufferGoal = 16;
+    tickClock(player);
+    expect(player.hasAttribute('seekable')).toBe(true);
+    for (const button of player.querySelectorAll('mbx-scan-button'))
+      expect(button.hidden).toBe(false);
   });
 
   it('hide on a live stream too short to seek, as the seek bar does', async () => {
