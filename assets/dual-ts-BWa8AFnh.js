@@ -1,0 +1,1 @@
+import{t as e}from"./define-BTAlk51x.js";import{a as t,i as n,n as r,t as i}from"./index-C49Q7mvk.js";var a=e(`dual-ts`,()=>[...n(),...r(),...i(),...t()]);export{a as default};

@@ -18,8 +18,9 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/mattebox-player/assets/index-CKvq7CsK.js"></script>
-  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-CxFH8XMB.css">
+  <script type="module" crossorigin src="/mattebox-player/assets/index-C49Q7mvk.js"></script>
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/define-BTAlk51x.js">
+  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/index-Bi4PTj05.css">
 </head>
 <body>
   <header class="masthead">
@@ -56,7 +57,7 @@
         <input id="thumb-url" class="grow" placeholder="Thumbnail track URL (WebVTT sprite sheet, optional)" aria-label="Thumbnail track URL" />
       </div>
       <div class="row">
-        <input id="chapters-url" class="grow" placeholder="Chapters track URL (WebVTT, optional)" aria-label="Chapters track URL" />
+        <input id="chapters-url" class="grow" placeholder="Chapters file URL (WebVTT or Apple JSON, optional)" aria-label="Chapters file URL" />
       </div>
       <p id="stream-note" class="hint"></p>
     </div>
@@ -97,18 +98,18 @@
       <fieldset class="group" id="media">
         <legend>Media</legend>
         <div class="checks">
-          <label class="check"><input type="checkbox" data-flag="autoplay" /><span>Autoplay</span></label>
-          <label class="check"><input type="checkbox" data-flag="muted" checked /><span>Start muted</span></label>
-          <label class="check"><input type="checkbox" data-screen="start" checked /><span>Big play button</span></label>
-          <label class="check"><input type="checkbox" data-screen="error" checked /><span>Error screen</span></label>
-          <label class="check"><input type="checkbox" data-screen="spinner" checked /><span>Spinner</span></label>
-          <label class="check"><input type="checkbox" data-screen="title" checked /><span>Title</span></label>
+          <label class="check" title="Sets autoplay on the player. Browsers allow it only when the video starts muted."><input type="checkbox" data-flag="autoplay" /><span>Autoplay</span></label>
+          <label class="check" title="Sets muted on the player. The video starts without sound."><input type="checkbox" data-flag="muted" checked /><span>Start muted</span></label>
+          <label class="check" title="Shows mbx-start-button over the picture until the first play."><input type="checkbox" data-screen="start" checked /><span>Big play button</span></label>
+          <label class="check" title="Shows mbx-error-screen over the picture when playback fails."><input type="checkbox" data-screen="error" checked /><span>Error screen</span></label>
+          <label class="check" title="Shows mbx-spinner while the video waits for data."><input type="checkbox" data-screen="spinner" checked /><span>Spinner</span></label>
+          <label class="check" title="Shows mbx-title over the picture, with the stream&#x27;s name."><input type="checkbox" data-screen="title" checked /><span>Title</span></label>
         </div>
-        <label class="field"><span>Poster URL</span><input type="url" id="poster" placeholder="https://…/poster.jpg" /></label>
-        <label class="field"><span>Thumbnails URL</span><input type="url" id="thumbnails" placeholder="https://…/thumbnails.vtt" /></label>
-        <label class="field"><span>Chapters URL</span><input type="url" id="chapters" placeholder="https://…/chapters.vtt" /></label>
+        <label class="field" title="Sets poster: the picture shown before playback starts."><span>Poster URL</span><input type="url" id="poster" placeholder="https://…/poster.jpg" /></label>
+        <label class="field" title="Sets thumbnails: a WebVTT sprite-sheet track. The seek bar preview shows its tiles."><span>Thumbnails URL</span><input type="url" id="thumbnails" placeholder="https://…/thumbnails.vtt" /></label>
+        <label class="field" title="Sets chapters: a WebVTT or Apple JSON chapters file. The seek bar and the chapters menu show the chapters."><span>Chapters URL</span><input type="url" id="chapters" placeholder="https://…/chapters.vtt" /></label>
         <div class="pair">
-          <label class="field">
+          <label class="field" title="The engine build the player loads, which decides the protocols, containers, and DRM it plays. full has everything.">
             <span>Preset</span>
             <select id="preset">
               <option value="full">full</option>
@@ -125,7 +126,7 @@
               <option value="kernel">kernel</option>
             </select>
           </label>
-          <label class="field">
+          <label class="field" title="custom: the controls in the layout below. native: the browser&#x27;s own controls. none: no controls.">
             <span>Controls</span>
             <select id="controls">
               <option value="custom">custom</option>
@@ -134,8 +135,9 @@
             </select>
           </label>
         </div>
+        <label class="field" title="The forward buffer the engine keeps ahead of the playhead, in seconds: its bufferGoalSeconds config, 30 by default. Config is not an attribute, so the player is built from script with define() and the stream loads again."><span>Buffer goal, seconds</span><input type="number" min="1" step="1" data-knob="buffer-goal" value="30" /></label>
         <div class="pair">
-          <label class="field">
+          <label class="field" title="Sets subtitle-size: the subtitle size against the browser&#x27;s default.">
             <span>Subtitle size</span>
             <select data-look="subtitle-size">
               <option value="small">small</option>
@@ -144,7 +146,7 @@
               <option value="xlarge">xlarge</option>
             </select>
           </label>
-          <label class="field">
+          <label class="field" title="Sets subtitle-background: the box behind the subtitles.">
             <span>Subtitle background</span>
             <select data-look="subtitle-background">
               <option value="none">none</option>
@@ -176,24 +178,44 @@
         <legend>Knobs</legend>
         <p class="hint">Each one is an attribute on the control that uses it.</p>
         <div class="pair">
-          <label class="field"><span>Skip back, seconds</span><input type="number" min="1" step="1" data-knob="skip-back" value="10" /></label>
-          <label class="field"><span>Skip forward, seconds</span><input type="number" min="1" step="1" data-knob="skip-forward" value="10" /></label>
-          <label class="field"><span>Idle, ms</span><input type="number" min="0" step="100" data-knob="idle-ms" value="3000" /></label>
-          <label class="field"><span>Seek step, seconds</span><input type="number" min="0" step="1" data-knob="seek-step" value="5" /></label>
-          <label class="field"><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
-          <label class="field"><span>Live window, buffer goals</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
+          <label class="field" title="seconds on the back skip button: how far one press moves the playhead back."><span>Skip back, seconds</span><input type="number" min="1" step="1" data-knob="skip-back" value="10" /></label>
+          <label class="field" title="seconds on the forward skip button: how far one press moves the playhead forward."><span>Skip forward, seconds</span><input type="number" min="1" step="1" data-knob="skip-forward" value="10" /></label>
+          <label class="field" title="idle-ms on the control bar: the bar hides after this many milliseconds without a pointer move or a key press. 3000 is 3 seconds."><span>Idle, ms</span><input type="number" min="0" step="100" data-knob="idle-ms" value="3000" /></label>
+          <label class="field" title="step on the seek bar: how far an arrow key moves the playhead."><span>Seek step, seconds</span><input type="number" min="0" step="1" data-knob="seek-step" value="5" /></label>
+          <label class="field" title="page on the seek bar: how far Page Up and Page Down move the playhead."><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
+          <label class="field" title="live-window on the seek bar: how long a live stream&#x27;s window must be before the seek bar and the scan buttons show. The unit is the engine&#x27;s forward buffer goal, the Buffer goal field above, so 3 over 30 seconds means 90 seconds. 0 always shows them."><span>Live window, × buffer goal</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
         </div>
         <div class="pair">
-          <label class="field"><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
-          <label class="field">
+          <label class="field" title="rates on the speed menu: the playback speeds it offers, separated by spaces. 1 is normal speed."><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
+          <label class="field" title="rates on the fast forward and rewind buttons: the speeds each press steps through, separated by spaces. Each must be above 2. A press past the last returns to normal speed."><span>Scan rates</span><input type="text" data-knob="scan-rates" value="4 8 16" /></label>
+          <label class="field" title="chapters on the seek bar: divided cuts the bar at each chapter, titles names the chapter in the preview. Both by default; none does neither.">
             <span>Chapters on the seek bar</span>
             <select data-knob="chapters">
-              <option value="on">divided, named in the preview</option>
+              <option value="divided titles">divided, titles in the preview</option>
+              <option value="titles">titles in the preview only</option>
+              <option value="divided">divided only</option>
+              <option value="none">none</option>
+            </select>
+          </label>
+          <label class="field" title="scrub on the seek bar: on shows I-frames in the video while you drag, when the stream has an I-frame track. off seeks as you drag.">
+            <span>Scrub through I-frames</span>
+            <select data-knob="scrub">
+              <option value="true">on, when the stream has them</option>
+              <option value="false">off, the drag seeks</option>
+            </select>
+          </label>
+          <label class="field" title="preview on the seek bar: where the picture above the pointer comes from, in order of preference. frames are the decoded I-frames, when the stream has an I-frame track and the browser decodes it. tiles are the thumbnail track. The first one that answers wins.">
+            <span>Preview picture</span>
+            <select data-knob="preview">
+              <option value="frames tiles">I-frames, else tiles</option>
+              <option value="tiles frames">tiles, else I-frames</option>
+              <option value="tiles">tiles only</option>
+              <option value="frames">I-frames only</option>
               <option value="none">none</option>
             </select>
           </label>
         </div>
-        <label class="field"><span>Chromecast application id</span><input type="text" id="cast-receiver" value="6BCED548" placeholder="Empty for the Default Media Receiver" /></label>
+        <label class="field" title="receiver on the cast button: the Cast application the button connects to."><span>Chromecast application id</span><input type="text" id="cast-receiver" value="6BCED548" placeholder="Empty for the Default Media Receiver" /></label>
         <p class="hint">The Cast SDK keeps the first id for the page, so the page reloads when you change it with the cast button on.</p>
       </fieldset>
 
