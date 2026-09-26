@@ -731,6 +731,23 @@ describe('the shortcuts', () => {
     expect(player.video.currentTime).toBe(5);
   });
 
+  it('asks through seekkey before a seeking key moves the playhead, and a taken one does not', async () => {
+    const player = await ready(30);
+    const asked: number[] = [];
+    const take = (event: Event): void => {
+      asked.push((event as CustomEvent<{ by: number }>).detail.by);
+      event.preventDefault();
+    };
+    player.addEventListener('seekkey', take);
+    press(player, 'ArrowRight');
+    press(player, 'MediaRewind');
+    expect(asked).toEqual([5, -5]);
+    expect(player.video.currentTime).toBe(0);
+    player.removeEventListener('seekkey', take);
+    press(player, 'ArrowRight');
+    expect(player.video.currentTime).toBe(5);
+  });
+
   it('plays, pauses, stops and seeks with the media keys a remote sends', async () => {
     const player = await ready(30);
     press(player, 'MediaPlayPause');
@@ -1722,6 +1739,28 @@ describe('the seek bar under key-mode="preview"', () => {
     expect(inside(element, 'preview').hidden).toBe(false);
     press(player, 'Enter');
     expect(player.video.currentTime).toBe(10);
+  });
+
+  it("aims by the control bar's seek-step, the same step as without preview", async () => {
+    const { player, seek } = await aiming();
+    seek.blur();
+    bar(player)?.setAttribute('seek-step', '10');
+    press(player, 'ArrowRight');
+    expect(seek.getAttribute('aria-valuenow')).toBe('10');
+    expect(player.video.currentTime).toBe(0);
+  });
+
+  it('leaves the arrows to a handler that takes them first, as a spatial navigation does', async () => {
+    const { player, seek } = await aiming();
+    seek.blur();
+    const first = (event: Event): void => {
+      event.preventDefault();
+    };
+    player.addEventListener('keydown', first, { capture: true });
+    press(player, 'ArrowRight');
+    player.removeEventListener('keydown', first, { capture: true });
+    expect(seek.getAttribute('aria-valuenow')).toBe('0');
+    expect(player.video.currentTime).toBe(0);
   });
 
   it('leaves the arrows to the volume slider', async () => {

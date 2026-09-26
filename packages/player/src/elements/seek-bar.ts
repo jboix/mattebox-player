@@ -46,8 +46,10 @@
  * Up and Page Down do, in seconds. `key-mode="preview"`, for a TV, makes
  * the keys aim instead of seek: the thumb and the preview show the target,
  * a held key's step grows, and the seek comes on Enter, on leaving the bar,
- * or a second after the last key. Escape or Back drops the target. Fast
- * forward and rewind aim the same way. The default, `instant`, seeks on
+ * or a second after the last key. Escape or Back drops the target. The
+ * control bar's seeking keys, the arrows and fast forward and rewind
+ * anywhere in the player, aim the same way: the bar asks through
+ * `seekkey`, and the seek bar takes it. The default, `instant`, seeks on
  * every key. The name comes from `label`; what a
  * screen reader hears at a position from `label-of`, "{current} of
  * {duration}", and on live from `label-behind`, "{time} behind live". It
@@ -142,16 +144,6 @@ const STYLE = `${SLIDER_STYLE}
 [part~="preview-title"] { max-width: 240px; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; }
 [hidden] { display: none; }
 `;
-
-/**
- * Which way a key aims: fast forward and rewind always, the arrows unless
- * they reach the seek bar's own slider, which moves the target itself.
- */
-function direction(key: string, own: boolean): number {
-  if (key === 'MediaFastForward' || (key === 'ArrowRight' && !own)) return 1;
-  if (key === 'MediaRewind' || (key === 'ArrowLeft' && !own)) return -1;
-  return 0;
-}
 
 function percent(part: number): string {
   return `${part * 100}%`;
@@ -397,19 +389,23 @@ export class MbxSeekBar extends Component {
     return this.getAttribute('key-mode') === 'preview';
   }
 
-  /**
-   * The step for a key. Under `key-mode="preview"` it grows while the
-   * viewer holds the key, so a long film takes seconds to cross, not
-   * minutes; a pause restarts it.
-   */
+  /** The step for a key on the slider itself. */
   private keyStep(): number {
     const base = number(this, 'step', STEP);
-    if (!this.previewing()) return base;
+    return this.previewing() ? base * this.growth() : base;
+  }
+
+  /**
+   * How many steps a key moves the target under `key-mode="preview"`. It
+   * grows while the viewer holds the key, so a long film takes seconds to
+   * cross, not minutes; a pause restarts it.
+   */
+  private growth(): number {
     const now = performance.now();
     if (now - this.lastMove > REPEAT_GAP_MS) this.moves = 0;
     this.moves += 1;
     this.lastMove = now;
-    return base * Math.min(MAX_STEPS, 1 + Math.floor(this.moves / MOVES_PER_STEP));
+    return Math.min(MAX_STEPS, 1 + Math.floor(this.moves / MOVES_PER_STEP));
   }
 
   /**
@@ -645,41 +641,27 @@ export class MbxSeekBar extends Component {
       this.stopAiming();
       this.render();
     });
-    // Under `key-mode="preview"`, every key that would seek aims instead,
-    // wherever focus is in the player: the bar's arrows and fast forward
-    // and rewind included. In the capture phase, so the bar's own handling,
-    // a seek at once, finds them taken. On the seek bar itself the slider
-    // moves the target with its own keys.
-    const keys = (event: Event): void => {
+    // Under `key-mode="preview"`, the control bar's seeking keys aim: it
+    // asks through `seekkey` before it seeks, and a taken event does not.
+    this.listen(player, ['seekkey'], (event: Event) => {
+      const asked = event as CustomEvent<{ readonly by: number }>;
+      if (!this.previewing() || this.hidden || asked.defaultPrevented) return;
+      asked.preventDefault();
+      this.aim((this.target ?? player.video.currentTime) + asked.detail.by * this.growth());
+    });
+    // While a target stands, Enter seeks to it and Escape or Back drops it,
+    // wherever focus is: on the bar, or anywhere the seeking keys came from.
+    // Bubbling, so a focused control has its say first.
+    this.listen(player, ['keydown'], (event: Event) => {
       const key = event as KeyboardEvent;
-      if (!this.previewing() || this.hidden || key.defaultPrevented) return;
-      if (key.altKey || key.ctrlKey || key.metaKey) return;
-      const path = key.composedPath();
-      const own = path.includes(this.bar.root);
-      // Another slider or an open menu has arrows of its own.
-      const elsewhere = path.some(
-        (node) =>
-          node !== this.bar.root &&
-          node instanceof Element &&
-          (node.getAttribute('role') === 'slider' || node.getAttribute('role') === 'menu'),
-      );
-      if (elsewhere) return;
-      const sign = direction(key.key, own);
-      if (sign !== 0) {
-        key.preventDefault();
-        this.aim((this.target ?? player.video.currentTime) + sign * this.keyStep());
-        return;
-      }
-      if (this.target === null) return;
-      // Enter on another button is that button's.
-      if (key.key === 'Enter' && (own || !(path[0] instanceof HTMLButtonElement))) this.commit();
-      else if (CANCEL_KEYS.includes(key.key)) this.cancel();
-      else return;
+      if (this.target === null || key.defaultPrevented) return;
+      // Enter on a button is that button's.
+      if (key.key === 'Enter' && !(key.composedPath()[0] instanceof HTMLButtonElement)) {
+        this.commit();
+      } else if (CANCEL_KEYS.includes(key.key)) {
+        this.cancel();
+      } else return;
       key.preventDefault();
-    };
-    player.addEventListener('keydown', keys, { capture: true });
-    this.keep(() => {
-      player.removeEventListener('keydown', keys, { capture: true });
     });
     this.render();
   }

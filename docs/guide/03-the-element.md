@@ -80,6 +80,12 @@ is cancelable. Its `detail` is the load request of the sender SDK. The page
 sets `customData` on it for its receiver, or cancels the load. See
 [Casting](#casting).
 
+`seekkey` comes from `<mbx-control-bar>` when a key would seek: the arrows,
+or fast forward and rewind. It fires on the player before the seek, and it
+is cancelable. `detail.by` is the seconds to move, `seek-step` or its
+negative. A cancelled `seekkey` does not seek. The seek bar cancels it under
+`key-mode="preview"` to aim instead. A page cancels it to seek its own way.
+
 ## Stages
 
 With attributes only, the player uses the preset the `preset` attribute

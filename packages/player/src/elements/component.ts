@@ -62,7 +62,11 @@ export abstract class Component extends HTMLElement {
   }
 
   /** Adds `fn` for every name on `target`, to be removed on detach. */
-  protected listen(target: EventTarget, names: readonly string[], fn: () => void): void {
+  protected listen(
+    target: EventTarget,
+    names: readonly string[],
+    fn: (event: Event) => void,
+  ): void {
     for (const name of names) target.addEventListener(name, fn);
     this.offs.push(() => {
       for (const name of names) target.removeEventListener(name, fn);

@@ -20,7 +20,11 @@
  * inside it, and only there: Space and `k` toggle play, `m` mutes, `f`
  * toggles fullscreen, the arrows seek by `seek-step`. The media keys a
  * remote or a keyboard sends do the same: play and pause, Stop pauses,
- * fast forward and rewind seek by `seek-step`. Space is left to a
+ * fast forward and rewind seek by `seek-step`. A seeking key fires
+ * `seekkey` on the player first, which a seek bar may take to aim instead.
+ * The bar is the one owner of the keys that work anywhere in the player:
+ * it listens last, so the focused control, and a spatial navigation in
+ * the capture phase, decide before it. Space is left to a
  * focused button, which is its own. A key another handler prevented is
  * left alone. A click on the video toggles play.
  * Fullscreen goes on the player itself, so the bar comes along.
@@ -286,6 +290,18 @@ export class MbxControlBar extends Component {
     this.timer = setTimeout(() => this.sleep(player), number(this, 'idle-ms', IDLE_MS));
   }
 
+  /**
+   * A seeking key: `seekkey` on the player first, cancellable, with the
+   * seconds in `detail.by`. A seek bar under `key-mode="preview"` takes it
+   * to aim instead. Nobody took it: the playhead moves now.
+   */
+  private seekBy(player: PlayerHost, by: number): void {
+    const asked = new CustomEvent('seekkey', { detail: { by }, cancelable: true });
+    if (!player.dispatchEvent(asked)) return;
+    const video = player.video;
+    video.currentTime = Math.min(end(video), Math.max(0, video.currentTime + by));
+  }
+
   private key(player: PlayerHost, event: KeyboardEvent): void {
     this.keyboard = true;
     this.wake(player);
@@ -324,14 +340,11 @@ export class MbxControlBar extends Component {
         break;
       case 'ArrowLeft':
       case 'MediaRewind':
-        video.currentTime = Math.max(0, video.currentTime - number(this, 'seek-step', SEEK_STEP));
+        this.seekBy(player, -number(this, 'seek-step', SEEK_STEP));
         break;
       case 'ArrowRight':
       case 'MediaFastForward':
-        video.currentTime = Math.min(
-          end(video),
-          video.currentTime + number(this, 'seek-step', SEEK_STEP),
-        );
+        this.seekBy(player, number(this, 'seek-step', SEEK_STEP));
         break;
       default:
         return;
