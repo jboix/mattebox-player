@@ -264,3 +264,27 @@ it('the SRG SSR route is there, and idle until asked', async () => {
   expect($$('#search-bu option')).toHaveLength(5);
   expect(visible($('#search-results'))).toBe(false);
 });
+
+it('the TV setup composes the player for a remote, and an edit by hand makes it Custom', async () => {
+  const { $, $$, bar, player } = await mount({ row: 'none' });
+  expect($<HTMLSelectElement>('#setup').value).toBe('default');
+  expect($$('mbx-spatial-nav', player())).toHaveLength(0);
+  await userEvent.selectOptions($<HTMLSelectElement>('#setup'), 'tv');
+  const text = $('#markup').textContent ?? '';
+  expect(text).toContain('<mbx-spatial-nav>');
+  expect(text).toContain('key-mode="preview"');
+  expect(text).toContain("import '@mattebox/player-tv'");
+  expect(text).toContain("addEventListener('navigateout'");
+  expect(text).not.toContain('mbx-fullscreen-button');
+  expect($$('mbx-spatial-nav', player())).toHaveLength(1);
+  expect($$('mbx-scan-button', bar())).toHaveLength(2);
+  // A knob changed by hand: the composition is no longer the TV setup.
+  const step = $<HTMLInputElement>('[data-knob="seek-step"]');
+  await userEvent.clear(step);
+  await userEvent.type(step, '20');
+  expect($<HTMLSelectElement>('#setup').value).toBe('custom');
+  // Default puts the demo's own composition back.
+  await userEvent.selectOptions($<HTMLSelectElement>('#setup'), 'default');
+  expect($('#markup').textContent).not.toContain('mbx-spatial-nav');
+  expect($$('mbx-scan-button', bar())).toHaveLength(0);
+});

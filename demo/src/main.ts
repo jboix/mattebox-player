@@ -14,6 +14,7 @@ import '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
+import '@mattebox/player-tv';
 import full from 'mattebox/presets/full';
 import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
 import emeCore from 'mattebox/stages/eme-core';
@@ -80,6 +81,11 @@ function wire(element: MatteboxPlayerElement): void {
   });
   element.addEventListener('error', (event) => {
     if (event.detail.fatal) say(`${event.detail.category}: ${event.detail.code}`, 'bad');
+  });
+  // A TV application moves focus out of the player here; the demo says so.
+  element.addEventListener('navigateout', (event) => {
+    const direction = (event as CustomEvent<string>).detail;
+    say(`navigateout: ${direction}. An application moves focus out of the player here.`);
   });
   // A fatal error the engine reports and then plays through is the engine's
   // to explain; the status follows what the picture does.
@@ -517,6 +523,7 @@ const markup = byId<HTMLPreElement>('markup');
 const screens = [...document.querySelectorAll<HTMLInputElement>('[data-screen]')];
 const knobInputs = [...document.querySelectorAll<HTMLInputElement>('[data-knob]')];
 const language = byId<HTMLSelectElement>('language');
+const setupSelect = byId<HTMLSelectElement>('setup');
 const lists = {
   seek: byId<HTMLUListElement>('layout-seek'),
   left: byId<HTMLUListElement>('layout-left'),
@@ -620,8 +627,69 @@ function defaults(): void {
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
   language.value = 'en';
   castReceiver.value = CAST_RECEIVER;
+  setupSelect.value = 'default';
+}
+
+/**
+ * The setups: starting points for the composition, the screens and the knobs
+ * alone. The source, the media flags, the engine preset, the looks and the
+ * words stay as they are.
+ */
+const SETUPS: Readonly<Record<string, () => void>> = {
+  default: () => undefined,
+  // What a remote needs: focus moved by the arrows, scanning, and a seek bar
+  // that aims before it seeks. A TV has no volume, picture in picture or
+  // fullscreen of its own to offer.
+  tv: () => {
+    enabled.clear();
+    for (const name of [
+      'current-time',
+      'seek-bar',
+      'duration',
+      'live',
+      'scan-back',
+      'play',
+      'scan-forward',
+      'chapters',
+      'subtitles',
+      'audio',
+      'quality',
+    ]) {
+      enabled.add(name);
+    }
+    for (const screen of screens) {
+      if (screen.dataset.screen === 'spatial-nav') screen.checked = true;
+    }
+    setKnob('key-mode', 'preview');
+    setKnob('seek-step', '10');
+    setKnob('idle-ms', '5000');
+  },
+};
+
+/** Puts the composition back to the demo's own, then applies the setup `name` over it. */
+function applySetup(name: string): void {
+  for (const row of ROWS) rows[row] = [...DEFAULT_ROWS[row]];
+  enabled.clear();
+  for (const [control] of CONTROLS) if (!DEFAULT_OFF.has(control)) enabled.add(control);
+  for (const screen of screens) screen.checked = screen.defaultChecked;
+  controlsSelect.value = 'custom';
+  for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
+  SETUPS[name]?.();
+  setupSelect.value = name;
+}
+
+/** An edit to the composition by hand: it no longer matches a setup. */
+function edited(): void {
+  setupSelect.value = 'custom';
+  render();
 }
 defaults();
+
+/** Sets a knob's field. */
+function setKnob(name: string, value: string): void {
+  const input = knobInputs.find((k) => k.dataset.knob === name);
+  if (input !== undefined) input.value = value;
+}
 
 /** A knob's value, or null where it is empty or the default and needs no attribute. */
 function knob(name: string): string | null {
@@ -701,6 +769,7 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   error: 'mbx-error-screen',
   spinner: 'mbx-spinner',
   title: 'mbx-title',
+  'spatial-nav': 'mbx-spatial-nav',
 };
 
 /** The whole composition: the screens, and the bar with its rows. */
@@ -829,7 +898,14 @@ function markupFor(element: MatteboxPlayerElement): string {
     ...(composed.includes('<mbx-diagnostics')
       ? ["\n  import '@mattebox/player-diagnostics';"]
       : []),
+    ...(composed.includes('<mbx-spatial-nav') ? ["\n  import '@mattebox/player-tv';"] : []),
   ].join('');
+  // At an edge the spatial navigation hands focus to the application.
+  const edges = composed.includes('<mbx-spatial-nav')
+    ? `\n\n  document.querySelector('mattebox-player').addEventListener('navigateout', (event) => {
+    // event.detail is 'up', 'down', 'left' or 'right': move focus to your own UI.
+  });`
+    : '';
   // A stage list and kernel config are not attributes: they go to define().
   const options = [
     ...(built.keys
@@ -849,10 +925,10 @@ function markupFor(element: MatteboxPlayerElement): string {
   import { MatteboxPlayerElement } from '@mattebox/player';${extra}${imports}
   MatteboxPlayerElement.define({
 ${options.join('\n')}
-  });
+  });${edges}
 </script>`
       : `<script type="module">
-  import '@mattebox/player';${extra}
+  import '@mattebox/player';${extra}${edges}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
 }
@@ -879,6 +955,7 @@ interface Preferences {
   readonly knobs: Record<string, string>;
   readonly language: string;
   readonly castReceiver: string;
+  readonly setup: string;
 }
 
 function savePreferences(): void {
@@ -894,6 +971,7 @@ function savePreferences(): void {
     knobs: Object.fromEntries(knobInputs.map((k) => [k.dataset.knob as string, k.value])),
     language: language.value,
     castReceiver: castReceiver.value,
+    setup: setupSelect.value,
   };
   try {
     localStorage.setItem(PREFERENCES, JSON.stringify(prefs));
@@ -958,6 +1036,12 @@ function loadPreferences(): void {
     language.value = prefs.language;
   }
   if (typeof prefs.castReceiver === 'string') castReceiver.value = prefs.castReceiver;
+  if (
+    typeof prefs.setup === 'string' &&
+    [...setupSelect.options].some((o) => o.value === prefs.setup)
+  ) {
+    setupSelect.value = prefs.setup;
+  }
 }
 
 /** One row of the layout lists: a tick, a name, and a handle to drag it by. */
@@ -972,7 +1056,7 @@ function layoutItem(name: string): HTMLLIElement {
   tick.addEventListener('change', () => {
     if (tick.checked) enabled.add(name);
     else enabled.delete(name);
-    render();
+    edited();
   });
   const text = document.createElement('span');
   text.textContent = LABELS.get(name) ?? name;
@@ -1028,7 +1112,7 @@ function move(name: string, row: Row, index: number): void {
   }
   rows[row].splice(index, 0, name);
   renderLists();
-  render();
+  edited();
 }
 
 for (const row of ROWS) {
@@ -1061,9 +1145,14 @@ for (const [code, { name }] of Object.entries(LANGUAGES)) {
   option.textContent = name;
   language.append(option);
 }
-controlsSelect.addEventListener('change', render);
-for (const screen of screens) screen.addEventListener('change', render);
-for (const input of knobInputs) input.addEventListener('input', render);
+controlsSelect.addEventListener('change', edited);
+for (const screen of screens) screen.addEventListener('change', edited);
+for (const input of knobInputs) input.addEventListener('input', edited);
+setupSelect.addEventListener('change', () => {
+  applySetup(setupSelect.value);
+  renderLists();
+  render();
+});
 // The buffer goal is kernel config, fixed when the engine is built: a new
 // value takes a new element, so the source loads again on one.
 knobInputs
