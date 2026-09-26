@@ -59,19 +59,26 @@ const SLACK = 1;
  * The candidate nearest `from` on the side of `direction`, or null. A
  * candidate is on that side when it lies wholly beyond `from`'s edge, as in
  * the W3C CSS Spatial Navigation draft: the seek bar above a row of buttons
- * spans the row, and is up from each button, never right of one. Each one
- * scores its distance along the arrow plus twice its distance across it,
- * so a control in line wins over a closer one off to the side. The lowest
- * score wins; the earlier in the tree breaks a tie.
+ * spans the row, and is up from each button, never right of one.
+ *
+ * Left and right stay in the row: only a candidate that overlaps `from`
+ * vertically counts, so the arrows never jump to the row above because a
+ * control there happens to start past this one's edge. Up and down prefer a
+ * candidate in line, overlapping `from` horizontally, and take the nearest
+ * other one when there is none, so a button at the end of a row still
+ * reaches the bar above it.
+ *
+ * Among the candidates, the nearest along the arrow wins, then the nearest
+ * across it; the earlier in the tree breaks a tie.
  */
 export function nearest(
   from: DOMRect,
   list: readonly HTMLElement[],
   direction: Direction,
 ): HTMLElement | null {
+  const row = direction === 'left' || direction === 'right';
   let best: HTMLElement | null = null;
-  let bestScore = Number.POSITIVE_INFINITY;
-  const across = direction === 'left' || direction === 'right';
+  let bestKey: readonly [number, number, number] = [2, 0, 0];
   for (const element of list) {
     const to = element.getBoundingClientRect();
     let along: number;
@@ -80,14 +87,26 @@ export function nearest(
     else if (direction === 'down') along = to.top - from.bottom;
     else along = from.top - to.bottom;
     if (along < -SLACK) continue;
-    const side = across
+    const side = row
       ? gap(from.top, from.bottom, to.top, to.bottom)
       : gap(from.left, from.right, to.left, to.right);
-    const score = Math.max(0, along) + 2 * side;
-    if (score < bestScore) {
+    const inLine = side === 0 ? 0 : 1;
+    if (row && inLine === 1) continue;
+    const key = [inLine, Math.max(0, along), side] as const;
+    if (before(key, bestKey)) {
       best = element;
-      bestScore = score;
+      bestKey = key;
     }
   }
   return best;
+}
+
+/** Whether `a` ranks before `b`: compared item by item. */
+function before(a: readonly number[], b: readonly number[]): boolean {
+  for (let i = 0; i < a.length; i += 1) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x !== y) return x < y;
+  }
+  return false;
 }

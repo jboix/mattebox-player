@@ -14,15 +14,8 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
-/** A player under custom controls with a two-row bar, the spatial navigation inside. */
-async function tv(): Promise<MatteboxPlayerElement> {
-  const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  player.setAttribute('controls', 'custom');
-  player.setAttribute('muted', '');
-  player.style.width = '800px';
-  player.innerHTML = `
-    <mbx-spatial-nav></mbx-spatial-nav>
-    <mbx-control-bar idle-ms="600000">
+/** The bar's children: a seek row over a row of buttons. */
+const BAR = `
       <mbx-seek-bar></mbx-seek-bar>
       <mbx-skip-button seconds="-10"></mbx-skip-button>
       <mbx-play-button></mbx-play-button>
@@ -30,7 +23,17 @@ async function tv(): Promise<MatteboxPlayerElement> {
       <mbx-spacer></mbx-spacer>
       <mbx-speed-menu></mbx-speed-menu>
       <mbx-fullscreen-button></mbx-fullscreen-button>
-    </mbx-control-bar>`;
+    `;
+
+/** A player under custom controls with a two-row bar, the spatial navigation inside. */
+async function tv(bar = BAR): Promise<MatteboxPlayerElement> {
+  const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+  player.setAttribute('controls', 'custom');
+  player.setAttribute('muted', '');
+  player.style.width = '800px';
+  player.innerHTML = `
+    <mbx-spatial-nav></mbx-spatial-nav>
+    <mbx-control-bar idle-ms="600000">${bar}</mbx-control-bar>`;
   document.body.append(player);
   player.setAttribute('src', silence(30));
   await once(player.video, 'loadedmetadata');
@@ -102,6 +105,29 @@ describe('the arrows', () => {
     expect(focused()?.getAttribute('role')).toBe('slider');
     key(focused() as Element, 'ArrowDown');
     expect(host(focused())).toBe('mbx-play-button');
+  });
+
+  it('keep left and right in the row, even where the seek bar starts past the button', async () => {
+    // The TV setup on a stream without I-frames: play alone at the left, the
+    // seek bar starting after the time, one menu at the far right.
+    const player = await tv(`
+      <mbx-current-time></mbx-current-time>
+      <mbx-seek-bar></mbx-seek-bar>
+      <mbx-play-button></mbx-play-button>
+      <mbx-spacer></mbx-spacer>
+      <mbx-speed-menu></mbx-speed-menu>`);
+    const play = inner(player, 'mbx-play-button');
+    const seek = inner(player, 'mbx-seek-bar');
+    expect(seek.getBoundingClientRect().left).toBeGreaterThan(play.getBoundingClientRect().right);
+    play.focus();
+    key(play, 'ArrowRight');
+    expect(host(focused())).toBe('mbx-speed-menu');
+    key(focused() as Element, 'ArrowLeft');
+    expect(host(focused())).toBe('mbx-play-button');
+    // Up from the far right still reaches the bar above.
+    inner(player, 'mbx-speed-menu').focus();
+    key(focused() as Element, 'ArrowUp');
+    expect(host(focused())).toBe('mbx-seek-bar');
   });
 
   it('leave left and right to a slider, which seeks', async () => {
