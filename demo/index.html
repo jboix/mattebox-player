@@ -186,10 +186,12 @@
         <div class="pair">
           <label class="field" title="rates on the speed menu: the playback speeds it offers, separated by spaces. 1 is normal speed."><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>
           <label class="field" title="rates on the fast forward and rewind buttons: the speeds each press steps through, separated by spaces. Each must be above 2. A press past the last returns to normal speed."><span>Scan rates</span><input type="text" data-knob="scan-rates" value="4 8 16" /></label>
-          <label class="field" title="chapters on the seek bar: divided cuts the bar at each chapter and names the chapter in the preview. none leaves the bar whole.">
+          <label class="field" title="chapters on the seek bar: divided cuts the bar at each chapter, titles names the chapter in the preview. Both by default; none does neither.">
             <span>Chapters on the seek bar</span>
             <select data-knob="chapters">
-              <option value="on">divided, named in the preview</option>
+              <option value="divided titles">divided, titles in the preview</option>
+              <option value="titles">titles in the preview only</option>
+              <option value="divided">divided only</option>
               <option value="none">none</option>
             </select>
           </label>
@@ -198,6 +200,16 @@
             <select data-knob="scrub">
               <option value="true">on, when the stream has them</option>
               <option value="false">off, the drag seeks</option>
+            </select>
+          </label>
+          <label class="field" title="preview on the seek bar: where the picture above the pointer comes from, in order of preference. frames are the decoded I-frames, when the stream has an I-frame track and the browser decodes it. tiles are the thumbnail track. The first one that answers wins.">
+            <span>Preview picture</span>
+            <select data-knob="preview">
+              <option value="frames tiles">I-frames, else tiles</option>
+              <option value="tiles frames">tiles, else I-frames</option>
+              <option value="tiles">tiles only</option>
+              <option value="frames">I-frames only</option>
+              <option value="none">none</option>
             </select>
           </label>
         </div>

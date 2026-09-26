@@ -594,8 +594,9 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   rates: '0.5 0.75 1 1.25 1.5 2',
   'scan-rates': '4 8 16',
   'buffer-goal': '30',
-  chapters: 'on',
+  chapters: 'divided titles',
   scrub: 'true',
+  preview: 'frames tiles',
 };
 /** The demo's own receiver, from the mattebox-receiver repository. Empty means the Default Media Receiver. */
 const CAST_RECEIVER = '6BCED548';
@@ -676,6 +677,7 @@ function controlMarkup(name: string, row: Row): string {
     own['live-window'] = knob('live-window');
     own.chapters = knob('chapters');
     own.scrub = knob('scrub');
+    own.preview = knob('preview');
   }
   if (name === 'speed') own.rates = knob('rates');
   if (name === 'cast')
