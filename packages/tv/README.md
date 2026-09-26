@@ -47,6 +47,9 @@ npm install @mattebox/player-tv @mattebox/player mattebox
 Your application registers the remote's media keys with the platform, for
 example `tizen.tvinputdevice.registerKey` on Tizen. The player never does.
 
+The [player guide](https://github.com/jboix/mattebox-player/blob/main/docs/guide/06-tv.md)
+covers the element in chapter 06.
+
 ## License
 
 MIT
