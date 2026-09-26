@@ -27,6 +27,8 @@ it('the demo page upgrades <mattebox-player> with its own bar', async () => {
   // The default composition, appended to the element's own light DOM.
   expect($$('mattebox-player > mbx-control-bar')).toHaveLength(1);
   expect($$('mattebox-player > mbx-control-bar > mbx-play-button')).toHaveLength(1);
+  // The scan buttons suit a TV remote; the page ticks them in.
+  expect($$('mattebox-player mbx-scan-button')).toHaveLength(0);
 });
 
 it('the logo loads', async () => {

@@ -133,6 +133,7 @@
             </select>
           </label>
         </div>
+        <label class="field" title="The forward buffer the engine keeps ahead of the playhead, in seconds: its bufferGoalSeconds config, 30 by default. Config is not an attribute, so the player is built from script with define() and the stream loads again."><span>Buffer goal, seconds</span><input type="number" min="1" step="1" data-knob="buffer-goal" value="30" /></label>
         <div class="pair">
           <label class="field" title="Sets subtitle-size: the subtitle size against the browser&#x27;s default.">
             <span>Subtitle size</span>
@@ -180,7 +181,7 @@
           <label class="field" title="idle-ms on the control bar: the bar hides after this many milliseconds without a pointer move or a key press. 3000 is 3 seconds."><span>Idle, ms</span><input type="number" min="0" step="100" data-knob="idle-ms" value="3000" /></label>
           <label class="field" title="step on the seek bar: how far an arrow key moves the playhead."><span>Seek step, seconds</span><input type="number" min="0" step="1" data-knob="seek-step" value="5" /></label>
           <label class="field" title="page on the seek bar: how far Page Up and Page Down move the playhead."><span>Seek page, seconds</span><input type="number" min="0" step="1" data-knob="seek-page" value="30" /></label>
-          <label class="field" title="live-window on the seek bar: how long a live stream&#x27;s window must be before the seek bar and the scan buttons show. The unit is the engine&#x27;s forward buffer goal, 30 seconds by default, so 3 means 90 seconds. 0 always shows them."><span>Live window, × buffer goal</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
+          <label class="field" title="live-window on the seek bar: how long a live stream&#x27;s window must be before the seek bar and the scan buttons show. The unit is the engine&#x27;s forward buffer goal, the Buffer goal field above, so 3 over 30 seconds means 90 seconds. 0 always shows them."><span>Live window, × buffer goal</span><input type="number" min="0" step="0.5" data-knob="live-window" value="3" /></label>
         </div>
         <div class="pair">
           <label class="field" title="rates on the speed menu: the playback speeds it offers, separated by spaces. 1 is normal speed."><span>Speed rates</span><input type="text" data-knob="rates" value="0.5 0.75 1 1.25 1.5 2" /></label>

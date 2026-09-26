@@ -47,8 +47,12 @@ for (const icon of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]'
 // ---- the element, and the one route that swaps it -------------------------
 
 let player = byId<MatteboxPlayerElement>('player');
-/** Whether the element on the page was built with a stage list. */
-let scripted = false;
+/**
+ * What the element on the page was built with: a stage list for ClearKey
+ * keys, and a buffer goal. Neither is an attribute, so either one needs an
+ * element built from script.
+ */
+let built: { readonly keys: boolean; readonly goal: number | null } = { keys: false, goal: null };
 const status = byId<HTMLElement>('status');
 
 function say(text: string, level: '' | 'ok' | 'bad' = ''): void {
@@ -85,23 +89,34 @@ function wire(element: MatteboxPlayerElement): void {
   });
 }
 
+/** The buffer goal the knob asks for, in seconds, or null for the engine's default. */
+function bufferGoal(): number | null {
+  const value = Number(knob('buffer-goal') ?? Number.NaN);
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
+
 /** The element a source needs, swapping the one on the page when the route changes. */
 function elementFor(
   clearKeys: Readonly<Record<string, string>> | undefined,
 ): MatteboxPlayerElement {
-  if ((clearKeys !== undefined) === scripted) return player;
+  const keys = clearKeys !== undefined;
+  const goal = bufferGoal();
+  if (keys === built.keys && goal === built.goal) return player;
   const next =
-    clearKeys === undefined
+    !keys && goal === null
       ? (document.createElement('mattebox-player') as MatteboxPlayerElement)
-      : // Merged by name: `full` already composes eme-core, so this replaces
-        // that instance rather than appending a second one.
-        new MatteboxPlayerElement({
-          stages: full.stages({ stages: [emeCore({ clearKeys })] }),
+      : new MatteboxPlayerElement({
+          // Merged by name: `full` already composes eme-core, so this
+          // replaces that instance rather than appending a second one.
+          ...(clearKeys === undefined
+            ? {}
+            : { stages: full.stages({ stages: [emeCore({ clearKeys })] }) }),
+          ...(goal === null ? {} : { config: { bufferGoalSeconds: goal } }),
         });
   next.id = 'player';
   player.replaceWith(next);
   player = next;
-  scripted = clearKeys !== undefined;
+  built = { keys, goal };
   wire(next);
   applyElement(next);
   return next;
@@ -124,8 +139,12 @@ interface Choice {
 /** The chapters the next session gets through `engine.chapters.set`, once its manifest is in. */
 let appChapters: readonly ChapterInput[] = [];
 
+/** The source on screen, loaded again when the buffer goal changes. */
+let current: Choice | null = null;
+
 /** One door for every way of choosing a source. Whatever is not given is cleared, and the chooser closes. */
 function load(choice: Choice): void {
+  current = choice;
   playing = choice.label ?? choice.url;
   say(`loading ${playing}…`);
   contentDialog.close();
@@ -552,8 +571,19 @@ const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
     'diagnostics',
   ],
 };
-/** What the element composes on its own: everything but the time left, the lock, and the cast and the diagnostics, packages of their own. */
-const DEFAULT_OFF = new Set(['remaining-time', 'drm', 'cast', 'diagnostics']);
+/**
+ * What the element composes on its own: everything but the time left, the
+ * lock, the cast and the diagnostics, packages of their own, and the scan
+ * buttons, which suit a TV remote more than a pointer or a finger.
+ */
+const DEFAULT_OFF = new Set([
+  'remaining-time',
+  'drm',
+  'cast',
+  'diagnostics',
+  'scan-back',
+  'scan-forward',
+]);
 const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'skip-back': '10',
   'skip-forward': '10',
@@ -563,6 +593,7 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   'live-window': '3',
   rates: '0.5 0.75 1 1.25 1.5 2',
   'scan-rates': '4 8 16',
+  'buffer-goal': '30',
   chapters: 'on',
   scrub: 'true',
 };
@@ -795,17 +826,28 @@ function markupFor(element: MatteboxPlayerElement): string {
       ? ["\n  import '@mattebox/player-diagnostics';"]
       : []),
   ].join('');
-  const script = scripted
-    ? `<script type="module">
-  import { MatteboxPlayerElement } from '@mattebox/player';${extra}
-  import full from 'mattebox/presets/full';
-  import emeCore from 'mattebox/stages/eme-core';
-  // ClearKey keys are not an attribute: this entry needs a stage list.
+  // A stage list and kernel config are not attributes: they go to define().
+  const options = [
+    ...(built.keys
+      ? [
+          '    // ClearKey keys are not an attribute: this entry needs a stage list.',
+          '    stages: full.stages({ stages: [emeCore({ clearKeys: { /* key id: key */ } })] }),',
+        ]
+      : []),
+    ...(built.goal === null ? [] : [`    config: { bufferGoalSeconds: ${built.goal} },`]),
+  ];
+  const imports = built.keys
+    ? "\n  import full from 'mattebox/presets/full';\n  import emeCore from 'mattebox/stages/eme-core';"
+    : '';
+  const script =
+    options.length > 0
+      ? `<script type="module">
+  import { MatteboxPlayerElement } from '@mattebox/player';${extra}${imports}
   MatteboxPlayerElement.define({
-    stages: full.stages({ stages: [emeCore({ clearKeys: { /* key id: key */ } })] }),
+${options.join('\n')}
   });
 </script>`
-    : `<script type="module">
+      : `<script type="module">
   import '@mattebox/player';${extra}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
@@ -1018,6 +1060,13 @@ for (const [code, { name }] of Object.entries(LANGUAGES)) {
 controlsSelect.addEventListener('change', render);
 for (const screen of screens) screen.addEventListener('change', render);
 for (const input of knobInputs) input.addEventListener('input', render);
+// The buffer goal is kernel config, fixed when the engine is built: a new
+// value takes a new element, so the source loads again on one.
+knobInputs
+  .find((input) => input.dataset.knob === 'buffer-goal')
+  ?.addEventListener('change', () => {
+    if (current !== null) load(current);
+  });
 language.addEventListener('change', render);
 for (const flag of flags) flag.addEventListener('change', render);
 for (const look of looks) look.addEventListener('change', render);
