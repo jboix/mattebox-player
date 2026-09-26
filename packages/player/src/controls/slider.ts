@@ -28,8 +28,8 @@ export interface SliderOptions {
   readonly step: () => number;
   /** What Page Up and Page Down move it by. */
   readonly page: () => number;
-  /** The value the pointer or a key asked for, clamped to the range. */
-  readonly onInput: (value: number) => void;
+  /** The value the pointer or a key asked for, clamped to the range, and whether a key asked. */
+  readonly onInput: (value: number, key: boolean) => void;
   /** A pointer took the thumb, or let it go. The element carries it as `dragging`. */
   readonly onDrag: (on: boolean) => void;
 }
@@ -102,7 +102,7 @@ export function slider(options: SliderOptions): Slider {
     } catch {
       // Nothing to capture; the drag still follows moves over the root.
     }
-    onInput(at(event.clientX));
+    onInput(at(event.clientX), false);
   }
 
   function move(event: PointerEvent): void {
@@ -113,13 +113,13 @@ export function slider(options: SliderOptions): Slider {
       up(event);
       return;
     }
-    onInput(at(event.clientX));
+    onInput(at(event.clientX), false);
   }
 
   function up(event: PointerEvent): void {
     if (!held) return;
     hold(false);
-    onInput(at(event.clientX));
+    onInput(at(event.clientX), false);
   }
 
   function cancel(): void {
@@ -156,7 +156,7 @@ export function slider(options: SliderOptions): Slider {
         return;
     }
     event.preventDefault();
-    onInput(clamp(next, min, max));
+    onInput(clamp(next, min, max), true);
   }
 
   root.addEventListener('pointerdown', down);

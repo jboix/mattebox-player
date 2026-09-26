@@ -43,7 +43,12 @@
  * them alone, or `none`.
  *
  * `step` is what an arrow key moves the playhead by and `page` what Page
- * Up and Page Down do, in seconds. The name comes from `label`; what a
+ * Up and Page Down do, in seconds. `key-mode="preview"`, for a TV, makes
+ * the keys aim instead of seek: the thumb and the preview show the target,
+ * a held key's step grows, and the seek comes on Enter, on leaving the bar,
+ * or a second after the last key. Escape or Back drops the target. Fast
+ * forward and rewind aim the same way. The default, `instant`, seeks on
+ * every key. The name comes from `label`; what a
  * screen reader hears at a position from `label-of`, "{current} of
  * {duration}", and on live from `label-behind`, "{time} behind live". It
  * sits in the bar's seek row unless the page says otherwise.
@@ -71,6 +76,18 @@ type Drag = 'none' | 'seek' | 'scrub';
 type Preview = 'frames' | 'tiles';
 
 const STEP = 5;
+
+/** Under `key-mode="preview"`, a target seeks this long after the last key. */
+const KEY_COMMIT_MS = 1000;
+/** Key moves closer together than this are one hold, whose step grows. */
+const REPEAT_GAP_MS = 400;
+/** A held key's step grows by one step every this many moves... */
+const MOVES_PER_STEP = 8;
+/** ...up to this many steps a move. */
+const MAX_STEPS = 12;
+
+/** The keys that cancel a target: Escape, and Back as a remote sends it. */
+const CANCEL_KEYS = ['Escape', 'GoBack', 'BrowserBack'];
 const PAGE = 30;
 const LIVE_WINDOW = 3;
 
@@ -126,6 +143,16 @@ const STYLE = `${SLIDER_STYLE}
 [hidden] { display: none; }
 `;
 
+/**
+ * Which way a key aims: fast forward and rewind always, the arrows unless
+ * they reach the seek bar's own slider, which moves the target itself.
+ */
+function direction(key: string, own: boolean): number {
+  if (key === 'MediaFastForward' || (key === 'ArrowRight' && !own)) return 1;
+  if (key === 'MediaRewind' || (key === 'ArrowLeft' && !own)) return -1;
+  return 0;
+}
+
 function percent(part: number): string {
   return `${part * 100}%`;
 }
@@ -148,7 +175,16 @@ function gaps(list: readonly Chapter[], span: Span): string {
 
 export class MbxSeekBar extends Component {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-of', 'label-behind', 'live-window', 'chapters', 'scrub', 'preview'];
+    return [
+      'label',
+      'label-of',
+      'label-behind',
+      'live-window',
+      'chapters',
+      'scrub',
+      'preview',
+      'key-mode',
+    ];
   }
 
   declare private readonly bar: Slider;
@@ -168,6 +204,12 @@ export class MbxSeekBar extends Component {
   declare private resume: boolean;
   /** Frames asked for, and the newest one on screen, so a late frame never replaces a newer one. */
   declare private asked: number;
+  /** Under `key-mode="preview"`: where the keys aim, not yet sought to, or null. */
+  declare private target: number | null;
+  declare private commitTimer: number;
+  /** The moves of the current hold, and when the last one came. */
+  declare private moves: number;
+  declare private lastMove: number;
   declare private shown: number;
   declare private range: Span;
   /** The chapters as last drawn, so the mask is written only when they change. */
@@ -188,12 +230,17 @@ export class MbxSeekBar extends Component {
     this.resume = false;
     this.asked = 0;
     this.shown = 0;
+    this.target = null;
+    this.commitTimer = 0;
+    this.moves = 0;
+    this.lastMove = 0;
     const root = this.attachShadow({ mode: 'open' });
     this.bar = slider({
-      step: () => number(this, 'step', STEP),
+      step: () => this.keyStep(),
       page: () => number(this, 'page', PAGE),
-      onInput: (value) => {
-        this.input(value);
+      onInput: (value, key) => {
+        if (key && this.previewing()) this.aim(value);
+        else this.input(value);
       },
       onDrag: (on) => {
         this.toggleAttribute('dragging', on);
@@ -226,7 +273,11 @@ export class MbxSeekBar extends Component {
       this.point(event);
     });
     this.bar.root.addEventListener('pointerleave', () => {
-      this.leave();
+      if (this.target === null) this.leave();
+    });
+    // Focus moving on: the target stands, as if the pause ran out.
+    this.bar.root.addEventListener('blur', () => {
+      if (this.target !== null) this.commit();
     });
     root.append(style(STYLE), this.bar.root);
   }
@@ -339,6 +390,65 @@ export class MbxSeekBar extends Component {
     // After the play, which clears `paused` at once, so the start button
     // never shows between the release and the resume.
     player.removeAttribute('scrubbing');
+  }
+
+  /** Whether keys aim a target with the preview instead of seeking at once. */
+  private previewing(): boolean {
+    return this.getAttribute('key-mode') === 'preview';
+  }
+
+  /**
+   * The step for a key. Under `key-mode="preview"` it grows while the
+   * viewer holds the key, so a long film takes seconds to cross, not
+   * minutes; a pause restarts it.
+   */
+  private keyStep(): number {
+    const base = number(this, 'step', STEP);
+    if (!this.previewing()) return base;
+    const now = performance.now();
+    if (now - this.lastMove > REPEAT_GAP_MS) this.moves = 0;
+    this.moves += 1;
+    this.lastMove = now;
+    return base * Math.min(MAX_STEPS, 1 + Math.floor(this.moves / MOVES_PER_STEP));
+  }
+
+  /**
+   * Aims at `value` without seeking: the thumb and the preview show it, and
+   * the seek comes on Enter or once the keys pause. A TV decodes slowly, so
+   * a seek per key would stutter where the preview already shows the place.
+   */
+  private aim(value: number): void {
+    const time = Math.min(this.range.end, Math.max(this.range.start, value));
+    this.target = time;
+    this.bar.set(time, this.say(time));
+    const span = this.range.end - this.range.start;
+    if (span > 0) this.previewAt((time - this.range.start) / span);
+    clearTimeout(this.commitTimer);
+    this.commitTimer = window.setTimeout(() => {
+      this.commit();
+    }, KEY_COMMIT_MS);
+  }
+
+  /** Seeks to the target, if there is one. */
+  private commit(): void {
+    const target = this.target;
+    this.stopAiming();
+    const video = this.player?.video;
+    if (target !== null && video !== undefined) video.currentTime = target;
+  }
+
+  /** Drops the target: the thumb goes back to the playhead. */
+  private cancel(): void {
+    this.stopAiming();
+    this.render();
+  }
+
+  private stopAiming(): void {
+    clearTimeout(this.commitTimer);
+    this.commitTimer = 0;
+    this.target = null;
+    this.moves = 0;
+    this.leave();
   }
 
   private input(value: number): void {
@@ -497,6 +607,13 @@ export class MbxSeekBar extends Component {
     const part = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
     this.hover.hidden = false;
     this.hover.style.left = percent(part);
+    this.previewAt(part);
+  }
+
+  /** The preview over `part` of the bar: the time, the chapter, and the picture. */
+  private previewAt(part: number): void {
+    const rect = this.bar.rail.getBoundingClientRect();
+    if (rect.width === 0 || this.range.end <= this.range.start) return;
     this.preview.hidden = false;
     const when = at(part, this.range);
     this.time.textContent = this.label(when);
@@ -525,8 +642,44 @@ export class MbxSeekBar extends Component {
     this.keep(followChapters(player, tick));
     this.listen(player, ['sourcechange'], () => {
       this.drag = 'none';
-      this.leave();
+      this.stopAiming();
       this.render();
+    });
+    // Under `key-mode="preview"`, every key that would seek aims instead,
+    // wherever focus is in the player: the bar's arrows and fast forward
+    // and rewind included. In the capture phase, so the bar's own handling,
+    // a seek at once, finds them taken. On the seek bar itself the slider
+    // moves the target with its own keys.
+    const keys = (event: Event): void => {
+      const key = event as KeyboardEvent;
+      if (!this.previewing() || this.hidden || key.defaultPrevented) return;
+      if (key.altKey || key.ctrlKey || key.metaKey) return;
+      const path = key.composedPath();
+      const own = path.includes(this.bar.root);
+      // Another slider or an open menu has arrows of its own.
+      const elsewhere = path.some(
+        (node) =>
+          node !== this.bar.root &&
+          node instanceof Element &&
+          (node.getAttribute('role') === 'slider' || node.getAttribute('role') === 'menu'),
+      );
+      if (elsewhere) return;
+      const sign = direction(key.key, own);
+      if (sign !== 0) {
+        key.preventDefault();
+        this.aim((this.target ?? player.video.currentTime) + sign * this.keyStep());
+        return;
+      }
+      if (this.target === null) return;
+      // Enter on another button is that button's.
+      if (key.key === 'Enter' && (own || !(path[0] instanceof HTMLButtonElement))) this.commit();
+      else if (CANCEL_KEYS.includes(key.key)) this.cancel();
+      else return;
+      key.preventDefault();
+    };
+    player.addEventListener('keydown', keys, { capture: true });
+    this.keep(() => {
+      player.removeEventListener('keydown', keys, { capture: true });
     });
     this.render();
   }
@@ -536,7 +689,7 @@ export class MbxSeekBar extends Component {
     this.frame = 0;
     this.pending = null;
     if (this.drag !== 'none') this.settle(null);
-    this.leave();
+    this.stopAiming();
     player.removeAttribute('live');
     player.removeAttribute('seekable');
     player.removeAttribute('scrubbing');
@@ -563,6 +716,8 @@ export class MbxSeekBar extends Component {
     this.hidden = !seekable;
     player.toggleAttribute('live', on);
     player.toggleAttribute('seekable', seekable);
-    if (!this.bar.dragging()) this.bar.set(video.currentTime, this.say(video.currentTime));
+    if (!this.bar.dragging() && this.target === null) {
+      this.bar.set(video.currentTime, this.say(video.currentTime));
+    }
   }
 }

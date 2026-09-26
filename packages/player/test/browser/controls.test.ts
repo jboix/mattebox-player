@@ -1668,6 +1668,79 @@ describe('the seek bar', () => {
   });
 });
 
+describe('the seek bar under key-mode="preview"', () => {
+  async function aiming(
+    seconds = 120,
+  ): Promise<{ player: MatteboxPlayerElement; element: HTMLElement; seek: HTMLElement }> {
+    const player = await ready(seconds);
+    const element = control(player, 'mbx-seek-bar');
+    element.setAttribute('key-mode', 'preview');
+    const seek = knob(element);
+    seek.focus();
+    return { player, element, seek };
+  }
+
+  it('aims with the keys and shows the target in the preview, without seeking', async () => {
+    const { player, element, seek } = await aiming();
+    press(seek, 'ArrowRight');
+    press(seek, 'ArrowRight');
+    expect(player.video.currentTime).toBe(0);
+    expect(seek.getAttribute('aria-valuenow')).toBe('10');
+    expect(inside(element, 'preview').hidden).toBe(false);
+    expect(inside(element, 'preview-time').textContent).toBe('0:10');
+    // Enter seeks to the target at once.
+    press(seek, 'Enter');
+    expect(player.video.currentTime).toBe(10);
+    expect(inside(element, 'preview').hidden).toBe(true);
+  });
+
+  it('seeks a second after the last key, and Escape drops the target', async () => {
+    const { player, seek } = await aiming();
+    press(seek, 'ArrowRight');
+    press(seek, 'Escape');
+    expect(seek.getAttribute('aria-valuenow')).toBe('0');
+    press(seek, 'ArrowRight');
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(player.video.currentTime).toBe(0);
+    await expect.poll(() => player.video.currentTime, { timeout: 2000 }).toBe(5);
+  });
+
+  it('grows the step while a key is held', async () => {
+    const { seek } = await aiming();
+    // Seven moves of one step, then two of two steps.
+    for (let i = 0; i < 9; i += 1) press(seek, 'ArrowRight');
+    expect(seek.getAttribute('aria-valuenow')).toBe('55');
+  });
+
+  it('aims with the arrows pressed anywhere in the player, and Enter there seeks', async () => {
+    const { player, element, seek } = await aiming();
+    seek.blur();
+    press(player, 'ArrowRight');
+    press(player.video, 'ArrowRight');
+    expect(player.video.currentTime).toBe(0);
+    expect(seek.getAttribute('aria-valuenow')).toBe('10');
+    expect(inside(element, 'preview').hidden).toBe(false);
+    press(player, 'Enter');
+    expect(player.video.currentTime).toBe(10);
+  });
+
+  it('leaves the arrows to the volume slider', async () => {
+    const { player, seek } = await aiming();
+    const volume = knob(control(player, 'mbx-volume-slider'));
+    press(volume, 'ArrowLeft');
+    expect(seek.getAttribute('aria-valuenow')).toBe('0');
+  });
+
+  it('aims with fast forward and rewind instead of the bar seeking at once', async () => {
+    const { player, seek } = await aiming();
+    press(player, 'MediaFastForward');
+    press(player, 'MediaFastForward');
+    press(player, 'MediaRewind');
+    expect(player.video.currentTime).toBe(0);
+    expect(seek.getAttribute('aria-valuenow')).toBe('5');
+  });
+});
+
 describe('the seek bar over a live session', () => {
   it('maps the seekable window, marks the edge, reads the distance behind it, and says so on the player', async () => {
     // A 10 s window over a 2 s goal is five goals: worth a bar.
