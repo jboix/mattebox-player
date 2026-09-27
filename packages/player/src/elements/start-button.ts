@@ -13,34 +13,12 @@ import { icon } from '../controls/icons.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
 import { BUTTON_STYLE, iconSlots, show, style } from './shared.js';
+import STYLE_CSS from './start-button.css?inline';
 
 type State = 'play' | 'replay';
 const STATES: readonly State[] = ['play', 'replay'];
 
-const STYLE = `${BUTTON_STYLE}
-:host {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin: -32px 0 0 -52px;
-}
-[part~="button"] {
-  width: 104px;
-  height: 64px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.45);
-  color: var(--mbx-text);
-  opacity: 0.9;
-  transition: opacity 0.15s, background 0.15s;
-}
-[part~="button"]:hover { opacity: 1; background: rgba(0, 0, 0, 0.6); }
-/* A box too short for the button above the bar: the bar's play does the job. */
-:host([cramped]) { display: none; }
-[part~="icon"], ::slotted(*) { width: 40px; height: 40px; margin-left: 2px; }
-@media (prefers-reduced-motion: reduce) {
-  [part~="button"] { transition: none; }
-}
-`;
+const STYLE = BUTTON_STYLE + STYLE_CSS;
 
 export class MbxStartButton extends Component {
   static get observedAttributes(): readonly string[] {

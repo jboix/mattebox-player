@@ -70,6 +70,9 @@ you had to reach around.
 ## While writing code
 
 - Explicit `.js` extensions in all import specifiers.
+- A control's CSS lives in a `.css` file next to it, imported with
+  `?inline`: `import STYLE from './seek-bar.css?inline'`. The builds inline
+  it minified; the page never sees a CSS import.
 - `import type` for type-only imports.
 - Comments explain **why**. Cite the engine's guide chapter when a rule comes from it.
 - Every time you write code that works around the engine, say so in a

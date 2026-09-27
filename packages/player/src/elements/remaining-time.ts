@@ -7,10 +7,11 @@
 import { live, span } from '../controls/session.js';
 import { format } from '../controls/time.js';
 import { TimeElement } from './time-element.js';
+import TRAILING from './trailing-time.css?inline';
 
 export class MbxRemainingTime extends TimeElement {
   constructor() {
-    super(':host { text-align: right; }');
+    super(TRAILING);
   }
 
   protected override render(): void {

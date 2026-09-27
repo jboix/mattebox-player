@@ -62,6 +62,7 @@ import {
   VOLUME_SLIDER,
 } from '../tags.js';
 import { Component } from './component.js';
+import STYLE from './control-bar.css?inline';
 import { number, style } from './shared.js';
 
 const IDLE_MS = 3000;
@@ -125,29 +126,6 @@ function priority(child: Element): number {
   }
   return PRIORITY[child.localName] ?? 0;
 }
-
-const STYLE = `
-:host {
-  position: absolute;
-  inset: auto 0 0 0;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 40px 16px 12px;
-  color: var(--mbx-text);
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
-  font: 500 16px/1.2 var(--mbx-font);
-  transition: opacity 0.2s;
-}
-:host([idle]) { opacity: 0; pointer-events: none; }
-[part~="row"] { display: flex; align-items: center; gap: 8px; }
-[part~="seek-row"] { gap: 16px; }
-::slotted([collapsed]) { display: none; }
-@media (prefers-reduced-motion: reduce) {
-  :host { transition: none; }
-}
-`;
 
 function end(video: HTMLVideoElement): number {
   if (Number.isFinite(video.duration)) return video.duration;

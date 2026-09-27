@@ -3,7 +3,12 @@
   "ignoreExportsUsedInFile": true,
   "workspaces": {
     ".": {
-      "entry": ["demo/src/main.ts", "scripts/*.mjs", "test/e2e/**/*.ts"],
+      "entry": [
+        "demo/src/main.ts",
+        "scripts/*.mjs",
+        "scripts/lib/inline-css.mjs",
+        "test/e2e/**/*.ts"
+      ],
       "project": ["demo/src/**/*.ts", "scripts/**/*.mjs", "test/**/*.ts", "*.ts"],
       "ignoreDependencies": [
         "@semantic-release/exec",

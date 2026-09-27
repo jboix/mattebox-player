@@ -18,6 +18,7 @@ import { optional } from '../controls/session.js';
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
+import STYLE_CSS from './scan-button.css?inline';
 import { BUTTON_STYLE, style } from './shared.js';
 
 const RATES = [4, 8, 16];
@@ -32,19 +33,7 @@ const FLOOR = 2;
  */
 const ENGINE_EVENTS = ['trick:rate', 'tracks:changed'];
 
-const STYLE = `${BUTTON_STYLE}
-[part~="button"] { position: relative; }
-[part~="rate"] {
-  position: absolute;
-  right: 0;
-  bottom: 2px;
-  font-size: 10px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-[part~="rate"][hidden] { display: none; }
-`;
+const STYLE = BUTTON_STYLE + STYLE_CSS;
 
 export class MbxScanButton extends Component {
   static get observedAttributes(): readonly string[] {

@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown';
+import { inlineCss } from '../../scripts/lib/inline-css.mjs';
 
 // The CDN bundle: one minified IIFE behind the `matteboxPlayer` global, the
 // core inside. The engine is not: the page loads the engine bundle of the
@@ -7,6 +8,7 @@ import { defineConfig } from 'rolldown';
 export default defineConfig({
   input: 'cdn/player.ts',
   external: [/^mattebox(\/|$)/],
+  plugins: [inlineCss()],
   output: {
     file: 'dist/cdn/mattebox-player.min.js',
     format: 'iife',

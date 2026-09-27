@@ -1,9 +1,11 @@
 import { globSync } from 'node:fs';
 import { basename } from 'node:path';
 import { defineConfig } from 'rolldown';
+import { inlineCss } from '../../scripts/lib/inline-css.mjs';
 
 // The default artifact: src/ lowered to ES2015 with the module structure
-// preserved. The modern build under dist/ comes from tsc. The core and the
+// preserved, each control's CSS inlined. The modern build under dist/ comes
+// from rolldown.modern.config.mjs. The core and the
 // engine stay imports; a bundler resolves them once for the page.
 export default defineConfig({
   // The root entry, the player alone, and one entry per control, so a page
@@ -16,6 +18,7 @@ export default defineConfig({
     ),
   },
   external: [/^mattebox(\/|$)/, '@mattebox/player-core'],
+  plugins: [inlineCss()],
   output: {
     dir: 'dist/es2015',
     format: 'esm',

@@ -90,9 +90,14 @@ through a slot.
 
 Every package has the same builds as the engine:
 
-- Modern ESM under `dist/`, from `tsc`.
+- Modern ESM under `dist/`, from Rolldown, with the declarations from `tsc`.
 - ES2015 ESM under `dist/es2015/`, from Rolldown. This is the default export condition.
 - A minified IIFE under `dist/cdn/`, for the element, the diagnostics, the cast and the TV navigation.
+
+The CSS of the player, the cast and the diagnostics is in `.css` files, one
+per element. Every build inlines each one into the module that imports it,
+minified by Lightning CSS for Chromium 76, so the published JavaScript
+carries no CSS import.
 
 The IIFE globals are `matteboxPlayer`, `matteboxPlayerDiagnostics`,
 `matteboxPlayerCast` and `matteboxPlayerTv`.

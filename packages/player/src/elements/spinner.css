@@ -1,0 +1,47 @@
+:host {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  display: none;
+  pointer-events: none;
+  color: var(--mbx-text);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+:host([waiting]) {
+  display: block;
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="ring"] {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: 3px solid rgba(255, 255, 255, 0.22);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: mbx-turn 0.8s linear infinite;
+}
+[part~="ring"][hidden] {
+  display: none;
+}
+slot[hidden] {
+  display: none;
+}
+::slotted(*) {
+  width: 100%;
+  height: 100%;
+}
+@keyframes mbx-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [part~="ring"] {
+    animation: none;
+  }
+}

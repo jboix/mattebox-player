@@ -1,0 +1,105 @@
+:host {
+  display: block;
+  position: relative;
+  outline: none;
+  background: #000;
+  --mbx-surface: #101114;
+  --mbx-text: #f2f3f5;
+  --mbx-muted: #9aa0a6;
+  --mbx-accent: #5b8cff;
+  --mbx-error: #ffb4ab;
+  --mbx-live: #ff4d4d;
+  --mbx-radius: 4px;
+  --mbx-gap: 10px;
+  --mbx-pad: 8px;
+  --mbx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+/* The stage is a column as tall as the host, so the picture is centred
+   in whatever height the page gives. The height comes from the
+   page, or from the browser in fullscreen, and not from a display on the
+   host: a page's own "mattebox-player { display: block }" beats a :host()
+   rule, so nothing here may depend on one. */
+[part~="stage"] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+/* 16:9 until the media says otherwise: a bare video measures 300 by 150 and
+   would jump to its size on metadata. Auto first, so the natural ratio wins
+   once it is known. Capped at the stage, and contained, so a box shorter
+   than the picture letterboxes it and a narrower one pillarboxes it. */
+::slotted(video) {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  max-height: 100%;
+  object-fit: contain;
+  aspect-ratio: auto 16 / 9;
+}
+/* The casting attribute is set by @mattebox/player-cast while a receiver
+   plays: its screen has the controls, and the bar and the start button
+   would drive a paused video nobody watches. The attribute is the whole
+   coupling. */
+:host([casting]) ::slotted(mbx-control-bar),
+:host([casting]) ::slotted(mbx-start-button) {
+  display: none;
+}
+/* controls="none" hides every child but the video, so a page keeps its
+   composition in place and turns it off with one attribute. A normal rule
+   from the page still wins over this one, the way it does over any rule
+   here. */
+:host([controls="none"]) ::slotted(:not(video)) {
+  display: none;
+}
+:host(:focus-visible) [part~="stage"] {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: -2px;
+}
+[part~="error"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mbx-gap);
+  padding: var(--mbx-pad);
+  background: var(--mbx-surface);
+  color: var(--mbx-error);
+  font: 400 13px / 1.4 var(--mbx-font);
+}
+/* Fullscreen goes on the host, so every control the page placed inside
+   comes along. The browser gives the host the whole screen with
+   !important; the picture takes all of it. The error surface, which sits
+   under the stage in the page, goes over its foot instead. */
+:host(:fullscreen) ::slotted(video) {
+  flex: 1;
+}
+:host(:fullscreen) [part~="error"] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+:host(:-webkit-full-screen) ::slotted(video) {
+  flex: 1;
+}
+:host(:-webkit-full-screen) [part~="error"] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+[part~="value"] {
+  color: var(--mbx-accent);
+}
+[part~="button"] {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: var(--mbx-radius);
+  padding: 2px 6px;
+}
+[hidden] {
+  display: none;
+}

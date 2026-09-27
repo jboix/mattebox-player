@@ -14,18 +14,7 @@
 import { MUTE_BUTTON, VOLUME_SLIDER } from '../tags.js';
 import { Component } from './component.js';
 import { style } from './shared.js';
-
-const STYLE = `
-:host { display: inline-flex; align-items: center; }
-:host([hidden]) { display: none; }
-::slotted(mbx-volume-slider) { width: 0; opacity: 0; overflow: hidden; transition: width 0.2s ease, opacity 0.2s ease; }
-/* The bar collapses the slider on its own when the row is narrow; then the pointer unfolds nothing. */
-::slotted(mbx-volume-slider[collapsed]) { display: none; }
-:host(:hover) ::slotted(mbx-volume-slider), :host(:focus-within:not([pointer])) ::slotted(mbx-volume-slider) { width: 80px; opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  ::slotted(mbx-volume-slider) { transition: none; }
-}
-`;
+import STYLE from './volume.css?inline';
 
 export class MbxVolume extends Component {
   constructor() {

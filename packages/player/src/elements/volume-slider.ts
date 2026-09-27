@@ -11,6 +11,7 @@ import { slider } from '../controls/slider.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
 import { number, SLIDER_STYLE, style } from './shared.js';
+import VOLUME_SLIDER_CSS from './volume-slider.css?inline';
 
 const STEP = 0.05;
 const PAGE = 0.2;
@@ -39,7 +40,7 @@ export class MbxVolumeSlider extends Component {
       },
     });
     this.bar.range(0, 1);
-    root.append(style(`${SLIDER_STYLE}:host { width: 80px; flex: none; }`), this.bar.root);
+    root.append(style(SLIDER_STYLE + VOLUME_SLIDER_CSS), this.bar.root);
   }
 
   protected override attach(player: PlayerHost): void {

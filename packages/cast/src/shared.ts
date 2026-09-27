@@ -6,70 +6,15 @@
  * package. The tokens come through the `--mbx-*` custom properties the
  * player sets, which inherit into every control.
  */
+import BUTTON_STYLE_CSS from './button.css?inline';
+import SLIDER_STYLE_CSS from './slider.css?inline';
 
-export const BUTTON_STYLE = `
-:host { display: inline-flex; }
-:host([hidden]) { display: none; }
-[part~="button"] {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  border-radius: var(--mbx-radius);
-  cursor: pointer;
-  opacity: 0.9;
-}
-[part~="button"]:hover { opacity: 1; }
-[part~="button"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
-[part~="icon"], ::slotted(*) { width: 1.75em; height: 1.75em; fill: currentColor; }
-slot[hidden] { display: none; }
-`;
+export const BUTTON_STYLE = BUTTON_STYLE_CSS;
 
 /** The style of a slider: the rail, the track with its fill, and the thumb. */
 
 /** The style of a slider: the rail, the track with its fill, and the thumb. */
-export const SLIDER_STYLE = `
-:host { display: block; }
-:host([hidden]) { display: none; }
-[part~="slider"] {
-  position: relative;
-  height: 40px;
-  border-radius: var(--mbx-radius);
-  cursor: pointer;
-  touch-action: none;
-}
-[part~="slider"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
-[part~="rail"] { position: absolute; top: 0; bottom: 0; left: 8px; right: 8px; }
-[part~="track"] {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 4px;
-  transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.35);
-  border-radius: 2px;
-  overflow: hidden;
-}
-[part~="fill"] { position: absolute; top: 0; bottom: 0; left: 0; background: var(--mbx-accent); }
-[part~="thumb"] {
-  position: absolute;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
-  border-radius: 50%;
-  background: var(--mbx-text);
-  pointer-events: none;
-}
-`;
+export const SLIDER_STYLE = SLIDER_STYLE_CSS;
 
 /** A `<style>` with `text`, for a shadow root. */
 export function style(text: string): HTMLStyleElement {

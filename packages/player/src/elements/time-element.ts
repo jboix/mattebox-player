@@ -6,11 +6,7 @@
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
 import { seekRow, style } from './shared.js';
-
-const STYLE = `
-:host { display: inline-block; min-width: 3ch; white-space: nowrap; font-variant-numeric: tabular-nums; }
-:host([hidden]) { display: none; }
-`;
+import STYLE from './time-element.css?inline';
 
 const EVENTS = ['timeupdate', 'durationchange', 'loadedmetadata', 'seeking', 'seeked', 'emptied'];
 

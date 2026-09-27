@@ -1,0 +1,70 @@
+:host {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  /* The band runs under the bar to the bottom edge, one ramp with the
+     bar's own fade, so there is no seam where the bar begins; the text
+     sits 12px above the bar's rows, inside the bar's fade. */
+  padding: 72px calc(var(--mbx-pad) + 8px) calc(var(--mbx-bar-rows, 0px) + 12px);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.55),
+    rgba(0, 0, 0, 0.3) 45%,
+    rgba(0, 0, 0, 0)
+  );
+  color: var(--mbx-text);
+  font: 400 14px / 1.35 var(--mbx-font);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+:host([playing]) {
+  display: none;
+}
+:host([empty]) {
+  display: none;
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="artwork"] {
+  flex: none;
+  height: 72px;
+  width: auto;
+  max-width: 128px;
+  border-radius: var(--mbx-radius);
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+[part~="artwork"][hidden] {
+  display: none;
+}
+[part~="text"] {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  max-width: 60ch;
+}
+[part~="heading"] {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[part~="subheading"] {
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[part~="heading"]:empty,
+[part~="subheading"]:empty {
+  display: none;
+}

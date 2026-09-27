@@ -1,0 +1,15 @@
+[part~="button"] {
+  position: relative;
+}
+[part~="rate"] {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+[part~="rate"][hidden] {
+  display: none;
+}

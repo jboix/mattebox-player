@@ -16,33 +16,8 @@ import type { PlayerHost } from '../host.js';
 import { fill } from '../labels.js';
 import { namespaces } from '../namespaces.js';
 import { Component } from './component.js';
+import STYLE from './drm-badge.css?inline';
 import { style } from './shared.js';
-
-const STYLE = `
-:host { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: var(--mbx-muted); border-radius: var(--mbx-radius); cursor: default; }
-:host([hidden]) { display: none; }
-:host(:focus-visible) { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
-[part~="icon"], ::slotted(*) { width: 1.75em; height: 1.75em; fill: currentColor; }
-[part~="tooltip"] {
-  position: absolute;
-  right: 0;
-  bottom: 100%;
-  margin-bottom: 8px;
-  padding: 8px 10px;
-  background: rgba(16, 17, 20, 0.95);
-  border-radius: var(--mbx-radius);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  color: var(--mbx-text);
-  font-size: 13px;
-  line-height: 1.4;
-  text-align: left;
-  white-space: nowrap;
-  pointer-events: none;
-}
-[part~="tooltip"][hidden] { display: none; }
-[part~="tooltip-title"] { font-weight: 600; }
-[part~="tooltip-text"] { color: var(--mbx-muted); }
-`;
 
 /** The name a viewer knows a key system by. */
 function keySystemName(id: string): string {

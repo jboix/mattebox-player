@@ -1,0 +1,4 @@
+/* A readout at the end of the seek row, against the right edge. */
+:host {
+  text-align: right;
+}

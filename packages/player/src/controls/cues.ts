@@ -20,6 +20,7 @@
  * already follows the video's height, in the page and in fullscreen alike.
  * A page that wants more writes its own `mattebox-player > video::cue`.
  */
+import CUE_RULES from './cues.css?inline';
 /** How the sizes scale the browser's own cue size; the lift counts lines by it. */
 export const SCALES: Readonly<Record<string, number>> = {
   small: 0.75,
@@ -28,21 +29,12 @@ export const SCALES: Readonly<Record<string, number>> = {
   xlarge: 2,
 };
 
-const BACKDROP = 'video::-webkit-media-text-track-display-backdrop';
-
 /**
  * The sheet in the document. `mattebox-player` is the element's tag. The
  * background goes on `::cue` and on the backdrop pseudo-element Chromium
  * and WebKit have, both: which of the two paints it differs by browser and
  * version, and a selector a browser does not know only voids its own rule.
  */
-const CUE_RULES = `mattebox-player[subtitle-size="small"] > video::cue { font-size: 75%; }
-mattebox-player[subtitle-size="large"] > video::cue { font-size: 150%; }
-mattebox-player[subtitle-size="xlarge"] > video::cue { font-size: 200%; }
-mattebox-player[subtitle-background="none"] > video::cue { background-color: transparent; }
-mattebox-player[subtitle-background="solid"] > video::cue { background-color: #000; }
-mattebox-player[subtitle-background="none"] > ${BACKDROP} { background-color: transparent; }
-mattebox-player[subtitle-background="solid"] > ${BACKDROP} { background-color: #000; }`;
 
 const MARK = 'data-mattebox-cue';
 

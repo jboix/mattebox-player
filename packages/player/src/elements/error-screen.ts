@@ -14,38 +14,8 @@ import type { PlayerError } from '@mattebox/player-core';
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
+import STYLE from './error-screen.css?inline';
 import { style } from './shared.js';
-
-const STYLE = `
-:host {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.75);
-  color: var(--mbx-text);
-  font: 400 15px/1.4 var(--mbx-font);
-  text-align: center;
-}
-:host([hidden]) { display: none; }
-[part~="box"] { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-[part~="title"] { font-size: 18px; font-weight: 600; }
-[part~="detail"] { font-family: monospace; font-size: 13px; color: var(--mbx-error); }
-[part~="retry"] {
-  height: 36px;
-  padding: 0 16px;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  background: transparent;
-  border: 1px solid currentColor;
-  border-radius: var(--mbx-radius);
-  cursor: pointer;
-}
-[part~="retry"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
-`;
 
 export class MbxErrorScreen extends Component {
   static get observedAttributes(): readonly string[] {

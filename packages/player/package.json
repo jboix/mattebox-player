@@ -63,7 +63,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run build:modern && npm run build:es2015 && npm run build:cdn",
-    "build:modern": "tsc -p tsconfig.build.json",
+    "build:modern": "tsc -p tsconfig.build.json --emitDeclarationOnly && rolldown -c rolldown.modern.config.mjs",
     "build:es2015": "rolldown -c rolldown.dist.config.mjs",
     "build:cdn": "rolldown -c rolldown.cdn.config.mjs",
     "check:package": "publint && attw --pack . --format table --no-emoji",

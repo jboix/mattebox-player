@@ -13,6 +13,7 @@
  */
 import type { Cast } from './cast.js';
 import { cast } from './cast.js';
+import STYLE_CSS from './cast-screen.css?inline';
 import { Component } from './component.js';
 import type { PlayerHost } from './host.js';
 import { icon } from './icons.js';
@@ -35,40 +36,7 @@ const STATES: readonly State[] = ['play', 'pause'];
 const STEP = 5;
 const PAGE = 30;
 
-const STYLE = `${BUTTON_STYLE}
-${SLIDER_STYLE}
-:host {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(0, 0, 0, 0.85);
-  color: var(--mbx-text);
-  font: 400 15px/1.4 var(--mbx-font);
-  text-align: center;
-}
-:host([hidden]) { display: none; }
-[part~="box"] { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(100%, 420px); }
-[part~="title"] { font-size: 18px; font-weight: 600; }
-[part~="row"] { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; }
-[part~="slider"] { flex: 1; }
-[part~="time"] { font-variant-numeric: tabular-nums; color: var(--mbx-muted); font-size: 13px; }
-[part~="stop"] {
-  height: 36px;
-  padding: 0 16px;
-  font: inherit;
-  font-weight: 600;
-  color: inherit;
-  background: transparent;
-  border: 1px solid currentColor;
-  border-radius: var(--mbx-radius);
-  cursor: pointer;
-}
-[part~="stop"]:focus-visible { outline: 2px solid var(--mbx-accent); outline-offset: -2px; }
-[hidden] { display: none; }
-`;
+const STYLE = BUTTON_STYLE + SLIDER_STYLE + STYLE_CSS;
 
 export class MbxCastScreen extends Component {
   static get observedAttributes(): readonly string[] {

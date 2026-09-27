@@ -1,0 +1,9 @@
+:host {
+  display: inline-block;
+  min-width: 3ch;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+:host([hidden]) {
+  display: none;
+}

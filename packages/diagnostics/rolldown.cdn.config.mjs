@@ -1,4 +1,5 @@
 import { defineConfig } from 'rolldown';
+import { inlineCss } from '../../scripts/lib/inline-css.mjs';
 
 // The CDN bundle: one minified IIFE behind the `matteboxPlayerDiagnostics`
 // global. The engine is read from the `mattebox` global, the same as the
@@ -6,6 +7,7 @@ import { defineConfig } from 'rolldown';
 export default defineConfig({
   input: 'cdn/diagnostics.ts',
   external: [/^mattebox(\/|$)/, /^@mattebox\/player(\/|$)/],
+  plugins: [inlineCss()],
   output: {
     file: 'dist/cdn/mattebox-player-diagnostics.min.js',
     format: 'iife',

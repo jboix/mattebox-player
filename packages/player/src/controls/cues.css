@@ -1,0 +1,21 @@
+mattebox-player[subtitle-size="small"] > video::cue {
+  font-size: 75%;
+}
+mattebox-player[subtitle-size="large"] > video::cue {
+  font-size: 150%;
+}
+mattebox-player[subtitle-size="xlarge"] > video::cue {
+  font-size: 200%;
+}
+mattebox-player[subtitle-background="none"] > video::cue {
+  background-color: transparent;
+}
+mattebox-player[subtitle-background="solid"] > video::cue {
+  background-color: #000;
+}
+mattebox-player[subtitle-background="none"] > video::-webkit-media-text-track-display-backdrop {
+  background-color: transparent;
+}
+mattebox-player[subtitle-background="solid"] > video::-webkit-media-text-track-display-backdrop {
+  background-color: #000;
+}
