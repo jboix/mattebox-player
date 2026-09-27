@@ -1,12 +1,12 @@
 {
-  "name": "@mattebox/player-tv",
+  "name": "@mattebox/player-spatial-nav",
   "version": "0.0.0",
   "description": "<mbx-spatial-nav>: remote control navigation for <mattebox-player> on Tizen, webOS and other TV browsers.",
   "author": "Josep Boix Requesens",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jboix/mattebox-player.git",
-    "directory": "packages/tv"
+    "directory": "packages/spatial-nav"
   },
   "homepage": "https://github.com/jboix/mattebox-player#readme",
   "bugs": {

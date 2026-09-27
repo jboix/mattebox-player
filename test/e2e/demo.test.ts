@@ -273,7 +273,7 @@ it('the TV setup composes the player for a remote, and an edit by hand makes it 
   const text = $('#markup').textContent ?? '';
   expect(text).toContain('<mbx-spatial-nav>');
   expect(text).toContain('key-mode="preview"');
-  expect(text).toContain("import '@mattebox/player-tv'");
+  expect(text).toContain("import '@mattebox/player-spatial-nav'");
   expect(text).toContain("addEventListener('navigateout'");
   expect(text).not.toContain('mbx-fullscreen-button');
   expect($$('mbx-spatial-nav', player())).toHaveLength(1);

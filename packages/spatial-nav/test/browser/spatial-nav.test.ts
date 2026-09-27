@@ -5,7 +5,7 @@
  * bar's shortcuts act on a real video.
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
-import '@mattebox/player-tv';
+import '@mattebox/player-spatial-nav';
 import { nativeHandler } from '@mattebox/player-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { once, silence } from './helpers.js';

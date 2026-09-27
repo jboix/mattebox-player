@@ -12,9 +12,9 @@ The **Mattebox player** is four packages in one npm workspace over the
 controls), `@mattebox/player-diagnostics` (the `<mbx-diagnostics>`
 control, a package of its own because of its weight) and
 `@mattebox/player-cast` (Chromecast, a package of its own because it loads
-Google's sender SDK onto the page) and `@mattebox/player-tv` (the remote
-control on a TV, a package of its own because most pages never run on
-one). Read
+Google's sender SDK onto the page) and `@mattebox/player-spatial-nav`
+(the remote control on a TV, a package of its own because most pages never
+run on one). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in
@@ -31,7 +31,7 @@ you had to reach around.
 
 2. **Runtime dependencies are the engine and the core.** Nothing else.
    The engine is a peer of every package; the core is a dependency of the
-   element. The diagnostics, cast and TV packages take the player's public
+   element. The diagnostics, cast and spatial-nav packages take the player's public
    types and nothing at runtime, which the emit check proves. The Cast sender SDK
    is a script the page loads, never a dependency. Do not add a dependency
    to work around a problem.
@@ -60,8 +60,8 @@ you had to reach around.
 8. **Banned TypeScript:** non-const `enum`, `namespace`, parameter properties,
    decorators. The emit check enforces this.
 
-9. **The floor is Chromium 76.** The core, the player and the TV package run
-   on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
+9. **The floor is Chromium 76.** The core, the player and the spatial-nav
+   package run on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
    The cast and the diagnostics packages follow the same floor, so one rule
    covers them all. Do
    not use a browser feature newer than Chromium 76 without a fallback in the

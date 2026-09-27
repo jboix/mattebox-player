@@ -14,7 +14,7 @@ import '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
-import '@mattebox/player-tv';
+import '@mattebox/player-spatial-nav';
 import full from 'mattebox/presets/full';
 import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
 import emeCore from 'mattebox/stages/eme-core';
@@ -898,7 +898,9 @@ function markupFor(element: MatteboxPlayerElement): string {
     ...(composed.includes('<mbx-diagnostics')
       ? ["\n  import '@mattebox/player-diagnostics';"]
       : []),
-    ...(composed.includes('<mbx-spatial-nav') ? ["\n  import '@mattebox/player-tv';"] : []),
+    ...(composed.includes('<mbx-spatial-nav')
+      ? ["\n  import '@mattebox/player-spatial-nav';"]
+      : []),
   ].join('');
   // At an edge the spatial navigation hands focus to the application.
   const edges = composed.includes('<mbx-spatial-nav')

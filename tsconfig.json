@@ -29,7 +29,7 @@
       "@mattebox/player/elements/*": ["./packages/player/src/entries/*.ts"],
       "@mattebox/player-diagnostics": ["./packages/diagnostics/src/index.ts"],
       "@mattebox/player-cast": ["./packages/cast/src/index.ts"],
-      "@mattebox/player-tv": ["./packages/tv/src/index.ts"]
+      "@mattebox/player-spatial-nav": ["./packages/spatial-nav/src/index.ts"]
     }
   },
   "include": [

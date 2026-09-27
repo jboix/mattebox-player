@@ -12,7 +12,7 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player`             | `<mattebox-player>`, the controls over the engine's namespaces                   | The core, the engine (peer)                      |
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report | The player (peer, types only), the engine (peer) |
 | `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`, Chromecast over Google's sender SDK | The player (peer, types only), the engine (peer) |
-| `@mattebox/player-tv`          | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back             | The player (peer, types only)                    |
+| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back             | The player (peer, types only)                    |
 
 The packages follow four rules:
 
@@ -100,7 +100,7 @@ minified by Lightning CSS for Chromium 76, so the published JavaScript
 carries no CSS import.
 
 The IIFE globals are `matteboxPlayer`, `matteboxPlayerDiagnostics`,
-`matteboxPlayerCast` and `matteboxPlayerTv`.
+`matteboxPlayerCast` and `matteboxPlayerSpatialNav`.
 
 The player's CDN bundle contains the core and reads the engine from the
 `mattebox` global. The page picks the engine bundle, and with it the size

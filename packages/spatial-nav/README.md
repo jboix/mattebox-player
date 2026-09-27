@@ -1,6 +1,6 @@
 <h1>
   <img src="https://raw.githubusercontent.com/jboix/mattebox-player/main/docs/logo.svg" width="44" height="44" align="absmiddle" alt="">
-  @mattebox/player-tv
+  @mattebox/player-spatial-nav
 </h1>
 
 `<mbx-spatial-nav>` for the
@@ -16,7 +16,7 @@ The import registers the element. It is a package of its own because most
 pages never run on a TV.
 
 ```sh
-npm install @mattebox/player-tv @mattebox/player mattebox
+npm install @mattebox/player-spatial-nav @mattebox/player mattebox
 ```
 
 ```html
@@ -32,7 +32,7 @@ npm install @mattebox/player-tv @mattebox/player mattebox
 
 <script type="module">
   import '@mattebox/player';
-  import '@mattebox/player-tv';
+  import '@mattebox/player-spatial-nav';
 </script>
 ```
 
