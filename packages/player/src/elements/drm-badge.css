@@ -12,9 +12,12 @@
 :host([hidden]) {
   display: none;
 }
-:host(:focus-visible) {
+:host(:focus) {
   outline: 2px solid var(--mbx-accent);
   outline-offset: -2px;
+}
+:host(:focus:not(:focus-visible)) {
+  outline: none;
 }
 [part~="icon"],
 ::slotted(*) {

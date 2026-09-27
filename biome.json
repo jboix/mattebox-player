@@ -28,5 +28,17 @@
         "organizeImports": "on"
       }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "packages/cast/src/**",
+        "packages/core/src/**",
+        "packages/player/src/**",
+        "packages/tv/src/**",
+        "packages/diagnostics/src/**"
+      ],
+      "plugins": ["./lint/floor/css.grit", "./lint/floor/js.grit"]
+    }
+  ]
 }

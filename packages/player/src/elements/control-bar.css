@@ -1,10 +1,11 @@
 :host {
   position: absolute;
-  inset: auto 0 0 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 4px;
   padding: 40px 16px 12px;
   color: var(--mbx-text);
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
@@ -15,13 +16,25 @@
   opacity: 0;
   pointer-events: none;
 }
+/* The gaps are margins, half on each side of every control, the row wider
+   by as much on each side, so the first and last sit at the edges: flex gap
+   needs Chromium 84. */
 [part~="row"] {
   display: flex;
   align-items: center;
-  gap: 8px;
+  margin: 0 -4px;
+}
+[part~="buttons-row"] {
+  margin-top: 4px;
 }
 [part~="seek-row"] {
-  gap: 16px;
+  margin: 0 -8px;
+}
+slot:not([name])::slotted(*) {
+  margin: 0 4px;
+}
+slot[name="seek"]::slotted(*) {
+  margin: 0 8px;
 }
 ::slotted([collapsed]) {
   display: none;

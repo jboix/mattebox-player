@@ -40,7 +40,6 @@
 [part~="item"] {
   display: flex;
   align-items: center;
-  gap: 12px;
   width: 100%;
   padding: 8px 12px 8px 28px;
   font: inherit;
@@ -63,19 +62,24 @@
 [part~="item-image"] {
   flex: none;
   width: 64px;
-  aspect-ratio: 16 / 9;
+  height: 36px;
+  margin-right: 12px;
   object-fit: cover;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
 }
 [part~="item-detail"] {
   margin-left: auto;
+  padding-left: 12px;
   color: var(--mbx-muted);
   font-variant-numeric: tabular-nums;
 }
-[part~="item"]:focus-visible {
+[part~="item"]:focus {
   outline: 2px solid var(--mbx-accent);
   outline-offset: -2px;
+}
+[part~="item"]:focus:not(:focus-visible) {
+  outline: none;
 }
 [part~="page-item"] {
   position: relative;

@@ -7,6 +7,7 @@
  */
 import type { IconName } from '../controls/icons.js';
 import { icon } from '../controls/icons.js';
+import { setChildren } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { fill } from '../labels.js';
 import { Component } from './component.js';
@@ -70,7 +71,7 @@ export class MbxSkipButton extends Component {
     const seconds = this.seconds();
     const back = seconds < 0;
     const amount = Math.abs(seconds);
-    this.glyph.replaceChildren(icon(glyphFor(back, amount)));
+    setChildren(this.glyph, icon(glyphFor(back, amount)));
     const template =
       this.getAttribute('label') ?? (back ? 'Back {seconds} seconds' : 'Forward {seconds} seconds');
     this.button.setAttribute('aria-label', fill(template, { seconds: amount }));

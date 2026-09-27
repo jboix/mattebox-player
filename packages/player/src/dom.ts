@@ -6,6 +6,16 @@
  * the page's stylesheet. Names are public API.
  */
 
+/**
+ * Replaces the children of `node`: the ones it has go, then `children` come.
+ * `replaceChildren` does this in one call, from Chromium 86 (AGENTS.md,
+ * rule 9).
+ */
+export function setChildren(node: Node & ParentNode, ...children: Node[]): void {
+  while (node.firstChild !== null) node.firstChild.remove();
+  node.append(...children);
+}
+
 /** An element with its part names, and its text when it has any. */
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,

@@ -175,25 +175,24 @@ export class MbxControlBar extends Component {
   }
 
   /**
-   * What the buttons need: their widths and the gaps between them, the
-   * spacer aside since it takes what is left, and a folded slider at the
-   * width it unfolds to. The row's own width says nothing, because the
+   * What the buttons need: their widths and their margins, which are the
+   * gaps between them, the spacer aside since it takes what is left, and a
+   * folded slider at the width it unfolds to. The row's own width says nothing, because the
    * spacer fills it whatever the buttons take.
    */
   private needed(children: readonly Element[]): number {
-    const gap = Number.parseFloat(getComputedStyle(this.buttonsRow).columnGap) || 0;
     let sum = 0;
-    let count = 0;
     for (const child of children) {
       if (child.localName === SPACER || !shown(child)) continue;
+      const margins = getComputedStyle(child);
       sum += child.getBoundingClientRect().width;
-      count += 1;
+      sum += Number.parseFloat(margins.marginLeft) + Number.parseFloat(margins.marginRight);
       const folded = slider(child);
       if (folded !== null && shown(folded)) {
         sum += Math.max(0, SLIDER_WIDTH - folded.getBoundingClientRect().width);
       }
     }
-    return sum + gap * Math.max(0, count - 1);
+    return sum;
   }
 
   /**

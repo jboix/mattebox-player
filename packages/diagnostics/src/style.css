@@ -32,9 +32,12 @@
 [part~="button"]:hover {
   opacity: 1;
 }
-[part~="button"]:focus-visible {
+[part~="button"]:focus {
   outline: 2px solid var(--mbx-accent);
   outline-offset: -2px;
+}
+[part~="button"]:focus:not(:focus-visible) {
+  outline: none;
 }
 [part~="icon"],
 ::slotted(*) {
@@ -74,11 +77,14 @@
   box-shadow: none;
   border-radius: 0;
 }
+/* The gaps between flex items are margins, half on each side of every
+   item, the container's padding or margin less as much: flex gap needs
+   Chromium 84 (AGENTS.md, rule 9). The items pushed to the end keep their
+   automatic left margin. */
 [part~="head"] {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
+  padding: 6px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 [part~="tab"],
@@ -107,22 +113,32 @@
   padding: 2px 8px;
   cursor: pointer;
 }
-[part~="copy"] {
+[part~="head"] > * {
+  margin: 0 2px;
+}
+[part~="head"] > [part~="copy"] {
   margin-left: auto;
 }
-[part~="window"] {
+[part~="chart-tabs"] > [part~="window"] {
   margin-left: auto;
 }
 [part~="window"] option {
   color: #000;
 }
-[part~="tab"]:focus-visible,
-[part~="chart-tab"]:focus-visible,
-[part~="copy"]:focus-visible,
-[part~="close"]:focus-visible,
-[part~="window"]:focus-visible {
+[part~="tab"]:focus,
+[part~="chart-tab"]:focus,
+[part~="copy"]:focus,
+[part~="close"]:focus,
+[part~="window"]:focus {
   outline: 2px solid var(--mbx-accent, #5b8cff);
   outline-offset: -2px;
+}
+[part~="tab"]:focus:not(:focus-visible),
+[part~="chart-tab"]:focus:not(:focus-visible),
+[part~="copy"]:focus:not(:focus-visible),
+[part~="close"]:focus:not(:focus-visible),
+[part~="window"]:focus:not(:focus-visible) {
+  outline: none;
 }
 [part~="body"] {
   min-height: 0;
@@ -166,8 +182,10 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 6px;
+  margin: -2px -2px 4px;
+}
+[part~="chart-tabs"] > * {
+  margin: 2px;
 }
 [part~="chart"] {
   display: block;
@@ -177,9 +195,11 @@
 [part~="legend"] {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px 12px;
-  margin-top: 4px;
+  margin: 3px -6px -1px;
   color: var(--mbx-muted, #9aa0a6);
+}
+[part~="legend"] > * {
+  margin: 1px 6px;
 }
 [part~="swatch"] {
   display: inline-block;

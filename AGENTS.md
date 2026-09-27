@@ -60,6 +60,23 @@ you had to reach around.
 8. **Banned TypeScript:** non-const `enum`, `namespace`, parameter properties,
    decorators. The emit check enforces this.
 
+9. **The floor is Chromium 76.** The core, the player and the TV package run
+   on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
+   The cast and the diagnostics packages follow the same floor, so one rule
+   covers them all. Do
+   not use a browser feature newer than Chromium 76 without a fallback in the
+   same place.
+   - The Biome plugins in `lint/floor/` fail the lint on the known ones, in
+     these packages' `src`: `css.grit` for the CSS files, `js.grit` for the
+     TypeScript. `lint/floor/README.md` lists each rule and its fix.
+   - A focus ring is styled on `:focus` and removed with
+     `:focus:not(:focus-visible)`, so a browser without `:focus-visible`
+     keeps it: on a TV the focus is the only cursor.
+   - A feature under its own `@supports` test is fine, and so is an API
+     detected before use.
+   - The builds lower the syntax to ES2015 and minify the CSS for Chromium
+     76, so neither is a concern in the source.
+
 ## Before writing code
 
 - Read the engine's guide chapters 01, 02, 03, 09, and 14, and its

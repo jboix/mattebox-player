@@ -15,7 +15,7 @@
  */
 import { icon } from '../controls/icons.js';
 import { optional } from '../controls/session.js';
-import { el } from '../dom.js';
+import { el, setChildren } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
 import STYLE_CSS from './scan-button.css?inline';
@@ -120,7 +120,7 @@ export class MbxScanButton extends Component {
     this.button.setAttribute('aria-pressed', String(on));
     this.badge.hidden = !on;
     this.badge.textContent = on ? `${Math.abs(rate)}×` : '';
-    this.glyph.replaceChildren(icon(backward ? 'fast-backward' : 'fast-forward'));
+    setChildren(this.glyph, icon(backward ? 'fast-backward' : 'fast-forward'));
     const name = this.getAttribute('label') ?? (backward ? 'Rewind' : 'Fast forward');
     this.button.setAttribute('aria-label', name);
   }

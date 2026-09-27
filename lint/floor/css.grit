@@ -1,0 +1,66 @@
+language css
+
+or {
+  or {
+    `gap: $v`,
+    `row-gap: $v`,
+    `column-gap: $v`
+  } as $m where {
+    $m <: not within CssQualifiedRule() as $rule where {
+      $rule <: r"(?s).*display\s*:\s*(?:inline-)?grid.*"
+    } ,
+    register_diagnostic(span=$m, message="Flex gap needs Chromium 84. Space the items with margins; a grid gap is fine. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  or {
+    `inset: $v`,
+    `inset-inline: $v`,
+    `inset-block: $v`
+  } as $m where {
+    register_diagnostic(span=$m, message="inset needs Chromium 87. Write top, right, bottom and left. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  `aspect-ratio: $v` as $m where {
+    $m <: not within CssSupportsAtRule() ,
+    register_diagnostic(span=$m, message="aspect-ratio needs Chromium 88. Size the box another way, or put it under @supports (aspect-ratio: 1). The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  or {
+    `margin-inline: $v`,
+    `padding-inline: $v`,
+    `margin-block: $v`,
+    `padding-block: $v`
+  } as $m where {
+    register_diagnostic(span=$m, message="The margin-inline, padding-inline, margin-block and padding-block shorthands need Chromium 87. Write the sides. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  or {
+    `translate: $v`,
+    `scale: $v`,
+    `rotate: $v`
+  } as $m where {
+    register_diagnostic(span=$m, message="The translate, scale and rotate properties need Chromium 104. Use transform. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  or {
+    `overflow: clip`,
+    `accent-color: $v`,
+    `text-wrap: $v`
+  } as $m where {
+    register_diagnostic(span=$m, message="overflow: clip, accent-color and text-wrap need Chromium 90 to 114. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  or {
+    CssContainerAtRule(),
+    CssLayerAtRule(),
+    CssPropertyAtRule()
+  } as $m where {
+    register_diagnostic(span=$m, message="@container, @layer and @property need Chromium 85 to 105. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  CssQualifiedRule() as $m where {
+    $m <: r"(?s).*(?:[^(]:focus-visible|:host\(:focus-visible).*",
+    register_diagnostic(span=$m, message="A bare :focus-visible needs Chromium 86: an older browser drops the rule and shows no focus ring. Style :focus, then remove it with :focus:not(:focus-visible). The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  CssQualifiedRule() as $m where {
+    $m <: r"(?s).*:(?:is|where|has)\(.*",
+    register_diagnostic(span=$m, message=":is(), :where() and :has() need Chromium 88 and 105. List the selectors. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  },
+  CssQualifiedRule() as $m where {
+    $m <: r"(?s).*[\s:,(](?:min|max|clamp|color-mix)\(.*",
+    register_diagnostic(span=$m, message="min(), max() and clamp() need Chromium 79, color-mix() Chromium 111. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
+  }
+}

@@ -20,7 +20,7 @@
  * element that owns the menu carries `open` while the popup shows, which
  * the bar reads to hold its fade.
  */
-import { el, state } from '../dom.js';
+import { el, setChildren, state } from '../dom.js';
 
 export interface MenuGroup {
   /** The part suffix: `track`, `size`. */
@@ -132,7 +132,7 @@ export function menu(options: MenuOptions): Menu {
       const handler = handlers.get(item);
       if (handler !== undefined) item.removeEventListener('click', handler);
     }
-    popup.replaceChildren();
+    setChildren(popup);
   }
 
   function item(part: string, text: string, handler: () => void): HTMLButtonElement {
@@ -188,7 +188,7 @@ export function menu(options: MenuOptions): Menu {
         if (image !== undefined) {
           // The text in a box of its own, so a long title ends in an ellipsis beside the picture.
           const [, ...rest] = choice.childNodes;
-          choice.replaceChildren(el('span', 'item-text', text), ...rest);
+          setChildren(choice, el('span', 'item-text', text), ...rest);
           choice.prepend(picture(image));
         }
         choice.value = id;

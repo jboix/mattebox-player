@@ -7,6 +7,7 @@
  * read off its custom properties, so a page's tokens reach the canvas.
  */
 import type { Mattebox, Rendition } from 'mattebox';
+import { setChildren } from './dom.js';
 import { bitrate, clock } from './format.js';
 import type { Counters, Mark, Sample } from './sampler.js';
 
@@ -196,7 +197,7 @@ export function createCharts(
   }
 
   function setLegend(items: ReadonlyArray<readonly [string, string]>): void {
-    legend.replaceChildren();
+    setChildren(legend);
     for (const [text, color] of items) {
       const item = document.createElement('span');
       item.setAttribute('part', 'legend-item');

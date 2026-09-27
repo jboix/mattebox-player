@@ -24,6 +24,7 @@
 import type { Mattebox } from 'mattebox';
 import type { Charts, ChartTab, Palette } from './charts.js';
 import { CHART_TABS, createCharts } from './charts.js';
+import { setChildren } from './dom.js';
 import { bitrate, clock, fixed, ranges, rendition, share } from './format.js';
 import type { PlayerError, PlayerHost } from './host.js';
 import { findPlayer, whenPlayer } from './host.js';
@@ -690,7 +691,7 @@ export class MbxDiagnostics extends HTMLElement {
     const page = this.pages.browser;
     if (this.support !== null || this.probing) return;
     this.probing = true;
-    page.replaceChildren(el('p', 'note', 'Probing the browser…'));
+    setChildren(page, el('p', 'note', 'Probing the browser…'));
     void probeSupport().then((support) => {
       this.support = support;
       this.probing = false;
@@ -699,7 +700,7 @@ export class MbxDiagnostics extends HTMLElement {
   }
 
   private tables(page: HTMLElement, support: Support): void {
-    page.replaceChildren();
+    setChildren(page);
     page.append(el('h3', 'heading', 'Platform'), el('p', 'note', support.userAgent));
     const platform = el('table', 'table');
     for (const row of support.platform) {
