@@ -184,8 +184,10 @@ describe('the remote keys', () => {
     await once(player.video, 'play');
     key(player, '', 19);
     await once(player.video, 'pause');
+    // The video may play a moment before the pause, as on WebKit.
+    const paused = player.video.currentTime;
     key(player, '', 417);
-    expect(player.video.currentTime).toBe(5);
+    expect(player.video.currentTime).toBeCloseTo(paused + 5, 3);
   });
 
   it('go Back a step at a time: the menu closes, focus leaves, then the application has it', async () => {

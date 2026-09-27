@@ -759,10 +759,12 @@ describe('the shortcuts', () => {
     // Stop pauses; the source stays.
     press(player, 'MediaStop');
     await once(player.video, 'pause');
+    // The video may play a moment before the pause, as on WebKit.
+    const paused = player.video.currentTime;
     press(player, 'MediaFastForward');
-    expect(player.video.currentTime).toBe(5);
+    expect(player.video.currentTime).toBeCloseTo(paused + 5, 3);
     press(player, 'MediaRewind');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.video.currentTime).toBeCloseTo(paused, 3);
   });
 
   it('leaves a key another handler prevented, in the bar, the slider and the menu', async () => {
