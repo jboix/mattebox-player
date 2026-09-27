@@ -138,6 +138,17 @@ export function fakeMedia(video: HTMLVideoElement): FakeMedia {
   define('currentTime', { get: () => state.time, set: seek });
   define('play', { value: play });
   define('pause', { value: pause });
+  // No request leaves the page. A resolver that fails `cdn.test` at once,
+  // as CI's does, would end the load in a fatal error the test never set up.
+  let src = '';
+  define('src', {
+    get: () => src,
+    set: (value: string) => {
+      src = value;
+      void fire(['loadstart']);
+    },
+  });
+  define('load', { value: () => undefined });
 
   const fake: FakeMedia = {
     metadata(seconds: number): Promise<void> {
