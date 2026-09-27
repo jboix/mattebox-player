@@ -1,0 +1,1 @@
+import{t as e}from"./define-tlqEinZA.js";import{n as t,t as n}from"./index-BtjpkWvt.js";var r=e(`dash`,()=>[...t(),...n()]);export{r as default};
