@@ -69,7 +69,7 @@
     "husky": "^9.1.7",
     "knip": "^6.38.0",
     "lightningcss": "^1.33.0",
-    "mattebox": "^0.8.2",
+    "mattebox": "^0.9.0",
     "playwright": "^1.62.1",
     "publint": "^0.3.24",
     "remark-cli": "^12.0.1",
