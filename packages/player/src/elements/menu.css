@@ -68,6 +68,16 @@
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
 }
+[part~="item-badge"] {
+  flex: none;
+  margin-left: 8px;
+  padding: 0 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid currentColor;
+  border-radius: 2px;
+}
 [part~="item-detail"] {
   margin-left: auto;
   padding-left: 12px;

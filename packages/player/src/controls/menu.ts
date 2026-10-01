@@ -29,9 +29,12 @@ export interface MenuGroup {
   readonly label?: string;
   /**
    * Each item's id, its text, a detail drawn at its end, such as a chapter's
-   * time, and the URL of a picture drawn at its start.
+   * time, the URL of a picture drawn at its start, and short badges drawn
+   * after the text, such as "AD" on an audio description track.
    */
-  readonly items: ReadonlyArray<readonly [string, string, string?, string?]>;
+  readonly items: ReadonlyArray<
+    readonly [string, string, (string | undefined)?, (string | undefined)?, (readonly string[])?]
+  >;
   readonly value: string;
   readonly onSelect: (value: string) => void;
 }
@@ -178,12 +181,13 @@ export function menu(options: MenuOptions): Menu {
         section.setAttribute('aria-label', entry.label);
         section.append(el('div', `section-label ${entry.name}-label`, entry.label));
       }
-      for (const [id, text, detail, image] of entry.items) {
+      for (const [id, text, detail, image, badges] of entry.items) {
         const choice = item(`item ${entry.name}-item`, text, () => {
           close();
           button.focus();
           entry.onSelect(id);
         });
+        for (const badge of badges ?? []) choice.append(el('span', 'item-badge', badge));
         if (detail !== undefined) choice.append(el('span', 'item-detail', detail));
         if (image !== undefined) {
           // The text in a box of its own, so a long title ends in an ellipsis beside the picture.

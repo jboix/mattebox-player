@@ -10,9 +10,15 @@
  * the cue rules; a page can set them in markup and persist them however
  * it likes. Every word the menu shows is an attribute: `label`,
  * `label-off`, `label-track`, `label-settings`, `label-size`,
- * `label-background`, one per size and one per background.
+ * `label-background`, one per size and one per background, and
+ * `label-sdh` for the badge on subtitles for the deaf and hard of hearing.
+ *
+ * Forced tracks are not listed. The engine's forced-subtitles stage shows
+ * one while no subtitle is selected, so the menu reads Off then (guide
+ * chapter 06).
  */
 import type { Mattebox } from 'mattebox';
+import { isSdh } from 'mattebox';
 import { icon } from '../controls/icons.js';
 import type { MenuGroup } from '../controls/menu.js';
 import type { PlayerHost } from '../host.js';
@@ -49,6 +55,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       'label-settings',
       'label-size',
       'label-background',
+      'label-sdh',
       ...SIZES.map(([id]) => `label-${id}`),
       ...BACKGROUNDS.map(([id]) => `label-${id}`),
     ];
@@ -108,11 +115,13 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       this.hidden = true;
       return;
     }
-    const [tracks, active] = trackItems(engine, 'text');
-    const items: Array<readonly [string, string]> = [
-      [OFF, this.getAttribute('label-off') ?? 'Off'],
-      ...tracks,
-    ];
+    const [tracks, active] = trackItems(
+      engine,
+      'text',
+      (track) => (isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
+      (track) => track.forced !== true,
+    );
+    const items: MenuGroup['items'] = [[OFF, this.getAttribute('label-off') ?? 'Off'], ...tracks];
     this.menu.fill([
       {
         name: 'track',

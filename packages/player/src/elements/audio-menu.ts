@@ -2,9 +2,13 @@
  * <mbx-audio-menu>: the audio track over `engine.tracks`. Hidden unless
  * there is a choice to make, and for a native session. The name comes
  * from `label`. A track reads as its language, then its role, then its
- * id: whichever the manifest gave.
+ * id: whichever the manifest gave. A badge marks an audio description
+ * track (`label-ad`, "AD") and the original language (`label-original`,
+ * "Original"), from the engine's standard characteristics (guide chapter 06).
  */
 import type { ContentType, Mattebox, Track } from 'mattebox';
+import { isAudioDescription, isOriginal } from 'mattebox';
+import type { MenuGroup } from '../controls/menu.js';
 import type { PlayerHost } from '../host.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
@@ -15,16 +19,25 @@ export function trackLabel(track: Track): string {
   return parts.length === 0 ? track.id : parts.join(' · ');
 }
 
-/** The tracks of one content type as menu items, with the active one's id. */
+/**
+ * The tracks of one content type that `listed` keeps, as menu items with
+ * their badges, and the active one's id when it is listed.
+ */
 export function trackItems(
   engine: Mattebox,
   contentType: ContentType,
-): [Array<readonly [string, string]>, string | null] {
+  badges: (track: Track) => readonly string[] = () => [],
+  listed: (track: Track) => boolean = () => true,
+): [MenuGroup['items'], string | null] {
   const tracks = engine.tracks;
-  const available = tracks.available.filter((track) => track.contentType === contentType);
-  const items: Array<readonly [string, string]> = [];
-  for (const track of available) items.push([track.id, trackLabel(track)]);
-  return [items, tracks.active(contentType)?.id ?? null];
+  const available = tracks.available.filter(
+    (track) => track.contentType === contentType && listed(track),
+  );
+  const items = available.map(
+    (track) => [track.id, trackLabel(track), undefined, undefined, badges(track)] as const,
+  );
+  const active = tracks.active(contentType);
+  return [items, active !== null && listed(active) ? active.id : null];
 }
 
 /** Subscribes `tick` to the track events, and answers the unsubscribe. */
@@ -37,7 +50,7 @@ export function onTracks(engine: Mattebox, tick: () => void): () => void {
 
 export class MbxAudioMenu extends MenuElement {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-back'];
+    return ['label', 'label-back', 'label-ad', 'label-original'];
   }
 
   declare private engine: Mattebox | null;
@@ -70,7 +83,10 @@ export class MbxAudioMenu extends MenuElement {
       this.hidden = true;
       return;
     }
-    const [items, active] = trackItems(engine, 'audio');
+    const [items, active] = trackItems(engine, 'audio', (track) => [
+      ...(isAudioDescription(track) ? [this.getAttribute('label-ad') ?? 'AD'] : []),
+      ...(isOriginal(track) ? [this.getAttribute('label-original') ?? 'Original'] : []),
+    ]);
     this.menu.fill([
       {
         name: 'track',

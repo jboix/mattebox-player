@@ -2303,7 +2303,14 @@ describe('the menu primitive, through the speed menu', () => {
 
 /** An engine with tracks, and what the bar's controls read besides. */
 function tracksEngine(
-  available: ReadonlyArray<{ id: string; contentType: string; lang?: string; role?: string }>,
+  available: ReadonlyArray<{
+    id: string;
+    contentType: string;
+    lang?: string;
+    role?: string;
+    forced?: boolean;
+    characteristics?: readonly string[];
+  }>,
 ): Mattebox & { active: string | null; chosen: string[] } {
   const fake = {
     active: null as string | null,
@@ -2396,6 +2403,64 @@ describe('the subtitles menu over a stubbed session', () => {
     );
     expect(checked?.value).toBe('xlarge');
     expect(checked?.textContent).toBe('Molt gran');
+  });
+
+  it('leaves forced tracks out, reads Off while one shows, and marks SDH', async () => {
+    const engine = tracksEngine([
+      { id: 'a-en', contentType: 'audio', lang: 'en' },
+      {
+        id: 't-en',
+        contentType: 'text',
+        lang: 'en',
+        characteristics: [
+          'public.accessibility.transcribes-spoken-dialog',
+          'public.accessibility.describes-music-and-sound',
+        ],
+      },
+      { id: 't-en-forced', contentType: 'text', lang: 'en', forced: true },
+    ]);
+    // The engine's forced-subtitles stage shows the forced track.
+    engine.active = 't-en-forced';
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-subtitles-menu');
+    expect(items(menu).map((item) => item.value)).toEqual(['off', 't-en', '']);
+    expect(items(menu)[0]?.getAttribute('aria-checked')).toBe('true');
+    expect(shown(menu)).toBe('icon-off');
+    const badges = () =>
+      [...(menu.shadowRoot?.querySelectorAll('[part~="item-badge"]') ?? [])].map(
+        (node) => node.textContent,
+      );
+    expect(badges()).toEqual(['SDH']);
+    menu.setAttribute('label-sdh', 'CC');
+    expect(badges()).toEqual(['CC']);
+  });
+
+  it('marks audio description and the original language in the audio menu', async () => {
+    const engine = tracksEngine([
+      {
+        id: 'a-en',
+        contentType: 'audio',
+        lang: 'en',
+        characteristics: ['public.original-content'],
+      },
+      { id: 'a-de', contentType: 'audio', lang: 'de' },
+      {
+        id: 'a-en-ad',
+        contentType: 'audio',
+        lang: 'en',
+        characteristics: ['public.accessibility.describes-video'],
+      },
+    ]);
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-audio-menu');
+    const badges = () =>
+      items(menu).map((item) =>
+        [...item.querySelectorAll('[part~="item-badge"]')].map((node) => node.textContent),
+      );
+    expect(badges()).toEqual([['Original'], [], ['AD']]);
+    menu.setAttribute('label-ad', 'AD (en)');
+    menu.setAttribute('label-original', 'VO');
+    expect(badges()).toEqual([['VO'], [], ['AD (en)']]);
   });
 
   it('hides without text tracks, and the audio menu without a choice', async () => {
