@@ -2310,6 +2310,9 @@ function tracksEngine(
     role?: string;
     forced?: boolean;
     characteristics?: readonly string[];
+    instreamId?: string;
+    /** False for a track the engine cannot play, such as AC-3 audio in a browser without it. */
+    playable?: boolean;
   }>,
 ): Mattebox & { active: string | null; chosen: string[] } {
   const fake = {
@@ -2323,6 +2326,7 @@ function tracksEngine(
       active: (contentType: string) =>
         available.find((track) => track.id === fake.active && track.contentType === contentType) ??
         null,
+      selectable: (id: string) => available.find((track) => track.id === id)?.playable !== false,
       select(id: string): void {
         fake.chosen.push(id);
         fake.active = id;
@@ -2461,6 +2465,42 @@ describe('the subtitles menu over a stubbed session', () => {
     menu.setAttribute('label-ad', 'AD (en)');
     menu.setAttribute('label-original', 'VO');
     expect(badges()).toEqual([['VO'], [], ['AD (en)']]);
+  });
+
+  it('leaves out a track the engine cannot play', async () => {
+    const engine = tracksEngine([
+      { id: 'a-en', contentType: 'audio', lang: 'en' },
+      { id: 'a-de', contentType: 'audio', lang: 'de' },
+      { id: 'a-ac3', contentType: 'audio', lang: 'en', playable: false },
+      { id: 't-en', contentType: 'text', lang: 'en' },
+      { id: 't-ttml', contentType: 'text', lang: 'de', playable: false },
+    ]);
+    const player = await over([fakeHandler(engine)]);
+    expect(items(control(player, 'mbx-audio-menu')).map((item) => item.value)).toEqual([
+      'a-en',
+      'a-de',
+    ]);
+    expect(items(control(player, 'mbx-subtitles-menu')).map((item) => item.value)).toEqual([
+      'off',
+      't-en',
+      '',
+    ]);
+  });
+
+  it('marks closed captions carried in the video', async () => {
+    const engine = tracksEngine([
+      { id: 'a-en', contentType: 'audio', lang: 'en' },
+      { id: 'cc:English', contentType: 'text', lang: 'en', role: 'caption', instreamId: 'CC1' },
+    ]);
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-subtitles-menu');
+    const badges = () =>
+      [...(menu.shadowRoot?.querySelectorAll('[part~="item-badge"]') ?? [])].map(
+        (node) => node.textContent,
+      );
+    expect(badges()).toEqual(['CC']);
+    menu.setAttribute('label-cc', 'Subtítols');
+    expect(badges()).toEqual(['Subtítols']);
   });
 
   it('hides without text tracks, and the audio menu without a choice', async () => {

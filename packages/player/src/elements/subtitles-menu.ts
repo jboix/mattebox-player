@@ -10,8 +10,9 @@
  * the cue rules; a page can set them in markup and persist them however
  * it likes. Every word the menu shows is an attribute: `label`,
  * `label-off`, `label-track`, `label-settings`, `label-size`,
- * `label-background`, one per size and one per background, and
- * `label-sdh` for the badge on subtitles for the deaf and hard of hearing.
+ * `label-background`, one per size and one per background, `label-sdh`
+ * for the badge on subtitles for the deaf and hard of hearing, and
+ * `label-cc` for the badge on closed captions carried in the video.
  *
  * Forced tracks are not listed. The engine's forced-subtitles stage shows
  * one while no subtitle is selected, so the menu reads Off then (guide
@@ -56,6 +57,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       'label-size',
       'label-background',
       'label-sdh',
+      'label-cc',
       ...SIZES.map(([id]) => `label-${id}`),
       ...BACKGROUNDS.map(([id]) => `label-${id}`),
     ];
@@ -118,7 +120,11 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     const [tracks, active] = trackItems(
       engine,
       'text',
-      (track) => (isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
+      (track) => [
+        // A manifest names in-band captions by their channel (guide chapter 06).
+        ...(track.instreamId !== undefined ? [this.getAttribute('label-cc') ?? 'CC'] : []),
+        ...(isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
+      ],
       (track) => track.forced !== true,
     );
     const items: MenuGroup['items'] = [[OFF, this.getAttribute('label-off') ?? 'Off'], ...tracks];

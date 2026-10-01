@@ -20,8 +20,10 @@ export function trackLabel(track: Track): string {
 }
 
 /**
- * The tracks of one content type that `listed` keeps, as menu items with
- * their badges, and the active one's id when it is listed.
+ * The tracks of one content type that the engine can play and `listed`
+ * keeps, as menu items with their badges, and the active one's id when it
+ * is listed. A track the browser cannot decode, or that no stage plays,
+ * stays out (guide chapter 06).
  */
 export function trackItems(
   engine: Mattebox,
@@ -31,13 +33,13 @@ export function trackItems(
 ): [MenuGroup['items'], string | null] {
   const tracks = engine.tracks;
   const available = tracks.available.filter(
-    (track) => track.contentType === contentType && listed(track),
+    (track) => track.contentType === contentType && tracks.selectable(track.id) && listed(track),
   );
   const items = available.map(
     (track) => [track.id, trackLabel(track), undefined, undefined, badges(track)] as const,
   );
-  const active = tracks.active(contentType);
-  return [items, active !== null && listed(active) ? active.id : null];
+  const active = tracks.active(contentType)?.id;
+  return [items, available.some((track) => track.id === active) ? (active as string) : null];
 }
 
 /** Subscribes `tick` to the track events, and answers the unsubscribe. */
