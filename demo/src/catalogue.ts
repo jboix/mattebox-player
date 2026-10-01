@@ -33,6 +33,13 @@ export function tagsOf(entry: StreamEntry): string[] {
 
 /** The demo's own copy of Apple's advanced example master, with an Apple chapters entry added. */
 const APPLE_CHAPTERS = 'streams/apple-chapters/master.m3u8';
+/**
+ * The same copy with standard track signals added: English audio marked
+ * original, an audio description twin and a French twin, an SDH subtitle
+ * twin, and forced English and French subtitles. Every twin plays Apple's
+ * own playlist; only its label and its selection differ.
+ */
+const APPLE_ACCESSIBILITY = 'streams/apple-accessibility/master.m3u8';
 
 export const STREAMS: readonly StreamEntry[] = [
   {
@@ -62,6 +69,12 @@ export const STREAMS: readonly StreamEntry[] = [
     url: APPLE_CHAPTERS,
     tags: ['chapters in manifest', 'I-frames', 'frame previews', 'alternate audio', 'subtitles'],
     note: 'served by the demo: the same media, with an EXT-X-SESSION-DATA entry that names an Apple chapters file',
+  },
+  {
+    label: 'Apple · advanced example, forced subtitles and accessible tracks',
+    url: APPLE_ACCESSIBILITY,
+    tags: ['forced subtitles', 'audio description', 'SDH', 'original audio'],
+    note: 'served by the demo: the same media, with forced, SDH, audio description and original tracks that reuse its playlists',
   },
   {
     label: 'Apple · advanced example (HLS, MPEG-TS, I-frame playlists)',
