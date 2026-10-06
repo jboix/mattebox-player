@@ -25,11 +25,11 @@ The packages follow four rules:
 
 The core has three concepts, in `packages/core/src/types.ts`.
 
-| Concept   | What it is                                                                                                                |
-| --------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `Source`  | A URL and, when known, a MIME type                                                                                        |
-| `Handler` | A name, a `canHandle` that answers like `canPlayType`, and a `handle` that returns a session                              |
-| `Session` | The name of the handler that plays the source, the engine that feeds the video (null for a native session), and `dispose` |
+| Concept   | What it is                                                                                                                                                        |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Source`  | A URL and, when known, a MIME type                                                                                                                                |
+| `Handler` | A name, a `canHandle` that answers like `canPlayType`, an optional `prefers` that moves it first, and a `handle` that returns a session                           |
+| `Session` | The name of the handler that plays the source, the engine that feeds the video (null for a native session), the DRM attachment of a native session, and `dispose` |
 
 `createPlayer(video, { handlers })` returns one `Player` per video. `load`
 reads the type from the URL's extension when none is given. It then asks
@@ -37,14 +37,16 @@ the handlers in order. The first handler with a non-empty `canHandle` plays
 the source.
 
 The order of the handlers is the page's policy. A `probably` from a later
-handler does not win over a `maybe` from an earlier handler.
+handler does not win over a `maybe` from an earlier handler. A handler that
+`prefers` the source is asked first. The element's native handler prefers
+HLS on Apple's WebKit.
 
 The core ships two handlers:
 
-| Handler    | `canHandle`                                                                                 | `handle`                                                                                |
-| ---------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `mattebox` | Returns `engine.accepts(type)`. Returns empty without `MediaSource` or `ManagedMediaSource` | Attaches the engine and calls `load(url, { mimeType })`. `dispose` unloads and detaches |
-| `native`   | Returns `video.canPlayType(type)`                                                           | Disposes whatever holds the video, then assigns `src`                                   |
+| Handler    | `canHandle`                                                                                 | `handle`                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `mattebox` | Returns `engine.accepts(type)`. Returns empty without `MediaSource` or `ManagedMediaSource` | Attaches the engine and calls `load(url, { mimeType })`. `dispose` unloads and detaches                      |
+| `native`   | Returns `video.canPlayType(type)`                                                           | Disposes whatever holds the video, attaches the engine's DRM with `attachEme` when given, then assigns `src` |
 
 The engine can report `MANIFEST_UNSUPPORTED` after the mattebox handler
 took the source. The core then disposes the session and asks the next
@@ -68,16 +70,17 @@ uses nothing else. A page's own element inside the bar is a control in the
 same way.
 
 Each control tests for its namespace on `session.engine`, and hides for a
-native session. The player reflects its state as attributes on itself. A
+native session. The audio and subtitles menus read the video's own track
+lists in a native session, and the DRM badge reads `session.eme`. The player reflects its state as attributes on itself. A
 control takes its parameters and its labels as attributes, and its icon
 through a slot.
 
 | Control                                                               | What it reads                                                                                               |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `mbx-quality-menu`                                                    | `engine.quality`                                                                                            |
-| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`                                                                                             |
+| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`, or `video.audioTracks` and `video.textTracks` in a native session                          |
 | `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt`                                                                                 |
-| `mbx-drm-badge`                                                       | `engine.drm`                                                                                                |
+| `mbx-drm-badge`                                                       | `engine.drm`, or `session.eme.drm` in a native session                                                      |
 | `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                         |
 | `mbx-seek-bar`, `mbx-chapters-menu`                                   | The chapters track of the video. No namespace                                                               |
 | `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm`     |

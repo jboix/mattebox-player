@@ -50,12 +50,17 @@ asks the next handler.
 interface Handler {
   name: string;
   canHandle(source: Source, env: { video: HTMLMediaElement; mse: boolean }): 'probably' | 'maybe' | '';
+  prefers?(source: Source, env: { video: HTMLMediaElement; mse: boolean }): boolean;
   handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession>;
 }
 ```
 
+A handler that `prefers` a source is asked first for it, ahead of the
+handlers before it. Handlers that prefer the same source keep their order.
+
 A handler returns three things: its name, the engine that feeds the video
-or null, and `dispose`. The chain adds `source`: the URL and the type it
+or null, and `dispose`. A native session with DRM also returns `eme`, the
+attachment from `mattebox/eme`. The chain adds `source`: the URL and the type it
 resolved. The result is the `Session` that the player holds and that
 `sourcechange` carries.
 
@@ -64,10 +69,10 @@ of the element is the page's input, and it has no type.
 
 ## The two handlers
 
-| Handler           | `canHandle`                                                                               | `handle`                                                                      |
-| ----------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `matteboxHandler` | Returns `engine.accepts(type)`, or empty without MSE support. Returns `maybe` for no type | Attaches the engine and loads with `mimeType`. `dispose` unloads and detaches |
-| `nativeHandler`   | Returns `video.canPlayType(type)`. Returns `maybe` for no type                            | Disposes whatever holds the video, then assigns `src`                         |
+| Handler           | `canHandle`                                                                               | `handle`                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `matteboxHandler` | Returns `engine.accepts(type)`, or empty without MSE support. Returns `maybe` for no type | Attaches the engine and loads with `mimeType`. `dispose` unloads and detaches  |
+| `nativeHandler`   | Returns `video.canPlayType(type)`. Returns `maybe` for no type                            | Disposes whatever holds the video, attaches DRM with `drm`, then assigns `src` |
 
 The mattebox handler takes a preset or a list of stages. Start with `full`.
 It has every stage the engine ships, so it plays every kind of source and
@@ -100,6 +105,43 @@ The handler builds one engine and keeps it for every load. `unload` and
 The handler builds the engine at the first `canHandle`, because `accepts`
 is a method of the engine instance. That first call therefore builds every
 stage.
+
+## Native HLS
+
+`nativeHandler` takes two options.
+
+| Option   | What it does                                                                                                    |
+| -------- | --------------------------------------------------------------------------------------------------------------- |
+| `prefer` | A function of the source and the environment. True makes the chain ask the native handler first for that source |
+| `drm`    | The options of `attachEme` from `mattebox/eme`, or a function of the source that returns them or undefined      |
+
+`preferNativeHls` is the element's `prefer`. It answers true for an HLS
+source on Apple's WebKit when the video plays HLS. Android Chrome answers
+`canPlayType` for HLS too, and `preferNativeHls` answers false there.
+
+```ts
+import { createPlayer, matteboxHandler, nativeHandler, preferNativeHls } from '@mattebox/player-core';
+import full from 'mattebox/presets/full';
+import emeFairplay from 'mattebox/stages/eme-fairplay';
+
+const player = createPlayer(video, {
+  handlers: [
+    matteboxHandler({ preset: full }),
+    nativeHandler({
+      prefer: preferNativeHls,
+      drm: {
+        keySystems: [emeFairplay({ certificateUrl: 'https://drm.example/fps.cer' })],
+        licenseUrl: 'https://drm.example/fps',
+      },
+    }),
+  ],
+});
+```
+
+With `drm`, the handler calls `attachEme(video, drm)` before it sets `src`.
+`dispose` clears `src`, then calls `detach()`. The session carries the
+attachment as `session.eme`, and the core reports its errors on the `error`
+event.
 
 ## AirPlay
 
@@ -160,7 +202,7 @@ the `MediaError` of the video.
 
 The core maps a `MediaError` to `MEDIA_DECODE_ERROR` or
 `MEDIA_CODEC_UNSUPPORTED`, as the engine does. A native session reports no
-other error.
+other error, except the DRM errors of its `eme` attachment.
 
 ```ts
 player.on('error', ({ category, code, fatal, handler }) => {

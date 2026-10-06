@@ -68,7 +68,8 @@ optional when the URL has a known extension.
 ```
 
 The video inside keeps its native API and its native controls, and the
-player adds nothing to it.
+player adds nothing to it. Safari plays HLS natively by default, with
+FairPlay through the engine's DRM. `native-hls="off"` keeps HLS on the engine.
 
 `controls="custom"` replaces the native controls with elements placed
 inside the player: quality, tracks, live, DRM, errors and the rest. Each

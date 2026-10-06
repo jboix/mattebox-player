@@ -11,7 +11,8 @@ over the picture under `controls="custom"`.
 | `src`                 | Sets the source URL. A new value loads the new source. The same value again loads it again                                                                                   |
 | `type`                | Sets the MIME type of the source. Optional when the extension is known                                                                                                       |
 | `preset`              | Names the engine preset. The default is `full`                                                                                                                               |
-| `license-url`         | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`                                                                                                  |
+| `license-url`         | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
+| `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
 | `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
 | `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
 | `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
@@ -117,6 +118,75 @@ list, the config goes on the handler.
 MatteboxPlayerElement.define({ config: { traceCapacity: 500 } });
 ```
 
+`drm` sets the DRM of a native session. It takes the options of
+`attachEme` from `mattebox/eme`. See [Native HLS in Safari](#native-hls-in-safari).
+
+## Native HLS in Safari
+
+Safari plays an HLS source itself, through `video.src`. The engine does not
+run. FairPlay, AirPlay, Low-Latency HLS and the iPhone's fullscreen then work
+as Apple built them.
+
+The player prefers native HLS when all of these hold:
+
+- The source is HLS.
+- `navigator.vendor` starts with `Apple`. Every browser on WebKit reports it.
+- `video.canPlayType('application/vnd.apple.mpegurl')` is not empty.
+
+Android Chrome also answers `canPlayType` for HLS. The vendor check keeps it
+on the engine. DASH stays on the engine in every browser.
+
+`native-hls="off"` keeps HLS on the engine. A page with its own `handlers`
+decides the order itself.
+
+A native session has no engine, so `player.engine` is null. The controls
+read the video instead:
+
+| Control                 | In a native session                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `mbx-audio-menu`        | Lists `video.audioTracks`. A choice sets `enabled`                                      |
+| `mbx-subtitles-menu`    | Lists the `subtitles` and `captions` tracks of `video.textTracks`. A choice sets `mode` |
+| `mbx-drm-badge`         | Reads `session.eme.drm` when the session attached DRM                                   |
+| `mbx-chapters-menu`     | Reads the chapters track of the video, as for any session                               |
+| `mbx-quality-menu`      | Hidden. Safari picks the rendition                                                      |
+| `mbx-scan-button`       | Hidden                                                                                  |
+| Thumbnails and previews | None                                                                                    |
+
+A menu hides when the browser has no such list. Forced subtitles show by
+Safari's own choice. A `captions` track carries the SDH badge. An audio
+track of kind `description` carries the AD badge.
+
+Errors are the video's `MediaError` codes, plus the DRM errors of the
+attachment.
+
+### DRM in a native session
+
+The player attaches the engine's DRM to the video before it sets `src`, with
+`attachEme` from `mattebox/eme`. It detaches it when the session ends.
+
+- The key systems are the `eme-fairplay` and `eme-cenc` stages of the engine's stack: the preset's, or the `stages` option's.
+- `license-url` sets the license URL.
+- The `drm` option adds to them: `keySystems`, `licenseUrl`, `licenseUrls`, `requestHook`.
+- The engine's request hooks do not apply. `requestHook` rewrites the license and certificate requests.
+- A browser without EME attaches no DRM, as for the engine.
+
+FairPlay needs the application certificate:
+
+```ts
+import { MatteboxPlayerElement } from '@mattebox/player';
+import emeFairplay from 'mattebox/stages/eme-fairplay';
+
+MatteboxPlayerElement.define({
+  drm: {
+    keySystems: [emeFairplay({ certificateUrl: 'https://drm.example/fps.cer' })],
+    licenseUrl: 'https://drm.example/fps',
+    requestHook: (request) => {
+      request.headers.Authorization = `Bearer ${token}`;
+    },
+  },
+});
+```
+
 ## The controls
 
 `controls="custom"` removes the browser's controls from the video. The
@@ -206,8 +276,9 @@ Each element reads and writes the video from outside, as a page would. It
 reads the engine's namespaces through the player.
 
 An element that reads a namespace hides while the session has none. A
-native session shows no quality menu, no audio menu, no subtitles menu and
-no live button.
+native session shows no quality menu and no live button. Its audio and
+subtitles menus read the video's own track lists. See
+[Native HLS in Safari](#native-hls-in-safari).
 
 | Element                 | Attributes                                                                   | Labels                                                                                                                                                                                                                                  | Icon slots                               | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -227,9 +298,9 @@ no live button.
 | `mbx-speed-menu`        | `rates`, space-separated                                                     | `label`, `label-normal`, `label-back` with `{page}`                                                                                                                                                                                     | `icon`                                   | Sets `video.playbackRate`. Works for every session                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `mbx-chapters-menu`     |                                                                              | `label`, `label-back`                                                                                                                                                                                                                   | `icon`                                   | Lists the chapters with their start times, and checks the current one. Each item shows the chapter's picture when every chapter has one. A choice seeks. Hidden without chapters. Works for every session                                                                                                                                                                                                                                                                                                                                                     |
 | `mbx-quality-menu`      |                                                                              | `label`, `label-auto`, `label-back`                                                                                                                                                                                                     | `icon`                                   | Pins a rendition through `engine.quality`. Auto means no pin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `mbx-audio-menu`        |                                                                              | `label`, `label-back`, `label-ad`, `label-original`                                                                                                                                                                                     | `icon`                                   | Selects the audio track through `engine.tracks`. Lists only tracks the engine can play. Shown when there is more than one. Marks an audio description track and the original language with a badge                                                                                                                                                                                                                                                                                                                                                            |
-| `mbx-subtitles-menu`    |                                                                              | `label`, `label-back`, `label-off`, `label-track`, `label-settings`, `label-size`, `label-background`, `label-small`, `label-medium`, `label-large`, `label-xlarge`, `label-none`, `label-dark`, `label-solid`, `label-sdh`, `label-cc` | `icon`, `icon-on`                        | Selects the text track, or off. Lists only tracks the engine can play, in-band captions included. Forced tracks are not listed, and the menu reads off while one shows. Marks SDH subtitles with a badge. Its Settings page sets the size and the background, and writes `subtitle-size` and `subtitle-background` on the player                                                                                                                                                                                                                              |
-| `mbx-drm-badge`         |                                                                              | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                                                      | `icon`                                   | Shows a lock for `engine.drm`, with a tooltip on hover and on focus                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `mbx-audio-menu`        |                                                                              | `label`, `label-back`, `label-ad`, `label-original`                                                                                                                                                                                     | `icon`                                   | Selects the audio track through `engine.tracks`, or `video.audioTracks` in a native session. Lists only tracks the engine can play. Shown when there is more than one. Marks an audio description track and the original language with a badge                                                                                                                                                                                                                                                                                                                |
+| `mbx-subtitles-menu`    |                                                                              | `label`, `label-back`, `label-off`, `label-track`, `label-settings`, `label-size`, `label-background`, `label-small`, `label-medium`, `label-large`, `label-xlarge`, `label-none`, `label-dark`, `label-solid`, `label-sdh`, `label-cc` | `icon`, `icon-on`                        | Selects the text track, or off, through `engine.tracks`, or `video.textTracks` in a native session. Lists only tracks the engine can play, in-band captions included. Forced tracks are not listed, and the menu reads off while one shows. Marks SDH subtitles with a badge. Its Settings page sets the size and the background, and writes `subtitle-size` and `subtitle-background` on the player                                                                                                                                                          |
+| `mbx-drm-badge`         |                                                                              | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                                                      | `icon`                                   | Shows a lock for `engine.drm`, or `session.eme.drm` in a native session, with a tooltip on hover and on focus                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `mbx-airplay-button`    |                                                                              | `label`, `label-active`                                                                                                                                                                                                                 | `icon`, `icon-active`                    | Opens Safari's AirPlay picker. Hidden without AirPlay and while the video offers no target. Sets `airplay` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `mbx-pip-button`        |                                                                              | `label-enter`, `label-exit`                                                                                                                                                                                                             | `icon-enter`, `icon-exit`                | Toggles picture in picture. Hidden without the API. Sets `pip` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `mbx-fullscreen-button` |                                                                              | `label-enter`, `label-exit`                                                                                                                                                                                                             | `icon-enter`, `icon-exit`                | Toggles fullscreen on the player. Hidden without the API. Sets `fullscreen` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
