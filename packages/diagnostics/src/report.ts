@@ -84,6 +84,8 @@ export interface EngineReport {
     readonly keySystem: string | null;
     readonly sessions: ReadonlyArray<{ readonly keyId: string; readonly status: string }>;
   } | null;
+  /** The engine's qoe stage figures for this load, or null without the stage. */
+  readonly qoe: QoeFigures | null;
   readonly error: {
     readonly category: string;
     readonly code: string;
@@ -118,9 +120,21 @@ export interface DiagnosticsReport {
   readonly trace: readonly unknown[] | null;
 }
 
+/** The figures of the engine's qoe stage, as `engine.qoe` gives them. */
+export interface QoeFigures {
+  /** Seconds from the load, or the first play if later, to the first frame playing. */
+  readonly startupTime: number | null;
+  readonly rebuffers: number;
+  /** Seconds spent rebuffering, the current wait included. */
+  readonly rebufferDuration: number;
+  /** Video quality changes after the first selection. */
+  readonly switches: number;
+}
+
 /** The optional namespaces the report reads, as the player reads them: a cast, once. */
 interface Namespaces {
   readonly live?: { readonly latency: number | null };
+  readonly qoe?: QoeFigures;
   readonly drm?: {
     readonly keySystem: string | null;
     readonly sessions: ReadonlyArray<{ readonly keyId: string; readonly status: string }>;
@@ -222,6 +236,15 @@ export function engineFacts(engine: Mattebox): EngineReport {
       optional.drm === undefined
         ? null
         : { keySystem: optional.drm.keySystem, sessions: [...optional.drm.sessions] },
+    qoe:
+      optional.qoe === undefined
+        ? null
+        : {
+            startupTime: optional.qoe.startupTime,
+            rebuffers: optional.qoe.rebuffers,
+            rebufferDuration: optional.qoe.rebufferDuration,
+            switches: optional.qoe.switches,
+          },
     error:
       error === null
         ? null

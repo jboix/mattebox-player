@@ -29,7 +29,7 @@ import { bitrate, clock, fixed, ranges, rendition, share } from './format.js';
 import type { PlayerError, PlayerHost } from './host.js';
 import { findPlayer, whenPlayer } from './host.js';
 import { icon } from './icon.js';
-import type { DiagnosticsReport } from './report.js';
+import type { DiagnosticsReport, QoeFigures } from './report.js';
 import { buildReport } from './report.js';
 import type { Sampler } from './sampler.js';
 import { createSampler } from './sampler.js';
@@ -69,6 +69,7 @@ interface Section {
 /** The optional namespaces the pages read, cast once, the way the player does it. */
 interface Namespaces {
   readonly live?: { readonly latency: number | null; readonly atEdge: boolean };
+  readonly qoe?: QoeFigures;
   readonly drm?: {
     readonly keySystem: string | null;
     readonly sessions: ReadonlyArray<{ readonly keyId: string; readonly status: string }>;
@@ -529,9 +530,24 @@ export class MbxDiagnostics extends HTMLElement {
         ['switches', String(counters.switches)],
       );
     }
+    // The engine's own figures, when its qoe stage is in the stack: they
+    // count from the load, where the stalls above count from the sampling.
+    const qoe = (engine as Namespaces | null)?.qoe;
     return [
       { title: 'Source', rows: source },
       { title: 'Playback', rows: playback },
+      ...(qoe === undefined
+        ? []
+        : [
+            {
+              title: 'Quality of experience',
+              rows: [
+                ['startup', qoe.startupTime === null ? '–' : `${qoe.startupTime.toFixed(2)}s`],
+                ['rebuffers', `${qoe.rebuffers}, ${qoe.rebufferDuration.toFixed(1)}s in total`],
+                ['quality changes', String(qoe.switches)],
+              ] satisfies Pair[],
+            },
+          ]),
     ];
   }
 

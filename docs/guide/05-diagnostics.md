@@ -55,12 +55,12 @@ The element has `inline` in that position.
 
 ## The pages
 
-| Page     | What it shows                                                                                                                                                                                                                                                                                       |
-| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Playback | The source, its type and the handler that plays it. The position, the state, the rate, the picture size, the frames decoded and dropped, the buffer ahead and the stalls. With an engine, also the throughput, the rendition that plays and the switches                                            |
-| Charts   | The buffer per source buffer over media time. Over wall time: the throughput, the stalls, the frames and the switches. One canvas shows one chart at a time, over a window of 30 seconds to 10 minutes                                                                                              |
-| Engine   | The capabilities, the phase, the buffer goal, the requests in flight, the live window and the trace. The source buffers with their codecs and ranges. The tracks, with the active ones. The ladder, with what plays, what comes next, and what is pinned or capped. The DRM key system and its keys |
-| Browser  | The platform APIs. The codecs through MSE, the video and Media Capabilities. The DRM key systems with their security level, schemes, persistence, identifier and output protection                                                                                                                  |
+| Page     | What it shows                                                                                                                                                                                                                                                                                                                                                                            |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Playback | The source, its type and the handler that plays it. The position, the state, the rate, the picture size, the frames decoded and dropped, the buffer ahead and the stalls. With an engine, also the throughput, the rendition that plays and the switches. With the engine's `qoe` stage (in the `full` preset), also the startup time, the rebuffers and the quality changes of the load |
+| Charts   | The buffer per source buffer over media time. Over wall time: the throughput, the stalls, the frames and the switches. One canvas shows one chart at a time, over a window of 30 seconds to 10 minutes                                                                                                                                                                                   |
+| Engine   | The capabilities, the phase, the buffer goal, the requests in flight, the live window and the trace. The source buffers with their codecs and ranges. The tracks, with the active ones. The ladder, with what plays, what comes next, and what is pinned or capped. The DRM key system and its keys                                                                                      |
+| Browser  | The platform APIs. The codecs through MSE, the video and Media Capabilities. The DRM key systems with their security level, schemes, persistence, identifier and output protection                                                                                                                                                                                                       |
 
 The browser page probes once, the first time it opens. The key-system
 probes take time, and Firefox asks the viewer about a DRM module that is
@@ -80,7 +80,7 @@ other pages and charts say that there is no engine.
 
 - The source.
 - The playback.
-- The state of the engine.
+- The state of the engine, with the `qoe` stage's figures when the stack has it.
 - The counters.
 - The last two minutes of samples and marks.
 - The browser's support, when the element probed it.

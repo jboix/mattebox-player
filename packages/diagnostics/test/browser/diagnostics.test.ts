@@ -322,6 +322,25 @@ describe('the element', () => {
     expect(report.engine?.quality.playing).toBe('v-1080');
     expect(report.engine?.tracks.active.audio).toBe('audio:de');
     expect(report.trace?.length).toBe(2);
+    expect(report.engine?.qoe).toBeNull();
+  });
+
+  it("shows the engine's quality of experience figures when its qoe stage is there", async () => {
+    const engine = Object.assign(fakeEngine(), {
+      qoe: { startupTime: 1.234, rebuffers: 2, rebufferDuration: 3.45, switches: 4 },
+    });
+    const { element } = await mount([fakeHandler(engine)]);
+    inside(element, 'button').click();
+    const playback = rows(element, 'playback');
+    expect(playback.startup).toBe('1.23s');
+    expect(playback.rebuffers).toBe('2, 3.5s in total');
+    expect(playback['quality changes']).toBe('4');
+    expect(element.report().engine?.qoe).toEqual({
+      startupTime: 1.234,
+      rebuffers: 2,
+      rebufferDuration: 3.45,
+      switches: 4,
+    });
   });
 
   it('keeps its own slimmed history from the engine trace events, and never counts an entry twice', async () => {
