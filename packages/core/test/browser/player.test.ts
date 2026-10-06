@@ -239,6 +239,30 @@ describe('the handler chain in a browser', () => {
     expect(video.disableRemotePlayback).toBe(false);
   });
 
+  it('gives remote playback back to an HLS session after a DASH session disabled it', async () => {
+    // Safari answers for HLS and not for DASH. Stubbed so every browser runs the test.
+    video.canPlayType = (type) => (type.includes('mpegurl') ? 'maybe' : '');
+    // Safari's ManagedMediaSource is the path that disables remote
+    // playback. Where the browser has none, plain MediaSource stands in.
+    const holder = globalThis as { ManagedMediaSource?: unknown };
+    const had = 'ManagedMediaSource' in holder;
+    if (!had) holder.ManagedMediaSource = MediaSource;
+    try {
+      await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
+      expect(video.disableRemotePlayback).toBe(false);
+
+      // No alternative for DASH: the engine disables remote playback.
+      await player.load({ url: 'https://cdn.test/dash/manifest.mpd' });
+      expect(video.disableRemotePlayback).toBe(true);
+
+      await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
+      expect(video.querySelectorAll('source')).toHaveLength(2);
+      expect(video.disableRemotePlayback).toBe(false);
+    } finally {
+      if (!had) delete holder.ManagedMediaSource;
+    }
+  });
+
   it('reports MANIFEST_UNSUPPORTED once when no handler claims the source', async () => {
     const errors: PlayerError[] = [];
     player.on('error', (error) => errors.push(error));

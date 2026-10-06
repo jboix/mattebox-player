@@ -87,6 +87,15 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
     // The alternative is the same URL: the engine plays it through
     // MediaSource, and an AirPlay target plays it on its own.
     const alternative = options.airplay !== false && nativeAlternative(source, video);
+    if (alternative) {
+      // Works around the engine. A session without an alternative on a
+      // ManagedMediaSource sets `disableRemotePlayback`, and neither its
+      // detach nor an attach with an alternative clears it. Left set, it
+      // takes the AirPlay target away from this session. An attach that
+      // owns the flag (clear it on detach, or set it either way) would
+      // remove this line.
+      video.disableRemotePlayback = false;
+    }
     await held.attach(
       video,
       alternative
