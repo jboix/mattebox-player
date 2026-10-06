@@ -1,5 +1,6 @@
 /**
- * <mbx-drm-badge>: a lock over `engine.drm`, hidden until a key system is
+ * <mbx-drm-badge>: a lock over `engine.drm`, or over `session.eme.drm`
+ * for a native session that attached DRM, hidden until a key system is
  * known and for a session without the EME stages. Hover or focus shows
  * what it knows: the key system, and the key sessions with their
  * statuses. The glyph is `icon`; the name comes from `label`, where
@@ -9,7 +10,7 @@
  * for none.
  */
 
-import type { Mattebox } from 'mattebox';
+import type { DrmApi } from 'mattebox/eme';
 import { icon } from '../controls/icons.js';
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
@@ -36,11 +37,11 @@ export class MbxDrmBadge extends Component {
   declare private readonly system: HTMLElement;
   declare private readonly system_id: HTMLElement;
   declare private readonly keys: HTMLElement;
-  declare private engine: Mattebox | null;
+  declare private drm: DrmApi | undefined;
 
   constructor() {
     super();
-    this.engine = null;
+    this.drm = undefined;
     const root = this.attachShadow({ mode: 'open' });
     const slot = document.createElement('slot');
     slot.name = 'icon';
@@ -91,17 +92,18 @@ export class MbxDrmBadge extends Component {
 
   protected override attach(player: PlayerHost): void {
     this.follow(player, (engine) => {
-      this.engine = engine;
+      // The engine's DRM, or the attachment a native session made: one API, the same events.
+      const eme = player.player?.session?.eme;
+      const source = engine ?? eme;
+      this.drm = engine === null ? eme?.drm : namespaces(engine).drm;
       this.render();
-      if (engine === null || namespaces(engine).drm === undefined) return undefined;
+      if (source === undefined || this.drm === undefined) return undefined;
       const tick = (): void => {
         this.render();
       };
-      const offs = [
-        engine.on('drm:keysystem', tick),
-        engine.on('drm:keystatus', tick),
-        engine.on('drm:encrypted', tick),
-      ];
+      const offs = ['drm:keysystem', 'drm:keystatus', 'drm:encrypted'].map((event) =>
+        source.on(event, tick),
+      );
       return () => {
         for (const off of offs) off();
       };
@@ -113,7 +115,7 @@ export class MbxDrmBadge extends Component {
   }
 
   protected override render(): void {
-    const drm = this.engine === null ? undefined : namespaces(this.engine).drm;
+    const drm = this.drm;
     const name = drm?.keySystem ?? null;
     this.hidden = name === null;
     if (drm === undefined || name === null) return;

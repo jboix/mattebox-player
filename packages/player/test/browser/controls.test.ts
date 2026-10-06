@@ -2696,4 +2696,37 @@ describe('the DRM badge', () => {
     badge.setAttribute('label-key', '{count} clau, {statuses}');
     expect(badge.getAttribute('aria-label')).toBe('Protegit per FairPlay: 1 clau, usable');
   });
+
+  it('reads the DRM a native session attached', async () => {
+    const listeners: Array<(payload: unknown) => void> = [];
+    const drm = { keySystem: null as string | null, sessions: [], setLicenseUrl(): void {} };
+    const handler: Handler = {
+      name: 'native',
+      canHandle: () => 'probably',
+      handle: () =>
+        Promise.resolve({
+          handler: 'native',
+          engine: null,
+          eme: {
+            drm,
+            on(_name: string, fn: (payload: unknown) => void): () => void {
+              listeners.push(fn);
+              return () => undefined;
+            },
+            detach(): void {},
+          },
+          dispose: () => Promise.resolve(),
+        }),
+    };
+    const player = build([handler], { controls: 'custom', src: SOURCE });
+    const badge = document.createElement('mbx-drm-badge');
+    player.append(badge);
+    await expect.poll(() => player.player?.session?.handler).toBe('native');
+    expect(badge.hidden).toBe(true);
+
+    drm.keySystem = 'com.apple.fps';
+    for (const fn of listeners) fn(undefined);
+    expect(badge.hidden).toBe(false);
+    expect(badge.getAttribute('aria-label')).toBe('Protected by FairPlay, no key yet');
+  });
 });

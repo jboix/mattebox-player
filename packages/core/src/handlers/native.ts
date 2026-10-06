@@ -7,6 +7,8 @@
  * `CONFIG_ELEMENT_OCCUPIED` on one that already has a `src`.
  */
 import { mattebox } from 'mattebox';
+import type { AttachEmeOptions, EmeAttachment } from 'mattebox/eme';
+import { attachEme } from 'mattebox/eme';
 import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
 
 const NAME = 'native';
@@ -17,6 +19,12 @@ export interface NativeHandlerOptions {
    * handlers before it in the chain. The element passes `preferNativeHls`.
    */
   readonly prefer?: (source: Source, env: HandlerEnvironment) => boolean;
+  /**
+   * The engine's DRM for the source, attached to the video before `src`:
+   * key systems, license URLs and a request hook, as `attachEme` takes
+   * them. A function answers per source, and undefined plays without DRM.
+   */
+  readonly drm?: AttachEmeOptions | ((source: Source) => AttachEmeOptions | undefined);
 }
 
 /** The HLS types `inferType` and the pages give. */
@@ -53,6 +61,13 @@ export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
     // the AirPlay target away. The browser plays this source itself, so
     // the target belongs back.
     video.disableRemotePlayback = false;
+    const drm = typeof options.drm === 'function' ? options.drm(source) : options.drm;
+    // Before `src`, so no `encrypted` event is missed. The player's CDN
+    // bundle reads `attachEme` from the engine's global, and only the
+    // engine bundles with DRM carry it: without it the source plays as
+    // it would with no DRM option.
+    const eme: EmeAttachment | undefined =
+      drm !== undefined && typeof attachEme === 'function' ? attachEme(video, drm) : undefined;
     video.src = source.url;
 
     async function dispose(): Promise<void> {
@@ -60,9 +75,13 @@ export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
       // keeps the old resource selected and the next attach is refused.
       video.removeAttribute('src');
       video.load();
+      // After the source is gone, so no frame needs the keys it clears.
+      eme?.detach();
     }
 
-    return { handler: NAME, engine: null, dispose };
+    return eme === undefined
+      ? { handler: NAME, engine: null, dispose }
+      : { handler: NAME, engine: null, eme, dispose };
   }
 
   return options.prefer === undefined

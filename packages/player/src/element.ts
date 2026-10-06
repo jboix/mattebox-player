@@ -27,6 +27,7 @@ import {
   preferNativeHls,
 } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
+import type { AttachEmeOptions } from 'mattebox/eme';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
@@ -90,6 +91,9 @@ const STATE_EVENTS = [
   'canplay',
 ];
 
+/** The stages that register a key system, which a native session's DRM offers. */
+const KEY_SYSTEMS = ['eme-fairplay', 'eme-cenc'];
+
 /** Every stage the engine ships. A narrower preset is optimization. */
 const DEFAULT_PRESET = 'full';
 
@@ -137,6 +141,14 @@ export interface MatteboxPlayerOptions {
    * `handlers`, which carry their own.
    */
   readonly config?: Partial<KernelConfig>;
+  /**
+   * DRM for a native session, as `attachEme` from `mattebox/eme` takes it:
+   * `keySystems`, `licenseUrl`, `licenseUrls`, `requestHook`. Without
+   * `keySystems` the session offers the key-system stages of the engine's
+   * stack. The `license-url` attribute overrides `licenseUrl`. Ignored
+   * with `handlers`, which carry their own.
+   */
+  readonly drm?: AttachEmeOptions;
 }
 
 /**
@@ -518,13 +530,19 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private async chain(): Promise<readonly Handler[]> {
     if (this.options.handlers !== undefined) return this.options.handlers;
     const config = this.options.config === undefined ? {} : { config: this.options.config };
-    // Read on every load, so the attribute applies without a new chain.
-    const native = nativeHandler({
-      prefer: (source, env) =>
-        this.getAttribute(NATIVE_HLS) !== 'off' && preferNativeHls(source, env),
-    });
+    // The stack is read at load time: a preset builds its stages only when asked.
+    const native = (stages: () => readonly Stage[]): Handler =>
+      nativeHandler({
+        // Read on every load, so the attribute applies without a new chain.
+        prefer: (source, env) =>
+          this.getAttribute(NATIVE_HLS) !== 'off' && preferNativeHls(source, env),
+        drm: () => this.drm(stages),
+      });
     if (this.options.stages !== undefined) {
-      return [matteboxHandler({ stages: this.options.stages, ...config }), native];
+      return [
+        matteboxHandler({ stages: this.options.stages, ...config }),
+        native(() => this.options.stages ?? []),
+      ];
     }
     const name = this.getAttribute('preset') ?? DEFAULT_PRESET;
     const preset = await resolvePreset(name);
@@ -539,7 +557,21 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       });
       return [nativeHandler()];
     }
-    return [matteboxHandler({ preset, ...config, ...drmGuard() }), native];
+    return [matteboxHandler({ preset, ...config, ...drmGuard() }), native(() => preset.stages())];
+  }
+
+  /**
+   * The DRM a native session attaches: the page's `drm` option, the
+   * key-system stages of the engine's stack, and the `license-url`
+   * attribute. None on a browser without EME, as for the engine.
+   */
+  private drm(stages: () => readonly Stage[]): AttachEmeOptions | undefined {
+    if (drmGuard().without !== undefined) return undefined;
+    const keySystems = stages().filter((stage) => KEY_SYSTEMS.includes(stage.name));
+    const license = this.getAttribute('license-url');
+    const page = this.options.drm;
+    if (keySystems.length === 0 && license === null && page === undefined) return undefined;
+    return { keySystems, ...page, ...(license === null ? {} : { licenseUrl: license }) };
   }
 
   /** What the attributes ask of the session's namespaces, once there is one. */

@@ -3,6 +3,7 @@
  * the session a handler returns. The player is the chain runner over them.
  */
 import type { Mattebox } from 'mattebox';
+import type { EmeAttachment } from 'mattebox/eme';
 
 /** A URL and, when known, its MIME type. Without a type the extension decides, see `inferType`. */
 export interface Source {
@@ -38,6 +39,8 @@ export interface HandlerSession {
   readonly handler: string;
   /** The engine feeding the element, or null for native playback. The UI feature-tests its namespaces. */
   readonly engine: Mattebox | null;
+  /** The engine's DRM on the element, for a native session that attached it. */
+  readonly eme?: EmeAttachment;
   dispose(): Promise<void>;
 }
 

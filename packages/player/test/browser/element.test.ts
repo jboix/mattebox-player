@@ -1,11 +1,13 @@
 import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler } from '@mattebox/player-core';
 import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import type { TransportConfig } from 'mattebox';
+import type { Stage, TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
 import dashCmaf from 'mattebox/protocols/dash-cmaf';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
+import emeCore from 'mattebox/stages/eme-core';
+import emeFairplay from 'mattebox/stages/eme-fairplay';
 import { afterEach, describe, expect, it } from 'vitest';
 import { compose, silence } from './helpers.js';
 
@@ -529,12 +531,16 @@ describe('native HLS on Apple WebKit', () => {
    * reports Apple's vendor at once: Playwright's WebKit on Linux answers
    * nothing for HLS, and Chromium answers `maybe` with Google's vendor.
    */
-  function safari(src: string, attributes: Readonly<Record<string, string>> = {}) {
+  function safari(
+    src: string,
+    attributes: Readonly<Record<string, string>> = {},
+    stages: readonly Stage[] = [hlsCmaf(), dashCmaf()],
+  ) {
     Object.defineProperty(navigator, 'vendor', {
       value: 'Apple Computer, Inc.',
       configurable: true,
     });
-    const player = new MatteboxPlayerElement({ stages: [hlsCmaf(), dashCmaf()] });
+    const player = new MatteboxPlayerElement({ stages });
     player.video.canPlayType = (type: string) => (type.includes('mpegurl') ? 'maybe' : '');
     player.setAttribute('muted', '');
     for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
@@ -547,6 +553,24 @@ describe('native HLS on Apple WebKit', () => {
     const player = safari(HLS);
     await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('native');
     expect(player.engine).toBeNull();
+  });
+
+  it("attaches the stack's key systems and the license URL to a native session", async () => {
+    const player = safari(HLS, { 'license-url': 'https://drm.test/fps' }, [
+      hlsCmaf(),
+      emeCore(),
+      emeFairplay({ certificateUrl: 'https://drm.test/fps.cer' }),
+    ]);
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('native');
+    // As for the engine, no DRM on a browser without EME: Playwright's WebKit on Linux.
+    expect(player.player?.session?.eme !== undefined).toBe(EME);
+    expect(player.player?.session?.eme?.drm.keySystem ?? null).toBeNull();
+  });
+
+  it('attaches no DRM to a native session without key systems or a license URL', async () => {
+    const player = safari(HLS);
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('native');
+    expect(player.player?.session?.eme).toBeUndefined();
   });
 
   it('keeps HLS on the engine with native-hls="off"', async () => {

@@ -65,7 +65,14 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
       if (error !== null) emit('error', error);
     };
     video.addEventListener('error', onError);
+    // A native session with DRM attached reports its license failures too:
+    // the element's own error never says why a key did not arrive.
+    const offEme = session.eme?.on('error', (payload) => {
+      const error = fromEngineError(payload, session.handler);
+      if (error !== null) emit('error', error);
+    });
     return () => {
+      offEme?.();
       video.removeEventListener('error', onError);
     };
   }

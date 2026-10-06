@@ -214,6 +214,48 @@ describe('createPlayer', () => {
   });
 });
 
+describe('a native session with DRM attached', () => {
+  it('reports the attachment errors on the error event, until the session ends', async () => {
+    let fire: ((payload: unknown) => void) | null = null;
+    const handler: Handler = {
+      name: 'native',
+      canHandle: () => 'maybe',
+      handle: async () => ({
+        handler: 'native',
+        engine: null,
+        eme: {
+          drm: { keySystem: null, sessions: [], setLicenseUrl: () => undefined },
+          on: (_event: string, fn: (payload: unknown) => void) => {
+            fire = fn;
+            return () => {
+              fire = null;
+            };
+          },
+          detach: () => undefined,
+        },
+        dispose: async () => undefined,
+      }),
+    };
+    const player = createPlayer(video, { handlers: [handler] });
+    const errors: PlayerError[] = [];
+    player.on('error', (error) => errors.push(error));
+    await player.load({ url: 'https://cdn.example/a.m3u8' });
+
+    (fire as ((payload: unknown) => void) | null)?.({
+      category: 'drm',
+      code: 'DRM_LICENSE_FAILED',
+      fatal: true,
+      recoverable: false,
+    });
+    expect(errors.map((error) => [error.code, error.handler])).toEqual([
+      ['DRM_LICENSE_FAILED', 'native'],
+    ]);
+
+    await player.unload();
+    expect(fire).toBeNull();
+  });
+});
+
 describe('preferNativeHls', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
