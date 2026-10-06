@@ -23,6 +23,12 @@ export type CanHandle = 'probably' | 'maybe' | '';
 export interface Handler {
   readonly name: string;
   canHandle(source: Source, env: HandlerEnvironment): CanHandle;
+  /**
+   * True asks this handler first for the source, before the handlers ahead
+   * of it in the chain. Handlers that prefer a source keep their order among
+   * themselves.
+   */
+  prefers?(source: Source, env: HandlerEnvironment): boolean;
   handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession>;
 }
 

@@ -6,7 +6,8 @@
 export { Declined } from './errors.js';
 export type { MatteboxHandlerOptions } from './handlers/mattebox.js';
 export { matteboxHandler } from './handlers/mattebox.js';
-export { nativeHandler } from './handlers/native.js';
+export type { NativeHandlerOptions } from './handlers/native.js';
+export { nativeHandler, preferNativeHls } from './handlers/native.js';
 export { inferType } from './infer-type.js';
 export { createPlayer } from './player.js';
 export type * from './types.js';

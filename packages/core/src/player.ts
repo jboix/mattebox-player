@@ -88,7 +88,10 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
       mse: 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis,
     };
 
-    for (const handler of options.handlers) {
+    // A handler that prefers the source goes first. The rest keep the page's order.
+    const first = options.handlers.filter((handler) => handler.prefers?.(resolved, env) === true);
+    const rest = options.handlers.filter((handler) => !first.includes(handler));
+    for (const handler of [...first, ...rest]) {
       if (handler.canHandle(resolved, env) === '') continue;
       let handled: HandlerSession;
       try {

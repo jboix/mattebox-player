@@ -11,7 +11,34 @@ import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } f
 
 const NAME = 'native';
 
-export function nativeHandler(): Handler {
+export interface NativeHandlerOptions {
+  /**
+   * True asks the native handler first for the source, ahead of the
+   * handlers before it in the chain. The element passes `preferNativeHls`.
+   */
+  readonly prefer?: (source: Source, env: HandlerEnvironment) => boolean;
+}
+
+/** The HLS types `inferType` and the pages give. */
+const HLS = ['application/vnd.apple.mpegurl', 'application/x-mpegurl'];
+
+/**
+ * Whether the browser is Apple's WebKit and plays this HLS source itself.
+ * The vendor string is the one value every WebKit browser shares, without
+ * parsing the user agent. Android Chrome also answers `canPlayType` for
+ * HLS, and the vendor check keeps it on the engine.
+ */
+export function preferNativeHls(source: Source, env: HandlerEnvironment): boolean {
+  const type = source.type?.toLowerCase();
+  return (
+    type !== undefined &&
+    HLS.includes(type) &&
+    env.video.canPlayType(HLS[0] as string) !== '' &&
+    navigator.vendor.startsWith('Apple')
+  );
+}
+
+export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
   function canHandle(source: Source, env: HandlerEnvironment): CanHandle {
     // No type means the element decides once the bytes arrive, which is a maybe.
     if (source.type === undefined) return 'maybe';
@@ -38,5 +65,7 @@ export function nativeHandler(): Handler {
     return { handler: NAME, engine: null, dispose };
   }
 
-  return { name: NAME, canHandle, handle };
+  return options.prefer === undefined
+    ? { name: NAME, canHandle, handle }
+    : { name: NAME, canHandle, prefers: options.prefer, handle };
 }

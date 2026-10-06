@@ -4,6 +4,7 @@ import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import type { TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
+import dashCmaf from 'mattebox/protocols/dash-cmaf';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import { afterEach, describe, expect, it } from 'vitest';
 import { compose, silence } from './helpers.js';
@@ -510,5 +511,66 @@ describe('the config option', () => {
     document.body.append(player);
     await expect.poll(() => player.engine, { timeout: 10_000 }).not.toBeNull();
     expect(player.engine?.stats.snapshot().scheduling.bufferGoal).toBe(45);
+  });
+});
+
+describe('native HLS on Apple WebKit', () => {
+  const HLS = new URL('./fixtures/hls/master.m3u8', import.meta.url).href;
+  const DASH = new URL('./fixtures/dash/manifest.mpd', import.meta.url).href;
+
+  afterEach(() => {
+    // The instance property shadows the prototype's getter; deleting it restores the browser's.
+    delete (navigator as { vendor?: string }).vendor;
+  });
+
+  /**
+   * The element over the stage list, with its video answering for HLS as
+   * Safari's does. No browser in the test matrix plays HLS natively and
+   * reports Apple's vendor at once: Playwright's WebKit on Linux answers
+   * nothing for HLS, and Chromium answers `maybe` with Google's vendor.
+   */
+  function safari(src: string, attributes: Readonly<Record<string, string>> = {}) {
+    Object.defineProperty(navigator, 'vendor', {
+      value: 'Apple Computer, Inc.',
+      configurable: true,
+    });
+    const player = new MatteboxPlayerElement({ stages: [hlsCmaf(), dashCmaf()] });
+    player.video.canPlayType = (type: string) => (type.includes('mpegurl') ? 'maybe' : '');
+    player.setAttribute('muted', '');
+    for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
+    player.setAttribute('src', src);
+    document.body.append(player);
+    return player;
+  }
+
+  it('plays HLS natively where Safari would', async () => {
+    const player = safari(HLS);
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('native');
+    expect(player.engine).toBeNull();
+  });
+
+  it('keeps HLS on the engine with native-hls="off"', async () => {
+    const player = safari(HLS, { 'native-hls': 'off' });
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
+  });
+
+  it('keeps DASH on the engine', async () => {
+    const player = safari(DASH);
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
+  });
+
+  it("keeps HLS on the engine with the browser's own vendor and canPlayType", async () => {
+    // Chromium answers `maybe` for HLS, and its vendor keeps it on the engine.
+    // Only meaningful where the browser has MediaSource, which all three do.
+    const player = new MatteboxPlayerElement({ stages: [hlsCmaf()] });
+    player.setAttribute('muted', '');
+    player.setAttribute('src', HLS);
+    document.body.append(player);
+    const expected =
+      navigator.vendor.startsWith('Apple') &&
+      player.video.canPlayType('application/vnd.apple.mpegurl') !== ''
+        ? 'native'
+        : 'mattebox';
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe(expected);
   });
 });

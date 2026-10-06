@@ -19,7 +19,13 @@
  */
 
 import type { Handler, Player, PlayerError, Session, Source } from '@mattebox/player-core';
-import { createPlayer, inferType, matteboxHandler, nativeHandler } from '@mattebox/player-core';
+import {
+  createPlayer,
+  inferType,
+  matteboxHandler,
+  nativeHandler,
+  preferNativeHls,
+} from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
@@ -29,11 +35,18 @@ import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
 import { PLAYER } from './tags.js';
 
+/**
+ * `off` keeps HLS on the engine in Safari. Anything else lets Safari play
+ * HLS itself: FairPlay, AirPlay, Low-Latency HLS and the platform's
+ * fullscreen then work as Apple built them. Changing it reloads.
+ */
+const NATIVE_HLS = 'native-hls';
+
 /** Attributes forwarded onto the video as attributes, never as properties. */
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
 /** Everything else the element watches. Changing any of them reloads. */
-const OWN = ['src', 'type', 'preset', 'license-url', 'thumbnails'];
+const OWN = ['src', 'type', 'preset', 'license-url', 'thumbnails', NATIVE_HLS];
 
 /**
  * The chapters file URL. A session with the engine's `chapters` namespace
@@ -505,8 +518,13 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private async chain(): Promise<readonly Handler[]> {
     if (this.options.handlers !== undefined) return this.options.handlers;
     const config = this.options.config === undefined ? {} : { config: this.options.config };
+    // Read on every load, so the attribute applies without a new chain.
+    const native = nativeHandler({
+      prefer: (source, env) =>
+        this.getAttribute(NATIVE_HLS) !== 'off' && preferNativeHls(source, env),
+    });
     if (this.options.stages !== undefined) {
-      return [matteboxHandler({ stages: this.options.stages, ...config }), nativeHandler()];
+      return [matteboxHandler({ stages: this.options.stages, ...config }), native];
     }
     const name = this.getAttribute('preset') ?? DEFAULT_PRESET;
     const preset = await resolvePreset(name);
@@ -521,7 +539,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       });
       return [nativeHandler()];
     }
-    return [matteboxHandler({ preset, ...config, ...drmGuard() }), nativeHandler()];
+    return [matteboxHandler({ preset, ...config, ...drmGuard() }), native];
   }
 
   /** What the attributes ask of the session's namespaces, once there is one. */

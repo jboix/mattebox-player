@@ -6,8 +6,8 @@ import type {
   Session,
   Source,
 } from '@mattebox/player-core';
-import { createPlayer, Declined } from '@mattebox/player-core';
-import { describe, expect, it, vi } from 'vitest';
+import { createPlayer, Declined, nativeHandler, preferNativeHls } from '@mattebox/player-core';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /** The chain is pure policy, so it runs without a DOM. */
 const video = {
@@ -186,5 +186,76 @@ describe('createPlayer', () => {
     await player.load({ url: 'https://cdn.example/a.mp4' });
 
     expect(seen).not.toHaveBeenCalled();
+  });
+
+  it('asks a handler that prefers the source first, whatever its place', async () => {
+    const engine = stub('engine', 'probably');
+    const native = stub('native', 'maybe');
+    const preferring: Handler = {
+      ...native.handler,
+      prefers: (source) => source.type === 'application/vnd.apple.mpegurl',
+    };
+    const player = createPlayer(video, { handlers: [engine.handler, preferring] });
+
+    expect((await player.load({ url: 'https://cdn.example/a.m3u8' })).handler).toBe('native');
+    expect(engine.seen).toHaveLength(0);
+    // Another type keeps the page's order.
+    expect((await player.load({ url: 'https://cdn.example/a.mpd' })).handler).toBe('engine');
+  });
+
+  it('falls back to the page order when the preferred handler cannot play the source', async () => {
+    const engine = stub('engine', 'probably');
+    const native = stub('native', '');
+    const preferring: Handler = { ...native.handler, prefers: () => true };
+    const player = createPlayer(video, { handlers: [engine.handler, preferring] });
+
+    expect((await player.load({ url: 'https://cdn.example/a.m3u8' })).handler).toBe('engine');
+    expect(native.seen).toHaveLength(1);
+  });
+});
+
+describe('preferNativeHls', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** A video that answers `canPlayType` for HLS the way Safari does, or not at all. */
+  function element(hls: boolean): HTMLMediaElement {
+    return {
+      canPlayType: (type: string) =>
+        hls && type === 'application/vnd.apple.mpegurl' ? 'maybe' : '',
+    } as unknown as HTMLMediaElement;
+  }
+
+  const HLS: Source = { url: 'a.m3u8', type: 'application/vnd.apple.mpegurl' };
+  const DASH: Source = { url: 'a.mpd', type: 'application/dash+xml' };
+
+  it('prefers HLS on Apple WebKit when the element plays it', () => {
+    vi.stubGlobal('navigator', { vendor: 'Apple Computer, Inc.' });
+    expect(preferNativeHls(HLS, { video: element(true), mse: true })).toBe(true);
+    expect(
+      preferNativeHls(
+        { url: 'a', type: 'application/x-mpegURL' },
+        { video: element(true), mse: true },
+      ),
+    ).toBe(true);
+  });
+
+  it('keeps DASH, an untyped source, and an element without HLS on the engine', () => {
+    vi.stubGlobal('navigator', { vendor: 'Apple Computer, Inc.' });
+    expect(preferNativeHls(DASH, { video: element(true), mse: true })).toBe(false);
+    expect(preferNativeHls({ url: 'signed/1' }, { video: element(true), mse: true })).toBe(false);
+    expect(preferNativeHls(HLS, { video: element(false), mse: true })).toBe(false);
+  });
+
+  it('keeps Android Chrome on the engine, though it answers canPlayType for HLS', () => {
+    vi.stubGlobal('navigator', { vendor: 'Google Inc.' });
+    expect(preferNativeHls(HLS, { video: element(true), mse: true })).toBe(false);
+  });
+
+  it('is what nativeHandler offers as prefers, and nothing without the option', () => {
+    const prefer = (): boolean => true;
+    expect(nativeHandler({ prefer }).prefers).toBe(prefer);
+    expect(nativeHandler().prefers).toBeUndefined();
   });
 });
