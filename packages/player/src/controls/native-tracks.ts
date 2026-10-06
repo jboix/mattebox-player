@@ -49,8 +49,3 @@ export function onNativeTracks(
     for (const event of events) list.removeEventListener(event, tick);
   };
 }
-
-/** The label the stream gave, else the language, else the place in the list. */
-export function nativeLabel(track: NativeTrack, index: number): string {
-  return track.label || track.language || String(index + 1);
-}

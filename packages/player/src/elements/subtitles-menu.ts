@@ -14,6 +14,7 @@
  * `label-background`, one per size and one per background, `label-sdh`
  * for the badge on subtitles for the deaf and hard of hearing, and
  * `label-cc` for the badge on closed captions carried in the video.
+ * `label-track` also names a track that has no name and no language.
  *
  * Forced tracks are not listed. The engine's forced-subtitles stage shows
  * one while no subtitle is selected, so the menu reads Off then (guide
@@ -25,7 +26,9 @@ import type { Mattebox } from 'mattebox';
 import { isSdh } from 'mattebox';
 import { icon } from '../controls/icons.js';
 import type { MenuGroup } from '../controls/menu.js';
-import { nativeLabel, nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
+import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
+import type { TrackEntry } from '../controls/track-names.js';
+import { trackNames } from '../controls/track-names.js';
 import type { PlayerHost } from '../host.js';
 import { onTracks, trackItems } from './audio-menu.js';
 import { MenuElement } from './menu-element.js';
@@ -115,21 +118,20 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     });
   }
 
-  /** The native session's subtitle tracks as items, and the showing one's. */
-  private native(tracks: readonly TextTrack[]): [MenuGroup['items'], string | null] {
+  /** The native session's subtitle tracks as entries, and the showing one's. */
+  private native(tracks: readonly TextTrack[]): [TrackEntry[], string | null] {
     const sdh = this.getAttribute('label-sdh') ?? 'SDH';
-    const items = tracks.map(
-      (track, index) =>
-        [
-          String(index),
-          nativeLabel(track, index),
-          undefined,
-          undefined,
-          track.kind === 'captions' ? [sdh] : [],
-        ] as const,
+    const entries = tracks.map(
+      (track, index): TrackEntry => [
+        String(index),
+        track.label,
+        track.language,
+        track.kind === 'captions' ? [sdh] : [],
+        [],
+      ],
     );
     const on = tracks.findIndex((track) => track.mode === 'showing');
-    return [items, on === -1 ? null : String(on)];
+    return [entries, on === -1 ? null : String(on)];
   }
 
   protected override render(): void {
@@ -160,11 +162,15 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
             ],
             (track) => track.forced !== true,
           );
-    const items: MenuGroup['items'] = [[OFF, this.getAttribute('label-off') ?? 'Off'], ...tracks];
+    const word = this.getAttribute('label-track');
+    const items: MenuGroup['items'] = [
+      [OFF, this.getAttribute('label-off') ?? 'Off'],
+      ...trackNames(tracks, word),
+    ];
     this.menu.fill([
       {
         name: 'track',
-        label: this.getAttribute('label-track') ?? 'Track',
+        label: word ?? 'Track',
         items,
         value: active ?? OFF,
         onSelect: (value) => {

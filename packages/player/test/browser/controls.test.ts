@@ -2303,18 +2303,22 @@ describe('the menu primitive, through the speed menu', () => {
 
 /** An engine with tracks, and what the bar's controls read besides. */
 function tracksEngine(
-  available: ReadonlyArray<{
+  listed: ReadonlyArray<{
     id: string;
     contentType: string;
+    name?: string;
     lang?: string;
     role?: string;
+    roles?: readonly string[];
     forced?: boolean;
     characteristics?: readonly string[];
     instreamId?: string;
     /** False for a track the engine cannot play, such as AC-3 audio in a browser without it. */
     playable?: boolean;
+    renditions?: ReadonlyArray<{ channels?: string }>;
   }>,
 ): Mattebox & { active: string | null; chosen: string[] } {
+  const available = listed.map((track) => ({ renditions: [], ...track }));
   const fake = {
     active: null as string | null,
     chosen: [] as string[],
@@ -2357,7 +2361,7 @@ describe('the subtitles menu over a stubbed session', () => {
         (node) => node.textContent,
       );
     expect(labels()).toEqual(['Track']);
-    expect(items(menu).map((item) => item.textContent)).toEqual(['Off', 'en', 'Settings']);
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Off', 'English', 'Settings']);
     expect(items(menu)[2]?.getAttribute('aria-haspopup')).toBe('menu');
 
     inner(menu).click();
@@ -2396,7 +2400,7 @@ describe('the subtitles menu over a stubbed session', () => {
     menu.setAttribute('label-settings', 'Opcions');
     menu.setAttribute('label-xlarge', 'Molt gran');
     menu.setAttribute('label-back', 'Torna de {page}');
-    expect(items(menu).map((item) => item.textContent)).toEqual(['Cap', 'en', 'Opcions']);
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Cap', 'English', 'Opcions']);
     inner(menu).click();
     items(menu)[2]?.click();
     expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Torna de Opcions');
@@ -2465,6 +2469,38 @@ describe('the subtitles menu over a stubbed session', () => {
     menu.setAttribute('label-ad', 'AD (en)');
     menu.setAttribute('label-original', 'VO');
     expect(badges()).toEqual([['VO'], [], ['AD (en)']]);
+  });
+
+  it('names a track from the manifest, then its language, and tells twins apart', async () => {
+    const engine = tracksEngine([
+      { id: 'a-en-51', contentType: 'audio', lang: 'en', renditions: [{ channels: '6' }] },
+      {
+        id: 'a-en-20',
+        contentType: 'audio',
+        lang: 'en',
+        role: 'main',
+        renditions: [{ channels: '2' }],
+      },
+      { id: 'a-x', contentType: 'audio', name: 'Commentary', lang: 'en' },
+      { id: 'a-und', contentType: 'audio' },
+      { id: 't-en', contentType: 'text', lang: 'en', role: 'main' },
+      // DASH lists every Role, and the caption role makes a track SDH.
+      { id: 't-en-sdh', contentType: 'text', lang: 'en', role: 'caption', roles: ['caption'] },
+    ]);
+    const player = await over([fakeHandler(engine)]);
+    expect(items(control(player, 'mbx-audio-menu')).map((item) => item.textContent)).toEqual([
+      'English (5.1)',
+      'English (Stereo)',
+      'Commentary',
+      'Track 4',
+    ]);
+    // The role "main" is left out, and the caption role reads as the SDH badge alone.
+    expect(items(control(player, 'mbx-subtitles-menu')).map((item) => item.textContent)).toEqual([
+      'Off',
+      'English',
+      'EnglishSDH',
+      'Settings',
+    ]);
   });
 
   it('leaves out a track the engine cannot play', async () => {
@@ -2584,7 +2620,7 @@ describe('the audio and subtitles menus over a native session', () => {
     expect(items(menu).map((item) => item.textContent)).toEqual([
       'Off',
       'English',
-      'frSDH',
+      'FrenchSDH',
       'Settings',
     ]);
 
@@ -2607,7 +2643,11 @@ describe('the audio and subtitles menus over a native session', () => {
     });
     const menu = control(player, 'mbx-audio-menu');
     await expect.poll(() => menu.hidden).toBe(false);
-    expect(items(menu).map((item) => item.textContent)).toEqual(['English', 'Français', 'enAD']);
+    expect(items(menu).map((item) => item.textContent)).toEqual([
+      'English',
+      'Français',
+      'EnglishAD',
+    ]);
     expect(items(menu)[0]?.getAttribute('aria-checked')).toBe('true');
 
     inner(menu).click();

@@ -299,7 +299,7 @@ subtitles menus read the video's own track lists. See
 | `mbx-speed-menu`        | `rates`, space-separated                                                     | `label`, `label-normal`, `label-back` with `{page}`                                                                                                                                                                                     | `icon`                                   | Sets `video.playbackRate`. Works for every session                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `mbx-chapters-menu`     |                                                                              | `label`, `label-back`                                                                                                                                                                                                                   | `icon`                                   | Lists the chapters with their start times, and checks the current one. Each item shows the chapter's picture when every chapter has one. A choice seeks. Hidden without chapters. Works for every session                                                                                                                                                                                                                                                                                                                                                     |
 | `mbx-quality-menu`      |                                                                              | `label`, `label-auto`, `label-back`                                                                                                                                                                                                     | `icon`                                   | Pins a rendition through `engine.quality`. Auto means no pin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `mbx-audio-menu`        |                                                                              | `label`, `label-back`, `label-ad`, `label-original`                                                                                                                                                                                     | `icon`                                   | Selects the audio track through `engine.tracks`, or `video.audioTracks` in a native session. Lists only tracks the engine can play. Shown when there is more than one. Marks an audio description track and the original language with a badge                                                                                                                                                                                                                                                                                                                |
+| `mbx-audio-menu`        |                                                                              | `label`, `label-back`, `label-ad`, `label-original`, `label-track`                                                                                                                                                                      | `icon`                                   | Selects the audio track through `engine.tracks`, or `video.audioTracks` in a native session. Lists only tracks the engine can play. Shown when there is more than one. Marks an audio description track and the original language with a badge                                                                                                                                                                                                                                                                                                                |
 | `mbx-subtitles-menu`    |                                                                              | `label`, `label-back`, `label-off`, `label-track`, `label-settings`, `label-size`, `label-background`, `label-small`, `label-medium`, `label-large`, `label-xlarge`, `label-none`, `label-dark`, `label-solid`, `label-sdh`, `label-cc` | `icon`, `icon-on`                        | Selects the text track, or off, through `engine.tracks`, or `video.textTracks` in a native session. Lists only tracks the engine can play, in-band captions included. Forced tracks are not listed, and the menu reads off while one shows. Marks SDH subtitles with a badge. Its Settings page sets the size and the background, and writes `subtitle-size` and `subtitle-background` on the player                                                                                                                                                          |
 | `mbx-drm-badge`         |                                                                              | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                                                      | `icon`                                   | Shows a lock for `engine.drm`, or `session.eme.drm` in a native session, with a tooltip on hover and on focus                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `mbx-airplay-button`    |                                                                              | `label`, `label-active`                                                                                                                                                                                                                 | `icon`, `icon-active`                    | Opens Safari's AirPlay picker. Hidden without AirPlay and while the video offers no target. Sets `airplay` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -407,19 +407,32 @@ player ships no locales.
 <mbx-seek-bar label="Cerca" label-of="{current} de {duration}"></mbx-seek-bar>
 ```
 
-The audio and subtitles menus name a track by its language, then its role,
-then its id, whichever the manifest gives. A badge after the name marks a
-standard characteristic, from the engine's track functions.
+The audio and subtitles menus name a track by the first of these it has:
 
-| Badge                                                                    | Attribute        | Menu      | Track                                      |
-| ------------------------------------------------------------------------ | ---------------- | --------- | ------------------------------------------ |
-| `AD`                                                                     | `label-ad`       | audio     | Audio description                          |
-| `Original`                                                               | `label-original` | audio     | The original language                      |
-| `SDH`                                                                    | `label-sdh`      | subtitles | Subtitles for the deaf and hard of hearing |
-| `CC`                                                                     | `label-cc`       | subtitles | Closed captions carried in the video       |
-| The quality menu names a                                                 |                  |           |                                            |
-| rendition by its height or its bitrate. These names come from the stream |                  |           |                                            |
-| and have no attribute.                                                   |                  |           |                                            |
+1. The name in the manifest (HLS `NAME`, DASH `Label`), or the label of a
+   native track.
+2. The language's name in the page's language (`lang` on `<html>`, else
+   the browser's). This needs `Intl.DisplayNames`, which Chromium 76 and
+   79 do not have.
+3. The language code.
+4. "Track" (`label-track`) and the track's place in the list.
+
+The role `main` is not shown. Two tracks that read the same take a hint in
+parentheses: the audio channel layout ("Stereo", "5.1") when the engine
+gives one, then the role, then the place in the list.
+
+A badge after the name marks a standard characteristic, from the engine's
+track functions.
+
+| Badge      | Attribute        | Menu      | Track                                      |
+| ---------- | ---------------- | --------- | ------------------------------------------ |
+| `AD`       | `label-ad`       | audio     | Audio description                          |
+| `Original` | `label-original` | audio     | The original language                      |
+| `SDH`      | `label-sdh`      | subtitles | Subtitles for the deaf and hard of hearing |
+| `CC`       | `label-cc`       | subtitles | Closed captions carried in the video       |
+
+The quality menu names a rendition by its height or its bitrate. These
+names come from the stream and have no attribute.
 
 ### Icons
 

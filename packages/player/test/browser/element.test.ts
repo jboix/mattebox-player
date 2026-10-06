@@ -295,7 +295,7 @@ describe('<mattebox-player>', () => {
     await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     await expect.poll(() => shown(player)).toContain('mbx-audio-menu');
-    expect(texts(player.querySelector('mbx-audio-menu'))).toEqual(['en · main', 'fr · alternate']);
+    expect(texts(player.querySelector('mbx-audio-menu'))).toEqual(['English', 'French']);
   });
 
   it('shows no error for a native source', async () => {
@@ -484,7 +484,7 @@ describe('the menus over an engine session', () => {
     const player = await engineReady('https://cdn.test/hls/alt.m3u8');
     const audio = control(player, 'mbx-audio-menu');
     await expect.poll(() => audio.hidden).toBe(false);
-    expect(texts(audio)).toEqual(['en · main', 'fr · alternate']);
+    expect(texts(audio)).toEqual(['English', 'French']);
   });
 
   it('hides the menus with the session', async () => {
