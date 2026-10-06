@@ -143,6 +143,13 @@
             </select>
           </label>
         </div>
+        <label class="field" title="native-hls: on Safari, HLS plays through the browser&#x27;s own player by default, with AirPlay, Picture in Picture and FairPlay as Apple built them. off plays it through the engine, with the quality menu, thumbnails and diagnostics. Other browsers and DASH always use the engine.">
+          <span>Native HLS on Safari</span>
+          <select id="native-hls">
+            <option value="auto">auto</option>
+            <option value="off">off</option>
+          </select>
+        </label>
         <label class="field" title="The forward buffer the engine keeps ahead of the playhead, in seconds: its bufferGoalSeconds config, 30 by default. Config is not an attribute, so the player is built from script with define() and the stream loads again."><span>Buffer goal, seconds</span><input type="number" min="1" step="1" data-knob="buffer-goal" value="30" /></label>
         <div class="pair">
           <label class="field" title="Sets subtitle-size: the subtitle size against the browser&#x27;s default.">

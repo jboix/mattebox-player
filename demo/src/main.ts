@@ -519,6 +519,7 @@ const thumbnails = byId<HTMLInputElement>('thumbnails');
 const chapters = byId<HTMLInputElement>('chapters');
 const castReceiver = byId<HTMLInputElement>('cast-receiver');
 const preset = byId<HTMLSelectElement>('preset');
+const nativeHls = byId<HTMLSelectElement>('native-hls');
 const markup = byId<HTMLPreElement>('markup');
 const screens = [...document.querySelectorAll<HTMLInputElement>('[data-screen]')];
 const knobInputs = [...document.querySelectorAll<HTMLInputElement>('[data-knob]')];
@@ -622,6 +623,7 @@ function defaults(): void {
   for (const screen of screens) screen.checked = screen.defaultChecked;
   poster.value = '';
   preset.value = 'full';
+  nativeHls.value = 'auto';
   for (const look of looks) look.value = look.dataset.look === 'subtitle-size' ? 'medium' : 'dark';
   controlsSelect.value = 'custom';
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
@@ -852,6 +854,7 @@ function applyElement(element: MatteboxPlayerElement): void {
   attribute(element, 'thumbnails', thumbnails.value.trim() === '' ? null : thumbnails.value.trim());
   attribute(element, 'chapters', chapters.value.trim() === '' ? null : chapters.value.trim());
   attribute(element, 'preset', preset.value === 'full' ? null : preset.value);
+  attribute(element, 'native-hls', nativeHls.value === 'off' ? 'off' : null);
   for (const look of looks) {
     const name = look.dataset.look as string;
     const fallback = name === 'subtitle-size' ? 'medium' : 'dark';
@@ -869,6 +872,7 @@ function markupFor(element: MatteboxPlayerElement): string {
   for (const name of [
     'type',
     'preset',
+    'native-hls',
     'license-url',
     'thumbnails',
     'chapters',
@@ -949,6 +953,7 @@ interface Preferences {
   readonly flags: Record<string, boolean>;
   readonly poster: string;
   readonly preset: string;
+  readonly nativeHls: string;
   readonly looks: Record<string, string>;
   readonly controls: string;
   readonly rows: Record<Row, string[]>;
@@ -965,6 +970,7 @@ function savePreferences(): void {
     flags: Object.fromEntries(flags.map((f) => [f.dataset.flag as string, f.checked])),
     poster: poster.value,
     preset: preset.value,
+    nativeHls: nativeHls.value,
     looks: Object.fromEntries(looks.map((l) => [l.dataset.look as string, l.value])),
     controls: controlsSelect.value,
     rows,
@@ -1003,6 +1009,7 @@ function loadPreferences(): void {
   ) {
     preset.value = prefs.preset;
   }
+  if (prefs.nativeHls === 'auto' || prefs.nativeHls === 'off') nativeHls.value = prefs.nativeHls;
   for (const l of looks) {
     const saved = prefs.looks?.[l.dataset.look as string];
     if (typeof saved === 'string' && [...l.options].some((o) => o.value === saved)) l.value = saved;
@@ -1176,6 +1183,7 @@ castReceiver.addEventListener('change', () => {
   if (castConnected) location.reload();
 });
 preset.addEventListener('change', render);
+nativeHls.addEventListener('change', render);
 // The subtitles menu in the bar writes the same two attributes; the side follows it.
 new MutationObserver(() => {
   for (const look of looks) {
