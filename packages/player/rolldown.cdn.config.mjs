@@ -15,7 +15,10 @@ export default defineConfig({
     name: 'matteboxPlayer',
     exports: 'named',
     // The root import is the global; a preset subpath is the global's `preset`.
-    globals: (id) => (id === 'mattebox' ? 'mattebox' : 'mattebox.preset'),
+    // `mattebox/eme` reads `attachEme` off the global itself: the engine
+    // bundles with DRM carry it there, and the others leave it undefined,
+    // which the native handler checks before it attaches.
+    globals: (id) => (id === 'mattebox' || id === 'mattebox/eme' ? 'mattebox' : 'mattebox.preset'),
     minify: true,
   },
   // The default target, the same as dist/es2015.

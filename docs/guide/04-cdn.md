@@ -51,3 +51,32 @@ curl -s https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-pl
   defer
 ></script>
 ```
+
+## DRM on a native session
+
+Safari plays HLS natively by default (see
+[03 The element](03-the-element.md)). The engine does
+not run then, and the player attaches the engine's DRM to the video with
+`mattebox.attachEme`.
+
+- The engine bundles with DRM have `mattebox.attachEme`: `mattebox.min.js` and the `-drm` bundles.
+- The other engine bundles do not. A native session then attaches no DRM, and encrypted content fails to play.
+- The player's bundle does not contain `attachEme`. It reads it from the engine's global.
+
+A FairPlay stream needs the application certificate. Create the element from
+JavaScript and pass the key system:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/mattebox@0.11.0/dist/cdn/mattebox.hls-drm.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js" defer></script>
+<script type="module">
+  const player = new matteboxPlayer.MatteboxPlayerElement({
+    drm: {
+      keySystems: [mattebox.emeFairplay({ certificateUrl: 'https://drm.example/fps.cer' })],
+      licenseUrl: 'https://drm.example/fps',
+    },
+  });
+  player.setAttribute('src', 'https://example.com/vod/master.m3u8');
+  document.body.append(player);
+</script>
+```
