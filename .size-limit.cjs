@@ -3,6 +3,10 @@
 // at 30 kB for the bar, and v3 measured 23.9 kB with every control as an
 // element, so it holds. The diagnostics element is a package of its own with
 // its own budget. Raise any only with a reason in the commit body.
+//
+// The CDN bundles are measured as served: size-limit would otherwise bundle
+// each file again with esbuild, which adds about 0.7 kB of wrapper nobody
+// downloads. The core is a set of modules, so it still needs the bundling.
 module.exports = [
   {
     name: '@mattebox/player-core',
@@ -15,6 +19,7 @@ module.exports = [
   {
     name: '@mattebox/player',
     path: 'packages/player/dist/cdn/mattebox-player.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
     // The engine is a peer here too: the CDN bundle reads it from the
     // `mattebox` global, and its dynamic preset imports resolve against the
     // page's engine, never into this download.
@@ -25,6 +30,7 @@ module.exports = [
   {
     name: '@mattebox/player-diagnostics',
     path: 'packages/diagnostics/dist/cdn/mattebox-player-diagnostics.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
     // The engine and the player are peers: the bundle reads the engine from
     // the `mattebox` global and takes nothing from the player at runtime.
     ignore: ['mattebox', '@mattebox/player'],
@@ -34,6 +40,7 @@ module.exports = [
   {
     name: '@mattebox/player-cast',
     path: 'packages/cast/dist/cdn/mattebox-player-cast.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
     // The engine and the player are peers; the Cast sender SDK is a script
     // the page loads at runtime and is never part of the download.
     ignore: ['mattebox', '@mattebox/player'],
@@ -43,6 +50,7 @@ module.exports = [
   {
     name: '@mattebox/player-spatial-nav',
     path: 'packages/spatial-nav/dist/cdn/mattebox-player-spatial-nav.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
     // The player is a peer, read for its types alone. The TV plan fixed the
     // spatial navigation at 1.5 kB; the key codes and Back ride with it.
     ignore: ['mattebox', '@mattebox/player'],
