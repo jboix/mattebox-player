@@ -26,9 +26,9 @@ import { STREAMS, tagsOf } from './catalogue.js';
 import type { BusinessUnit, Composition, IlResource, SearchResult } from './srgssr.js';
 import {
   BUSINESS_UNITS,
+  drmFor,
   fetchComposition,
   fmtDuration,
-  licenseUrlFor,
   searchMedia,
   tokenize,
 } from './srgssr.js';
@@ -134,6 +134,7 @@ interface Choice {
   readonly url: string;
   readonly type?: string;
   readonly licenseUrl?: string;
+  readonly certificateUrl?: string;
   readonly thumbnails?: string;
   readonly chapters?: string;
   readonly poster?: string;
@@ -164,6 +165,8 @@ function load(choice: Choice): void {
   else element.setAttribute('type', type);
   if (choice.licenseUrl === undefined) element.removeAttribute('license-url');
   else element.setAttribute('license-url', choice.licenseUrl);
+  if (choice.certificateUrl === undefined) element.removeAttribute('certificate-url');
+  else element.setAttribute('certificate-url', choice.certificateUrl);
   if (choice.thumbnails === undefined) element.removeAttribute('thumbnails');
   else element.setAttribute('thumbnails', choice.thumbnails);
   if (choice.chapters === undefined) element.removeAttribute('chapters');
@@ -415,16 +418,17 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
       const signal = next();
       const url =
         resource.tokenType === 'AKAMAI' ? await tokenize(resource.url, signal) : resource.url;
-      const license = licenseUrlFor(resource);
+      const drm = drmFor(resource);
       load({
         label: c.title,
         url,
         type: resource.mimeType,
-        ...(license === null ? {} : { licenseUrl: license }),
+        ...(drm === null ? {} : { licenseUrl: drm.licenseUrl }),
+        ...(drm?.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
         ...(c.imageUrl === undefined ? {} : { poster: `${c.imageUrl}?width=1280&format=jpg` }),
         ...(c.chapters.length === 0 ? {} : { appChapters: c.chapters }),
       });
-      tell(`playing ${c.title}${license === null ? '' : ' (DRM)'}`);
+      tell(`playing ${c.title}${drm === null ? '' : ' (DRM)'}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       tell(`could not prepare the stream: ${String((error as Error).message)}`, true);
@@ -874,6 +878,7 @@ function markupFor(element: MatteboxPlayerElement): string {
     'preset',
     'native-hls',
     'license-url',
+    'certificate-url',
     'thumbnails',
     'chapters',
     'poster',

@@ -47,7 +47,7 @@ const NATIVE_HLS = 'native-hls';
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
 /** Everything else the element watches. Changing any of them reloads. */
-const OWN = ['src', 'type', 'preset', 'license-url', 'thumbnails', NATIVE_HLS];
+const OWN = ['src', 'type', 'preset', 'license-url', 'certificate-url', 'thumbnails', NATIVE_HLS];
 
 /**
  * The chapters file URL. A session with the engine's `chapters` namespace
@@ -145,7 +145,8 @@ export interface MatteboxPlayerOptions {
    * DRM for a native session, as `attachEme` from `mattebox/eme` takes it:
    * `keySystems`, `licenseUrl`, `licenseUrls`, `requestHook`. Without
    * `keySystems` the session offers the key-system stages of the engine's
-   * stack. The `license-url` attribute overrides `licenseUrl`. Ignored
+   * stack. The `license-url` attribute overrides `licenseUrl`, and
+   * `certificate-url` gives the FairPlay certificate. Ignored
    * with `handlers`, which carry their own.
    */
   readonly drm?: AttachEmeOptions;
@@ -569,9 +570,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (drmGuard().without !== undefined) return undefined;
     const keySystems = stages().filter((stage) => KEY_SYSTEMS.includes(stage.name));
     const license = this.getAttribute('license-url');
+    const certificate = this.getAttribute('certificate-url');
     const page = this.options.drm;
     if (keySystems.length === 0 && license === null && page === undefined) return undefined;
-    return { keySystems, ...page, ...(license === null ? {} : { licenseUrl: license }) };
+    // `certificateUrl` is an eme-core option from mattebox 0.12; an older
+    // engine ignores it.
+    const options: AttachEmeOptions & { certificateUrl?: string } = {
+      keySystems,
+      ...page,
+      ...(license === null ? {} : { licenseUrl: license }),
+      ...(certificate === null ? {} : { certificateUrl: certificate }),
+    };
+    return options;
   }
 
   /** What the attributes ask of the session's namespaces, once there is one. */
@@ -586,6 +596,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // means constructing eme-core, and importing a stage to configure it
     // would bundle it.
     if (license !== null && optional.drm !== undefined) optional.drm.setLicenseUrl(license);
+    const certificate = this.getAttribute('certificate-url');
+    if (certificate !== null) optional.drm?.setCertificateUrl?.(certificate);
 
     const track = this.getAttribute('thumbnails');
     if (track !== null && optional.thumbnails !== undefined) {

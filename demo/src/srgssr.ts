@@ -26,6 +26,8 @@ export interface SearchResult {
 interface DrmEntry {
   readonly type: 'WIDEVINE' | 'PLAYREADY' | 'FAIRPLAY';
   readonly licenseUrl: string;
+  /** FairPlay only: the application certificate. */
+  readonly certificateUrl?: string;
 }
 
 /** One playable resource of a chapter, as the IL describes it. */
@@ -159,11 +161,11 @@ export async function tokenize(streamUrl: string, signal: AbortSignal): Promise<
   return url.toString();
 }
 
-/** The license URL for the key system this browser has, or null for a clear resource. */
-export function licenseUrlFor(resource: IlResource): string | null {
+/** The DRM entry for the key system this browser has, or null for a clear resource. */
+export function drmFor(resource: IlResource): DrmEntry | null {
   const fairplay = 'webkitEnterFullscreen' in document.createElement('video');
   const wanted = fairplay ? 'FAIRPLAY' : 'WIDEVINE';
-  return (resource.drmList ?? []).find((d) => d.type === wanted)?.licenseUrl ?? null;
+  return (resource.drmList ?? []).find((d) => d.type === wanted) ?? null;
 }
 
 export function fmtDuration(ms: number): string {
