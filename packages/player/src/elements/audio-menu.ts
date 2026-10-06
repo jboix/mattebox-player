@@ -20,16 +20,17 @@ import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
 /**
- * A track's channel layout. Mattebox 0.11 has no channel count on a track,
- * so this reads one structurally, on the track or its first rendition,
- * for an engine that carries it (HLS CHANNELS, DASH
- * AudioChannelConfiguration). A typed `channels` field would make it one read.
+ * A track's channel layout, from its first rendition: `channels` and
+ * `audioObjects` (`JOC` for Dolby Atmos) arrived in mattebox 0.12, so they
+ * are read structurally and an older engine gives none.
  */
 function channels(track: Track): string | undefined {
-  type Channels = { readonly channels?: string };
-  return layout(
-    (track as Channels).channels ?? (track.renditions[0] as Channels | undefined)?.channels,
-  );
+  const first = track.renditions[0] as
+    | { readonly channels?: number; readonly audioObjects?: string }
+    | undefined;
+  return first?.channels === undefined
+    ? undefined
+    : layout(`${first.channels}${first.audioObjects ? `/${first.audioObjects}` : ''}`);
 }
 
 /**

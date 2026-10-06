@@ -2315,7 +2315,7 @@ function tracksEngine(
     instreamId?: string;
     /** False for a track the engine cannot play, such as AC-3 audio in a browser without it. */
     playable?: boolean;
-    renditions?: ReadonlyArray<{ channels?: string }>;
+    renditions?: ReadonlyArray<{ channels?: number; audioObjects?: string }>;
   }>,
 ): Mattebox & { active: string | null; chosen: string[] } {
   const available = listed.map((track) => ({ renditions: [], ...track }));
@@ -2473,13 +2473,13 @@ describe('the subtitles menu over a stubbed session', () => {
 
   it('names a track from the manifest, then its language, and tells twins apart', async () => {
     const engine = tracksEngine([
-      { id: 'a-en-51', contentType: 'audio', lang: 'en', renditions: [{ channels: '6' }] },
+      { id: 'a-en-51', contentType: 'audio', lang: 'en', renditions: [{ channels: 6 }] },
       {
         id: 'a-en-20',
         contentType: 'audio',
         lang: 'en',
         role: 'main',
-        renditions: [{ channels: '2' }],
+        renditions: [{ channels: 2 }],
       },
       { id: 'a-x', contentType: 'audio', name: 'Commentary', lang: 'en' },
       { id: 'a-und', contentType: 'audio' },
