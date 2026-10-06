@@ -1,9 +1,10 @@
 /**
- * <mbx-subtitles-menu>: the text track over `engine.tracks`, with "off"
- * because a text selection is releasable and an audio one is not, and a
- * Settings page behind it with the size and the background. The glyph
- * says whether a track is on: `icon` or `icon-on`. Hidden without text
- * tracks, and for a native session.
+ * <mbx-subtitles-menu>: the text track over `engine.tracks`, or over the
+ * video's `textTracks` of kind `subtitles` and `captions` for a native
+ * session, with "off" because a text selection is releasable and an audio
+ * one is not, and a Settings page behind it with the size and the
+ * background. The glyph says whether a track is on: `icon` or `icon-on`.
+ * Hidden without text tracks.
  *
  * The looks are attributes on the player, `subtitle-size` and
  * `subtitle-background`, where the element's stylesheet turns them into
@@ -16,12 +17,15 @@
  *
  * Forced tracks are not listed. The engine's forced-subtitles stage shows
  * one while no subtitle is selected, so the menu reads Off then (guide
- * chapter 06).
+ * chapter 06). In a native session Safari shows them itself. A native
+ * `captions` track carries the SDH badge: Safari gives that kind to the
+ * subtitles that describe music and sound.
  */
 import type { Mattebox } from 'mattebox';
 import { isSdh } from 'mattebox';
 import { icon } from '../controls/icons.js';
 import type { MenuGroup } from '../controls/menu.js';
+import { nativeLabel, nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { PlayerHost } from '../host.js';
 import { onTracks, trackItems } from './audio-menu.js';
 import { MenuElement } from './menu-element.js';
@@ -102,31 +106,60 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     this.follow(player, (engine) => {
       this.engine = engine;
       this.render();
-      if (engine === null) return undefined;
-      return onTracks(engine, () => {
+      const tick = (): void => {
         this.render();
-      });
+      };
+      return engine === null
+        ? onNativeTracks(player.video, 'textTracks', tick)
+        : onTracks(engine, tick);
     });
+  }
+
+  /** The native session's subtitle tracks as items, and the showing one's. */
+  private native(tracks: readonly TextTrack[]): [MenuGroup['items'], string | null] {
+    const sdh = this.getAttribute('label-sdh') ?? 'SDH';
+    const items = tracks.map(
+      (track, index) =>
+        [
+          String(index),
+          nativeLabel(track, index),
+          undefined,
+          undefined,
+          track.kind === 'captions' ? [sdh] : [],
+        ] as const,
+    );
+    const on = tracks.findIndex((track) => track.mode === 'showing');
+    return [items, on === -1 ? null : String(on)];
   }
 
   protected override render(): void {
     super.render();
     const engine = this.engine;
     const player = this.player;
-    if (engine === null || player === null) {
+    // The chapters track the element adds, and any metadata track, are not subtitles.
+    const listed =
+      engine === null && player !== null
+        ? nativeTracks<TextTrack>(player, 'textTracks')?.filter(
+            (track) => track.kind === 'subtitles' || track.kind === 'captions',
+          )
+        : undefined;
+    if (player === null || (engine === null && listed === undefined)) {
       this.hidden = true;
       return;
     }
-    const [tracks, active] = trackItems(
-      engine,
-      'text',
-      (track) => [
-        // A manifest names in-band captions by their channel (guide chapter 06).
-        ...(track.instreamId !== undefined ? [this.getAttribute('label-cc') ?? 'CC'] : []),
-        ...(isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
-      ],
-      (track) => track.forced !== true,
-    );
+    const [tracks, active] =
+      listed !== undefined
+        ? this.native(listed)
+        : trackItems(
+            engine as Mattebox,
+            'text',
+            (track) => [
+              // A manifest names in-band captions by their channel (guide chapter 06).
+              ...(track.instreamId !== undefined ? [this.getAttribute('label-cc') ?? 'CC'] : []),
+              ...(isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
+            ],
+            (track) => track.forced !== true,
+          );
     const items: MenuGroup['items'] = [[OFF, this.getAttribute('label-off') ?? 'Off'], ...tracks];
     this.menu.fill([
       {
@@ -135,8 +168,13 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         items,
         value: active ?? OFF,
         onSelect: (value) => {
-          if (value === OFF) engine.tracks.deselect('text');
-          else engine.tracks.select(value);
+          if (listed !== undefined) {
+            // Off first, so two tracks never show at once.
+            for (const track of listed) track.mode = 'disabled';
+            const chosen = listed[Number(value)];
+            if (chosen !== undefined) chosen.mode = 'showing';
+          } else if (value === OFF) engine?.tracks.deselect('text');
+          else engine?.tracks.select(value);
           this.render();
         },
       },

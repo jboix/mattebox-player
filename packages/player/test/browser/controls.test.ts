@@ -2521,6 +2521,109 @@ describe('the subtitles menu over a stubbed session', () => {
   });
 });
 
+describe('the audio and subtitles menus over a native session', () => {
+  /**
+   * A native session under custom controls. `before` runs on the video
+   * before the element connects, as Safari's lists exist before the source.
+   */
+  async function native(before: (video: HTMLVideoElement) => void = () => undefined) {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    fakeMedia(player.video);
+    before(player.video);
+    for (const [name, value] of Object.entries({
+      controls: 'custom',
+      muted: '',
+      src: silence(),
+      type: 'audio/wav',
+    })) {
+      player.setAttribute(name, value);
+    }
+    player.append(...compose());
+    player.style.width = '800px';
+    document.body.append(player);
+    await expect.poll(() => player.player?.session?.handler).toBe('native');
+    return player;
+  }
+
+  /** An `AudioTrackList` as Safari's: indexed tracks, and `change` when one is enabled. */
+  function audioTracks(video: HTMLVideoElement, labels: readonly string[]) {
+    const list = new EventTarget() as EventTarget & Record<number, unknown> & { length: number };
+    const tracks = labels.map((label, index) => {
+      let enabled = index === 0;
+      return {
+        id: String(index + 1),
+        kind: label === 'AD' ? 'description' : 'main',
+        label: label === 'AD' ? '' : label,
+        language: label === 'AD' ? 'en' : '',
+        get enabled(): boolean {
+          return enabled;
+        },
+        set enabled(on: boolean) {
+          enabled = on;
+          list.dispatchEvent(new Event('change'));
+        },
+      };
+    });
+    tracks.forEach((track, index) => {
+      list[index] = track;
+    });
+    list.length = tracks.length;
+    // Chromium has no `audioTracks`; WebKit's getter is shadowed by this one.
+    Object.defineProperty(video, 'audioTracks', { value: list, configurable: true });
+    return tracks;
+  }
+
+  it('lists the subtitles and captions of the video, and shows the one chosen', async () => {
+    const player = await native();
+    const menu = control(player, 'mbx-subtitles-menu');
+    expect(menu.hidden).toBe(true);
+    const en = player.video.addTextTrack('subtitles', 'English', 'en');
+    const fr = player.video.addTextTrack('captions', '', 'fr');
+    player.video.addTextTrack('metadata', 'ID3');
+    await expect.poll(() => menu.hidden).toBe(false);
+    expect(items(menu).map((item) => item.textContent)).toEqual([
+      'Off',
+      'English',
+      'frSDH',
+      'Settings',
+    ]);
+
+    inner(menu).click();
+    items(menu)[2]?.click();
+    expect(fr.mode).toBe('showing');
+    expect(en.mode).toBe('disabled');
+    expect(shown(menu)).toBe('icon-on');
+
+    inner(menu).click();
+    items(menu)[0]?.click();
+    expect(fr.mode).toBe('disabled');
+    expect(shown(menu)).toBe('icon-off');
+  });
+
+  it('lists the audio tracks of the video, and enables the one chosen', async () => {
+    let tracks: ReturnType<typeof audioTracks> = [];
+    const player = await native((video) => {
+      tracks = audioTracks(video, ['English', 'Français', 'AD']);
+    });
+    const menu = control(player, 'mbx-audio-menu');
+    await expect.poll(() => menu.hidden).toBe(false);
+    expect(items(menu).map((item) => item.textContent)).toEqual(['English', 'Français', 'enAD']);
+    expect(items(menu)[0]?.getAttribute('aria-checked')).toBe('true');
+
+    inner(menu).click();
+    items(menu)[1]?.click();
+    expect(tracks.map((track) => track.enabled)).toEqual([false, true, false]);
+    expect(items(menu)[1]?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('hides the audio menu without a choice', async () => {
+    const player = await native((video) => {
+      audioTracks(video, ['English']);
+    });
+    expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
+  });
+});
+
 describe('the DRM badge', () => {
   /** An engine with a DRM namespace, and what the rest of the composition reads. */
   function drmEngine(keySystem: string | null, sessions: Array<{ keyId: string; status: string }>) {

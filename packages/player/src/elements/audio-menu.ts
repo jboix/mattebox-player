@@ -1,14 +1,18 @@
 /**
- * <mbx-audio-menu>: the audio track over `engine.tracks`. Hidden unless
- * there is a choice to make, and for a native session. The name comes
- * from `label`. A track reads as its language, then its role, then its
- * id: whichever the manifest gave. A badge marks an audio description
- * track (`label-ad`, "AD") and the original language (`label-original`,
- * "Original"), from the engine's standard characteristics (guide chapter 06).
+ * <mbx-audio-menu>: the audio track over `engine.tracks`, or over the
+ * video's `audioTracks` for a native session. Hidden unless there is a
+ * choice to make. The name comes from `label`. An engine track reads as
+ * its language, then its role, then its id: whichever the manifest gave.
+ * A native track reads as its label, then its language. A badge marks an
+ * audio description track (`label-ad`, "AD") and the original language
+ * (`label-original`, "Original"), from the engine's standard
+ * characteristics (guide chapter 06), or from the native track's `kind`.
  */
 import type { ContentType, Mattebox, Track } from 'mattebox';
 import { isAudioDescription, isOriginal } from 'mattebox';
 import type { MenuGroup } from '../controls/menu.js';
+import type { NativeTrack } from '../controls/native-tracks.js';
+import { nativeLabel, nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { PlayerHost } from '../host.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
@@ -42,6 +46,11 @@ export function trackItems(
   return [items, available.some((track) => track.id === active) ? (active as string) : null];
 }
 
+/** What the menu reads and writes of Safari's `AudioTrack`. */
+interface NativeAudioTrack extends NativeTrack {
+  enabled: boolean;
+}
+
 /** Subscribes `tick` to the track events, and answers the unsubscribe. */
 export function onTracks(engine: Mattebox, tick: () => void): () => void {
   const offs = [engine.on('tracks:changed', tick), engine.on('tracks:selected', tick)];
@@ -71,31 +80,64 @@ export class MbxAudioMenu extends MenuElement {
     this.follow(player, (engine) => {
       this.engine = engine;
       this.render();
-      if (engine === null) return undefined;
-      return onTracks(engine, () => {
+      const tick = (): void => {
         this.render();
-      });
+      };
+      return engine === null
+        ? onNativeTracks(player.video, 'audioTracks', tick)
+        : onTracks(engine, tick);
     });
+  }
+
+  /** The native session's audio tracks as items, and the enabled one's. */
+  private native(tracks: readonly NativeAudioTrack[]): [MenuGroup['items'], string | null] {
+    const ad = this.getAttribute('label-ad') ?? 'AD';
+    const items = tracks.map(
+      (track, index) =>
+        [
+          String(index),
+          nativeLabel(track, index),
+          undefined,
+          undefined,
+          // HTML's kinds for an audio description track.
+          track.kind === 'description' || track.kind === 'main-desc' ? [ad] : [],
+        ] as const,
+    );
+    const on = tracks.findIndex((track) => track.enabled);
+    return [items, on === -1 ? null : String(on)];
   }
 
   protected override render(): void {
     super.render();
     const engine = this.engine;
-    if (engine === null) {
+    const player = this.player;
+    const tracks =
+      engine === null && player !== null
+        ? nativeTracks<NativeAudioTrack>(player, 'audioTracks')
+        : undefined;
+    if (engine === null && tracks === undefined) {
       this.hidden = true;
       return;
     }
-    const [items, active] = trackItems(engine, 'audio', (track) => [
-      ...(isAudioDescription(track) ? [this.getAttribute('label-ad') ?? 'AD'] : []),
-      ...(isOriginal(track) ? [this.getAttribute('label-original') ?? 'Original'] : []),
-    ]);
+    const [items, active] =
+      tracks !== undefined
+        ? this.native(tracks)
+        : trackItems(engine as Mattebox, 'audio', (track) => [
+            ...(isAudioDescription(track) ? [this.getAttribute('label-ad') ?? 'AD'] : []),
+            ...(isOriginal(track) ? [this.getAttribute('label-original') ?? 'Original'] : []),
+          ]);
     this.menu.fill([
       {
         name: 'track',
         items,
         value: active ?? '',
         onSelect: (value) => {
-          engine.tracks.select(value);
+          // One audio track plays at a time, so the others are turned off.
+          if (tracks !== undefined) {
+            tracks.forEach((track, index) => {
+              track.enabled = String(index) === value;
+            });
+          } else engine?.tracks.select(value);
           this.render();
         },
       },
