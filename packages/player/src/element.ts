@@ -83,6 +83,8 @@ const STATE_EVENTS = [
   'play',
   'pause',
   'ended',
+  // A seek back from the end leaves `ended` with no play, pause or ended event.
+  'seeked',
   'emptied',
   'volumechange',
   'loadedmetadata',
