@@ -51,7 +51,7 @@ it('the chooser opens from the masthead and lists the demo streams', async () =>
     [...(entries.find((li) => li.textContent?.includes(text))?.querySelectorAll('.tag') ?? [])].map(
       (tag) => tag.textContent,
     );
-  expect(tags('Tears of Steel')).toEqual(['chapters']);
+  expect(tags('Tears of Steel')).toEqual(['chapters', 'markers']);
   expect(tags('chapters in the manifest')).toContain('I-frames');
   expect(tags('Angel One')).toEqual(['DRM']);
   expect(tags('accessible tracks')).toEqual([
