@@ -44,8 +44,8 @@ function codec(rendition: Rendition): string | undefined {
   return CODECS.find(([pattern]) => pattern.test(codecs))?.[1];
 }
 
-/** The label of each rendition, best first, one entry per distinct label. */
-export function qualityNames(
+/** The label of every rendition, best first, twins included. */
+export function qualityLabels(
   renditions: readonly Rendition[],
 ): Array<readonly [id: string, label: string]> {
   const sorted = [...renditions].sort(
@@ -76,13 +76,17 @@ export function qualityNames(
       ? (bases[i] as string)
       : label,
   );
+  return sorted.map((r, i) => [r.id, labels[i] as string] as const);
+}
+
+/** The label of each rendition, best first, one entry per distinct label. */
+export function qualityNames(
+  renditions: readonly Rendition[],
+): Array<readonly [id: string, label: string]> {
   const seen = new Set<string>();
-  const out: Array<readonly [string, string]> = [];
-  sorted.forEach((r, i) => {
-    const label = labels[i] as string;
-    if (seen.has(label)) return;
+  return qualityLabels(renditions).filter(([, label]) => {
+    if (seen.has(label)) return false;
     seen.add(label);
-    out.push([r.id, label]);
+    return true;
   });
-  return out;
 }

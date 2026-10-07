@@ -1,6 +1,6 @@
 import type { Rendition } from 'mattebox';
 import { describe, expect, it } from 'vitest';
-import { qualityNames } from '../../src/controls/quality-names.js';
+import { qualityLabels, qualityNames } from '../../src/controls/quality-names.js';
 
 /** A video rendition: height, frame rate, peak and average bitrate, codecs. */
 function v(
@@ -101,6 +101,13 @@ describe('quality names', () => {
     expect(labels([v('a', undefined, 128_000), v('b', undefined, 2_500_000)])).toEqual([
       '2.5 Mbps',
       '128 kbps',
+    ]);
+  });
+
+  it('labels every rendition, twins included, for a lookup by id', () => {
+    expect(qualityLabels([v('cdn-a', 720, 3_000_000), v('cdn-b', 720, 3_000_000)])).toEqual([
+      ['cdn-a', '720p'],
+      ['cdn-b', '720p'],
     ]);
   });
 });

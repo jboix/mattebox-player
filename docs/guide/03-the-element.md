@@ -474,7 +474,9 @@ it must to tell entries apart.
 5. The codec, when they still do: `1080p · 6.1 Mbps · HEVC`.
 
 Entries that read the same after that, such as one stream on two CDNs, show
-once. These names come from the stream and have no attribute.
+once.
+
+Under Auto, the Auto row names what plays in its detail, such as `Auto  720p`. These names come from the stream and have no attribute.
 
 ### Icons
 

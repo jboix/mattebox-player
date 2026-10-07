@@ -2237,6 +2237,50 @@ function popup(node: HTMLElement): HTMLElement {
   return inside(node, 'popup');
 }
 
+describe('the quality menu under Auto', () => {
+  it('names what plays in the Auto row, and stops once a quality is pinned', async () => {
+    const rendition = (id: string, height: number) => ({
+      id,
+      bitrate: height * 5000,
+      width: Math.round((height * 16) / 9),
+      height,
+      codecs: 'avc1.640028',
+      mimeType: 'video/mp4',
+      segments: [],
+    });
+    const high = rendition('v-1080', 1080);
+    const low = rendition('v-720', 720);
+    const quality = {
+      renditions: [high, low],
+      selectable: [high, low],
+      pinned: null as string | null,
+      playing: null as typeof high | null,
+      auto() {},
+      pin() {},
+    };
+    const engine = { ...fakeEngine({}), quality } as unknown as Mattebox;
+    const player = await over([fakeHandler(engine)], { muted: '' });
+    await media(player.video).metadata(10);
+    const menu = control(player, 'mbx-quality-menu');
+    const auto = () => items(menu)[0]?.querySelector('[part~="item-detail"]')?.textContent ?? null;
+    expect(items(menu).map((item) => item.firstChild?.textContent)).toEqual([
+      'Auto',
+      '1080p',
+      '720p',
+    ]);
+    expect(auto()).toBeNull();
+    quality.playing = low;
+    player.video.dispatchEvent(new Event('timeupdate'));
+    expect(auto()).toBe('720p');
+    quality.playing = high;
+    player.video.dispatchEvent(new Event('timeupdate'));
+    expect(auto()).toBe('1080p');
+    quality.pinned = 'v-1080';
+    player.video.dispatchEvent(new Event('timeupdate'));
+    expect(auto()).toBeNull();
+  });
+});
+
 describe('a long menu', () => {
   const RATES = '0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4';
 
