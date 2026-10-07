@@ -247,6 +247,9 @@ describe('the handler chain in a browser', () => {
     const holder = globalThis as { ManagedMediaSource?: unknown };
     const had = 'ManagedMediaSource' in holder;
     if (!had) holder.ManagedMediaSource = MediaSource;
+    // Safari's element starts with the flag false. Firefox has no such
+    // property, and the engine restores what it found on detach.
+    video.disableRemotePlayback = false;
     try {
       await player.load({ url: 'https://cdn.test/hls/master.m3u8' });
       expect(video.disableRemotePlayback).toBe(false);
