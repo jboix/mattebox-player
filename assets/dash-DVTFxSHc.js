@@ -1,0 +1,1 @@
+import{t as e}from"./define-Hq7h8iHx.js";import{n as t,t as n}from"./tiers-DoD_fEIM.js";var r=e(`dash`,()=>[...t(),...n()]);export{r as default};
