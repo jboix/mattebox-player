@@ -3,6 +3,7 @@
  * corpus, plus the sources the element's routing story needs, which the
  * demo serves itself or which take the native route.
  */
+import type { Marker } from '@mattebox/player';
 
 export interface StreamEntry {
   readonly label: string;
@@ -17,6 +18,8 @@ export interface StreamEntry {
   readonly chapters?: string;
   /** Key id to key, base64url. Their presence forces the JavaScript route: keys are not an attribute. */
   readonly clearKeys?: Readonly<Record<string, string>>;
+  /** Credits and blocked parts, as a content API would give them, for `element.markers`. */
+  readonly markers?: readonly Marker[];
   /** What the stream carries, beyond the tags `tagsOf` derives from the fields above. */
   readonly tags?: readonly string[];
   readonly note?: string;
@@ -27,6 +30,7 @@ export function tagsOf(entry: StreamEntry): string[] {
   const out: string[] = [];
   if (entry.chapters !== undefined) out.push('chapters');
   if (entry.thumbnails !== undefined) out.push('thumbnails');
+  if (entry.markers !== undefined) out.push('markers');
   if (entry.licenseUrl !== undefined || entry.clearKeys !== undefined) out.push('DRM');
   return [...out, ...(entry.tags ?? [])];
 }
@@ -46,6 +50,14 @@ export const STREAMS: readonly StreamEntry[] = [
     label: 'Unified Streaming · Tears of Steel',
     url: 'https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8',
     chapters: 'chapters/tears-of-steel.vtt',
+    // Examples, not the film's real credits: a skip button at both ends,
+    // and a blocked part the seek bar draws broken and playback jumps over.
+    markers: [
+      { start: 0, end: 12, kind: 'opening-credits' },
+      { start: 300, end: 330, kind: 'blocked', label: 'Not available for legal reasons' },
+      { start: 640, end: 734, kind: 'closing-credits' },
+    ],
+    note: 'The markers are examples: Skip intro, a blocked part at 5:00, Skip credits',
   },
   {
     label: 'Apple bipbop basic (HLS, MPEG-TS)',

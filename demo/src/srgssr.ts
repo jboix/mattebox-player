@@ -6,6 +6,7 @@
  * adapted from pillarbox-web.
  */
 
+import type { Marker } from '@mattebox/player';
 import type { ChapterInput } from 'mattebox/stages/chapters';
 
 const IL_HOST = 'il.srgssr.ch';
@@ -52,6 +53,8 @@ export interface Composition {
   readonly chapters: readonly ChapterInput[];
   /** The URN of the episode a clip is cut from, which has the chapters. */
   readonly fullLength?: string;
+  /** The credits and the blocked parts, for `element.markers.set`. */
+  readonly markers: readonly Marker[];
 }
 
 /** One chapter of a media composition, as the IL describes it. */
@@ -66,6 +69,18 @@ interface IlChapter {
   readonly fullLengthMarkIn?: number;
   readonly fullLengthMarkOut?: number;
   readonly resourceList?: IlResource[];
+  /** Opening and closing credits, in milliseconds. */
+  readonly timeIntervalList?: ReadonlyArray<{
+    readonly type: string;
+    readonly markIn: number;
+    readonly markOut: number;
+  }>;
+  /** Parts of the chapter; one with a `blockReason` must not play. */
+  readonly segmentList?: ReadonlyArray<{
+    readonly markIn: number;
+    readonly markOut: number;
+    readonly blockReason?: string;
+  }>;
 }
 
 /**
@@ -93,6 +108,36 @@ function chaptersOf(main: IlChapter, list: readonly IlChapter[]): ChapterInput[]
     });
   }
   return out;
+}
+
+/** What the seek bar's preview says over a blocked segment, by its block reason. */
+const BLOCKED: Readonly<Record<string, string>> = {
+  LEGAL: 'Not available for legal reasons',
+  GEOBLOCK: 'Not available in your region',
+  COMMERCIAL: 'Not available for commercial reasons',
+  AGERATING18: 'Not available at this hour: rated 18',
+  AGERATING12: 'Not available at this hour: rated 12',
+};
+
+/**
+ * The credits and the blocked segments of the main chapter as player
+ * markers. The IL times are milliseconds.
+ */
+function markersOf(main: IlChapter): Marker[] {
+  const credits = (main.timeIntervalList ?? []).map((interval) => ({
+    start: interval.markIn / 1000,
+    end: interval.markOut / 1000,
+    kind: interval.type === 'OPENING_CREDITS' ? 'opening-credits' : 'closing-credits',
+  }));
+  const blocked = (main.segmentList ?? [])
+    .filter((segment) => segment.blockReason !== undefined)
+    .map((segment) => ({
+      start: segment.markIn / 1000,
+      end: segment.markOut / 1000,
+      kind: 'blocked',
+      label: BLOCKED[segment.blockReason as string] ?? 'Not available',
+    }));
+  return [...credits, ...blocked];
 }
 
 export async function searchMedia(
@@ -140,6 +185,7 @@ export async function fetchComposition(urn: string, signal: AbortSignal): Promis
     ...(chapter.imageUrl === undefined ? {} : { imageUrl: chapter.imageUrl }),
     resources: chapter.resourceList ?? [],
     chapters: chaptersOf(chapter, list),
+    markers: markersOf(chapter),
     ...(chapter.fullLengthUrn === undefined ? {} : { fullLength: chapter.fullLengthUrn }),
   };
 }

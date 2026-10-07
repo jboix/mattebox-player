@@ -11,6 +11,7 @@
  */
 import { inferType } from '@mattebox/player-core';
 import '@mattebox/player';
+import type { Marker } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
@@ -140,6 +141,8 @@ interface Choice {
   readonly poster?: string;
   /** Chapters a content API gave, which the session gets through `engine.chapters.set`. */
   readonly appChapters?: readonly ChapterInput[];
+  /** Credits and blocked parts a content API gave, for `element.markers`. */
+  readonly markers?: readonly Marker[];
   readonly clearKeys?: Readonly<Record<string, string>>;
 }
 
@@ -178,6 +181,8 @@ function load(choice: Choice): void {
   poster.value = choice.poster ?? '';
   attribute(element, 'poster', choice.poster ?? null);
   element.setAttribute('src', choice.url);
+  // After the source: a new one clears the markers of the last.
+  if (choice.markers !== undefined) element.markers.set(choice.markers);
   render();
 }
 
@@ -427,6 +432,7 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
         ...(drm?.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
         ...(c.imageUrl === undefined ? {} : { poster: `${c.imageUrl}?width=1280&format=jpg` }),
         ...(c.chapters.length === 0 ? {} : { appChapters: c.chapters }),
+        ...(c.markers.length === 0 ? {} : { markers: c.markers }),
       });
       tell(`playing ${c.title}${drm === null ? '' : ' (DRM)'}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -772,6 +778,7 @@ function controlMarkup(name: string, row: Row): string {
 
 const SCREEN_TAGS: Readonly<Record<string, string>> = {
   start: 'mbx-start-button',
+  markers: 'mbx-marker-button',
   error: 'mbx-error-screen',
   spinner: 'mbx-spinner',
   title: 'mbx-title',
@@ -917,6 +924,21 @@ function markupFor(element: MatteboxPlayerElement): string {
     // event.detail is 'up', 'down', 'left' or 'right': move focus to your own UI.
   });`
     : '';
+  // Markers come from a content API, not the markup: the page sets them.
+  const marks = element.markers.list;
+  const markers =
+    marks.length === 0
+      ? ''
+      : `\n\n  // After src: a new source clears them.\n  document.querySelector('mattebox-player').markers.set([\n${marks
+          .map(
+            (marker) =>
+              `    { ${Object.entries(marker)
+                .map(
+                  ([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : value}`,
+                )
+                .join(', ')} },`,
+          )
+          .join('\n')}\n  ]);`;
   // A stage list and kernel config are not attributes: they go to define().
   const options = [
     ...(built.keys
@@ -936,10 +958,10 @@ function markupFor(element: MatteboxPlayerElement): string {
   import { MatteboxPlayerElement } from '@mattebox/player';${extra}${imports}
   MatteboxPlayerElement.define({
 ${options.join('\n')}
-  });${edges}
+  });${edges}${markers}
 </script>`
       : `<script type="module">
-  import '@mattebox/player';${extra}${edges}
+  import '@mattebox/player';${extra}${edges}${markers}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
 }
