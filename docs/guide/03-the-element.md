@@ -431,8 +431,18 @@ track functions.
 | `SDH`      | `label-sdh`      | subtitles | Subtitles for the deaf and hard of hearing |
 | `CC`       | `label-cc`       | subtitles | Closed captions carried in the video       |
 
-The quality menu names a rendition by its height or its bitrate. These
-names come from the stream and have no attribute.
+The quality menu lists `engine.quality.selectable`, best first: what the
+browser can play, one entry per video stream. A name grows only as far as
+it must to tell entries apart.
+
+1. The height, such as `1080p`, or the bitrate without one.
+2. The frame rate above 30, such as `1080p60`.
+3. `Dolby Vision` or `HDR`, such as `1080p HDR`.
+4. The bitrate, when two entries still read the same: `1080p60 · 6.2 Mbps`.
+5. The codec, when they still do: `1080p · 6.1 Mbps · HEVC`.
+
+Entries that read the same after that, such as one stream on two CDNs, show
+once. These names come from the stream and have no attribute.
 
 ### Icons
 

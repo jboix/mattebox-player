@@ -1364,7 +1364,7 @@ function fakeEngine(parts: FakeParts): Mattebox {
       parts.events?.set(name, set);
       return () => set.delete(fn);
     },
-    quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+    quality: { renditions: [], selectable: [], pinned: null, playing: null, auto() {}, pin() {} },
     tracks: { available: [], active: () => null, select() {} },
     stats: { snapshot: () => ({ scheduling: { bufferGoal: parts.bufferGoal ?? 30 } }) },
     ...(parts.live === undefined ? {} : { live: parts.live }),
@@ -2323,7 +2323,7 @@ function tracksEngine(
     active: null as string | null,
     chosen: [] as string[],
     on: () => () => undefined,
-    quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+    quality: { renditions: [], selectable: [], pinned: null, playing: null, auto() {}, pin() {} },
     stats: { snapshot: () => ({ scheduling: { bufferGoal: 30 } }) },
     tracks: {
       available,
@@ -2670,7 +2670,7 @@ describe('the DRM badge', () => {
     const listeners: Array<() => void> = [];
     const fake = {
       drm: { keySystem, sessions, setLicenseUrl(): void {} },
-      quality: { renditions: [], pinned: null, playing: null, auto() {}, pin() {} },
+      quality: { renditions: [], selectable: [], pinned: null, playing: null, auto() {}, pin() {} },
       tracks: { available: [], active: () => null, select() {} },
       stats: { snapshot: () => ({ scheduling: { bufferGoal: 30 } }) },
       on(_name: string, fn: () => void): () => void {
@@ -2739,7 +2739,12 @@ describe('the DRM badge', () => {
 
   it('reads the DRM a native session attached', async () => {
     const listeners: Array<(payload: unknown) => void> = [];
-    const drm = { keySystem: null as string | null, sessions: [], setLicenseUrl(): void {} };
+    const drm = {
+      keySystem: null as string | null,
+      sessions: [],
+      setLicenseUrl(): void {},
+      setCertificateUrl(): void {},
+    };
     const handler: Handler = {
       name: 'native',
       canHandle: () => 'probably',

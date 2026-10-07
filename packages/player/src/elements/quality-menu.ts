@@ -1,21 +1,16 @@
 /**
  * <mbx-quality-menu>: the pin over `engine.quality`, where "auto" means
  * none. Hidden without renditions, and for a native session. The name
- * comes from `label`, the word for no pin from `label-auto`. A rendition
- * reads as its height when the manifest declared one, its bitrate
- * otherwise.
+ * comes from `label`, the word for no pin from `label-auto`. It offers
+ * `engine.quality.selectable`, labelled by `qualityNames`.
  */
-import type { Mattebox, Rendition } from 'mattebox';
+import type { Mattebox } from 'mattebox';
+import { qualityNames } from '../controls/quality-names.js';
 import type { PlayerHost } from '../host.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
 const AUTO = 'auto';
-
-function renditionLabel(rendition: Rendition): string {
-  if (rendition.height !== undefined) return `${rendition.height}p`;
-  return `${Math.round(rendition.bitrate / 1000)} kbps`;
-}
 
 export class MbxQualityMenu extends MenuElement {
   static get observedAttributes(): readonly string[] {
@@ -64,9 +59,7 @@ export class MbxQualityMenu extends MenuElement {
     const items: Array<readonly [string, string]> = [
       [AUTO, this.getAttribute('label-auto') ?? 'Auto'],
     ];
-    for (const rendition of quality.renditions) {
-      items.push([rendition.id, renditionLabel(rendition)]);
-    }
+    items.push(...qualityNames(quality.selectable));
     this.menu.fill([
       {
         name: 'rendition',
@@ -79,6 +72,6 @@ export class MbxQualityMenu extends MenuElement {
         },
       },
     ]);
-    this.hidden = quality.renditions.length === 0;
+    this.hidden = items.length === 1;
   }
 }

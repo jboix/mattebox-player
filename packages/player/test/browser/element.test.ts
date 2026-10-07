@@ -287,7 +287,7 @@ describe('<mattebox-player>', () => {
     await settled();
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     const quality = player.querySelector('mbx-quality-menu');
-    await expect.poll(() => texts(quality)).toEqual(['Auto', '270p', '720p']);
+    await expect.poll(() => texts(quality)).toEqual(['Auto', '720p', '270p']);
   });
 
   it('shows the audio menu when the manifest carries alternate audio', async () => {
@@ -430,7 +430,7 @@ describe('the menus over an engine session', () => {
     const player = await engineReady('https://cdn.test/hls/master.m3u8');
     const quality = control(player, 'mbx-quality-menu');
     await expect.poll(() => quality.hidden).toBe(false);
-    expect(texts(quality)).toEqual(['Auto', '270p', '720p']);
+    expect(texts(quality)).toEqual(['Auto', '720p', '270p']);
     // One audio track is no choice, and there is no text.
     expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
     expect(control(player, 'mbx-subtitles-menu').hidden).toBe(true);

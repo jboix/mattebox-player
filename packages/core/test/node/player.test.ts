@@ -224,7 +224,12 @@ describe('a native session with DRM attached', () => {
         handler: 'native',
         engine: null,
         eme: {
-          drm: { keySystem: null, sessions: [], setLicenseUrl: () => undefined },
+          drm: {
+            keySystem: null,
+            sessions: [],
+            setLicenseUrl: () => undefined,
+            setCertificateUrl: () => undefined,
+          },
           on: (_event: string, fn: (payload: unknown) => void) => {
             fire = fn;
             return () => {
