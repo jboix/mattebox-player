@@ -11,6 +11,7 @@ export const PIP_BUTTON = 'mbx-pip-button';
 export const AIRPLAY_BUTTON = 'mbx-airplay-button';
 export const FULLSCREEN_BUTTON = 'mbx-fullscreen-button';
 export const START_BUTTON = 'mbx-start-button';
+export const MARKER_BUTTON = 'mbx-marker-button';
 export const ERROR_SCREEN = 'mbx-error-screen';
 export const SPINNER = 'mbx-spinner';
 export const TITLE = 'mbx-title';

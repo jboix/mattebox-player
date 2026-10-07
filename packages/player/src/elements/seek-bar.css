@@ -17,6 +17,22 @@
   bottom: 0;
   left: 0;
 }
+[part~="blocked"] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+}
+/* A darker stretch of track, over the played and buffered spans, so no part
+   of it reads as playable. The chapter gaps still cut through it. */
+[part~="blocked-range"] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--mbx-blocked, rgba(0, 0, 0, 0.75));
+}
 [part~="buffered-range"] {
   position: absolute;
   top: 0;

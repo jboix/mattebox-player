@@ -60,7 +60,7 @@ import type { Thumbnail } from 'mattebox/stages/thumbnails';
 import type { Chapter } from '../controls/chapters.js';
 import { chapterAt, chapters, followChapters } from '../controls/chapters.js';
 import type { Span } from '../controls/ranges.js';
-import { at, clip, EMPTY, fraction } from '../controls/ranges.js';
+import { at, clip, EMPTY, fraction, spans } from '../controls/ranges.js';
 import { bufferGoal, live, optional, span, wall } from '../controls/session.js';
 import type { Slider } from '../controls/slider.js';
 import { slider } from '../controls/slider.js';
@@ -120,13 +120,14 @@ function percent(part: number): string {
 }
 
 /**
- * A mask that cuts a gap at each boundary between chapters, as stops along
- * the track: opaque up to a boundary, clear for the gap, opaque after.
+ * A mask that cuts a gap at each chapter boundary, as stops along the
+ * track: opaque up to a boundary, clear for the gap, opaque after.
  */
-function gaps(list: readonly Chapter[], span: Span): string {
+function gaps(boundaries: readonly number[], span: Span): string {
+  if (boundaries.length === 0) return '';
   const stops: string[] = ['#000 0'];
-  for (const chapter of list.slice(1)) {
-    const at = percent(fraction(chapter.start, span));
+  for (const time of boundaries) {
+    const at = percent(fraction(time, span));
     const before = `calc(${at} - ${GAP / 2}px)`;
     const after = `calc(${at} + ${GAP / 2}px)`;
     stops.push(`#000 ${before}`, `transparent ${before}`, `transparent ${after}`, `#000 ${after}`);
@@ -141,6 +142,7 @@ export class MbxSeekBar extends Component {
       'label',
       'label-of',
       'label-behind',
+      'label-blocked',
       'live-window',
       'chapters',
       'scrub',
@@ -151,6 +153,8 @@ export class MbxSeekBar extends Component {
 
   declare private readonly bar: Slider;
   declare private readonly buffered: HTMLElement;
+  /** The ranges the page marked blocked, drawn as a broken line: they never play. */
+  declare private readonly blocked: HTMLElement;
   declare private readonly hover: HTMLElement;
   declare private readonly edge: HTMLElement;
   declare private readonly preview: HTMLElement;
@@ -211,13 +215,15 @@ export class MbxSeekBar extends Component {
       },
     });
     this.buffered = el('div', 'buffered');
+    this.blocked = el('div', 'blocked');
     this.hover = el('div', 'hover');
     this.edge = el('div', 'edge');
     this.hover.hidden = true;
     this.edge.hidden = true;
     // Under the fill, so what is played reads over what is buffered.
     this.bar.track.prepend(this.buffered);
-    this.bar.track.append(this.hover, this.edge);
+    // Over the fill, inside the track: the chapter gaps cut through it too.
+    this.bar.track.append(this.blocked, this.hover, this.edge);
     this.preview = el('div', 'preview');
     this.image = el('div', 'preview-image');
     this.tile = el('div', 'preview-tile');
@@ -268,8 +274,11 @@ export class MbxSeekBar extends Component {
 
   /** The gaps at the chapter boundaries, on every layer of the track at once. */
   private paintChapters(): void {
-    const mask =
-      this.chaptered('divided') && this.list.length > 1 ? gaps(this.list, this.range) : '';
+    const boundaries =
+      this.chaptered('divided') && this.list.length > 1
+        ? this.list.slice(1).map((chapter) => chapter.start)
+        : [];
+    const mask = gaps(boundaries, this.range);
     const key = `${mask}|${this.range.start}|${this.range.end}`;
     if (key === this.divided) return;
     this.divided = key;
@@ -536,19 +545,18 @@ export class MbxSeekBar extends Component {
     if (this.frameCanvas.hidden) this.paintTile(tile);
   }
 
-  private paintBuffered(video: HTMLVideoElement): void {
-    const parts = clip(
-      Array.from({ length: video.buffered.length }, (_, i) => ({
-        start: video.buffered.start(i),
-        end: video.buffered.end(i),
-      })),
-      this.range,
-    );
-    const buffered = this.buffered;
-    while (buffered.childElementCount > parts.length) buffered.lastElementChild?.remove();
-    while (buffered.childElementCount < parts.length) buffered.append(el('div', 'buffered-range'));
+  /** The ranges the page marked blocked. */
+  private blockedRanges(): Span[] {
+    return (this.player?.markers.list ?? []).filter((marker) => marker.kind === 'blocked');
+  }
+
+  /** One child of `layer` per range, each named `part`, placed along the track. */
+  private paintRanges(layer: HTMLElement, ranges: readonly Span[], part: string): void {
+    const parts = clip(ranges, this.range);
+    while (layer.childElementCount > parts.length) layer.lastElementChild?.remove();
+    while (layer.childElementCount < parts.length) layer.append(el('div', part));
     let i = 0;
-    for (const child of buffered.children) {
+    for (const child of layer.children) {
       const part = parts[i];
       i += 1;
       if (part === undefined) break;
@@ -584,9 +592,18 @@ export class MbxSeekBar extends Component {
     const when = at(part, this.range);
     this.time.textContent = this.label(when);
     const chapter = this.chaptered('titles') ? this.list[chapterAt(this.list, when)] : undefined;
-    this.caption.hidden = chapter === undefined || chapter.title === '';
-    this.caption.textContent = chapter?.title ?? '';
-    this.paintPicture(when);
+    // A blocked range shows no picture: its frames must not play, and a
+    // preview would show them.
+    const blocked = this.player?.markers.within(when).find((marker) => marker.kind === 'blocked');
+    const title = blocked
+      ? (blocked.label ?? this.getAttribute('label-blocked') ?? 'Not available')
+      : (chapter?.title ?? '');
+    this.caption.hidden = title === '';
+    this.caption.textContent = title;
+    if (blocked) {
+      this.image.hidden = true;
+      this.frameCanvas.hidden = true;
+    } else this.paintPicture(when);
     const whole = this.bar.root.getBoundingClientRect();
     const half = this.preview.offsetWidth / 2;
     const x = rect.left - whole.left + part * rect.width;
@@ -606,6 +623,7 @@ export class MbxSeekBar extends Component {
     };
     this.listen(player.video, EVENTS, tick);
     this.keep(followChapters(player, tick));
+    this.listen(player, ['markerschange'], tick);
     this.listen(player, ['sourcechange'], () => {
       this.drag = 'none';
       this.stopAiming();
@@ -658,7 +676,8 @@ export class MbxSeekBar extends Component {
     this.list = chapters(video, engine);
     this.bar.label(this.getAttribute('label') ?? 'Seek');
     this.bar.range(this.range.start, this.range.end);
-    this.paintBuffered(video);
+    this.paintRanges(this.buffered, spans(video.buffered), 'buffered-range');
+    this.paintRanges(this.blocked, this.blockedRanges(), 'blocked-range');
     this.paintChapters();
     this.edge.hidden = !on;
     if (api !== undefined && api.edge !== null) {

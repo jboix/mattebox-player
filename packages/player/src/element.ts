@@ -28,6 +28,8 @@ import {
 } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import type { AttachEmeOptions } from 'mattebox/eme';
+import type { Marker, Markers } from './controls/markers.js';
+import { createMarkers } from './controls/markers.js';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
@@ -105,6 +107,10 @@ const DEFAULT_PRESET = 'full';
 export interface MatteboxPlayerEventMap {
   sourcechange: CustomEvent<Session | null>;
   error: CustomEvent<PlayerError>;
+  /** The markers changed: set by the page, or cleared by a new source. */
+  markerschange: CustomEvent<readonly Marker[]>;
+  /** Playback reached a blocked range and moved past it. */
+  blocked: CustomEvent<Marker>;
 }
 
 export interface MatteboxPlayerElement {
@@ -190,6 +196,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
+  declare private readonly marks: Markers;
   /** The chapters track element, while the `chapters` attribute names one and the engine takes none. */
   declare private track: HTMLTrackElement | null;
   /** The chapters URL the current session's engine was given, or null. */
@@ -245,6 +252,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.media.addEventListener('playing', () => {
       this.failure = null;
     });
+    this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
     this.stage = document.createElement('div');
     this.stage.setAttribute('part', 'stage');
     this.stage.append(document.createElement('slot'));
@@ -261,6 +269,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The media element. Everything the browser already does is here. */
   get video(): HTMLVideoElement {
     return this.media;
+  }
+
+  /** The ranges the page named in this source: credits to skip, parts that must not play. */
+  get markers(): Markers {
+    return this.marks;
   }
 
   /** The core, or null until the first source has been set up: resolving a preset is asynchronous. */
@@ -370,6 +383,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Only `audio`: a full reflection here would drop a `muted` the page
     // wrote before its own callback forwards it.
     if (name === 'src' || name === 'type') this.toggleAttribute('audio', this.audio());
+    // Markers belong to a source. Cleared here, not on `emptied`, which
+    // arrives later and would clear the ones the page sets right after.
+    if (name === 'src' && this.marks.list.length > 0) this.marks.set([]);
     this.reload();
   }
 

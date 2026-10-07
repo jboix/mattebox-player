@@ -203,5 +203,14 @@ export function compose(): HTMLElement[] {
     ...each('mbx-subtitles-menu', 'mbx-audio-menu', 'mbx-quality-menu'),
     ...each('mbx-airplay-button', 'mbx-pip-button', 'mbx-fullscreen-button'),
   );
-  return [...each('mbx-title', 'mbx-start-button', 'mbx-error-screen', 'mbx-spinner'), bar];
+  return [
+    ...each(
+      'mbx-title',
+      'mbx-start-button',
+      'mbx-marker-button',
+      'mbx-error-screen',
+      'mbx-spinner',
+    ),
+    bar,
+  ];
 }

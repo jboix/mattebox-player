@@ -10,6 +10,7 @@
  */
 import type { Player, PlayerError } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
+import type { Markers } from './controls/markers.js';
 import { PLAYER } from './tags.js';
 
 export interface PlayerHost extends HTMLElement {
@@ -18,6 +19,8 @@ export interface PlayerHost extends HTMLElement {
   readonly player: Player | null;
   /** The fatal error of the current load, or null: a control attached after the event still sees it. */
   readonly error: PlayerError | null;
+  /** The ranges the page named: credits to skip, parts that must not play. */
+  readonly markers: Markers;
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */

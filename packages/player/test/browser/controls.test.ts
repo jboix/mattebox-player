@@ -864,6 +864,7 @@ describe('the default composition', () => {
       'video',
       'mbx-title',
       'mbx-start-button',
+      'mbx-marker-button',
       'mbx-error-screen',
       'mbx-spinner',
       'mbx-control-bar',
@@ -1175,6 +1176,46 @@ describe('the picture-in-picture button', () => {
     expect(shown(button)).toBe('icon-exit');
     expect(player.hasAttribute('pip')).toBe(true);
     delete (document as { pictureInPictureElement?: unknown }).pictureInPictureElement;
+  });
+});
+
+describe('markers', () => {
+  it('a skip button names the credits and skips to their end', async () => {
+    const player = await loaded({}, 100);
+    const button = control(player, 'mbx-marker-button');
+    expect(button.hidden).toBe(true);
+    player.markers.set([
+      { start: 90, end: 100, kind: 'closing-credits' },
+      { start: 0, end: 20, kind: 'opening-credits' },
+      { start: 50, end: 60, kind: 'recap', label: 'recap' },
+    ]);
+    expect(player.markers.list.map((marker) => marker.start)).toEqual([0, 50, 90]);
+    expect(button.hidden).toBe(false);
+    expect(inner(button).textContent).toBe('Skip intro');
+    inner(button).click();
+    await expect.poll(() => button.hidden).toBe(true);
+    expect(player.video.currentTime).toBe(20);
+    player.video.currentTime = 55;
+    await expect.poll(() => inner(button).textContent).toBe('Skip recap');
+    player.video.currentTime = 95;
+    await expect.poll(() => inner(button).textContent).toBe('Skip credits');
+  });
+
+  it('playback moves past a blocked range, which the seek bar draws broken', async () => {
+    const player = await loaded({}, 100);
+    const blocked: unknown[] = [];
+    player.addEventListener('blocked', (event) => blocked.push(event.detail));
+    const range = { start: 30, end: 40, kind: 'blocked', label: 'Not available here' };
+    player.markers.set([range]);
+    expect(control(player, 'mbx-marker-button').hidden).toBe(true);
+    player.video.currentTime = 35;
+    await expect.poll(() => player.video.currentTime).toBeCloseTo(40.1);
+    expect(blocked).toEqual([range]);
+    const drawn = inside(control(player, 'mbx-seek-bar'), 'blocked-range');
+    expect([drawn.style.left, drawn.style.width]).toEqual(['30%', '10%']);
+    // The markers belong to the source.
+    player.setAttribute('src', `${SOURCE}/next`);
+    expect(player.markers.list).toEqual([]);
   });
 });
 

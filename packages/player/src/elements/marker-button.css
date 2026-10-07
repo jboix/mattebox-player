@@ -1,0 +1,27 @@
+/* Bottom right, above the bar and the title, where streaming services put
+   their skip button. The element measures how far up that is. */
+:host {
+  position: absolute;
+  right: calc(var(--mbx-pad, 8px) + 8px);
+  bottom: calc(var(--mbx-marker-lift, 56px) + 12px);
+  /* Over the bar: the bar's box, fade included, reaches up past the button,
+     and comes later, so it would take the button's clicks. */
+  z-index: 1;
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="button"] {
+  width: auto;
+  height: 40px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(0, 0, 0, 0.6);
+  color: var(--mbx-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+[part~="button"]:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
