@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "A <mattebox-player> custom element over @mattebox/player-core.",
   "author": "Josep Boix Requesens",
   "repository": {
@@ -70,7 +70,7 @@
     "release:ci": "semantic-release"
   },
   "dependencies": {
-    "@mattebox/player-core": "^0.4.0"
+    "@mattebox/player-core": "^0.5.0"
   },
   "peerDependencies": {
     "mattebox": "^0.12.0"
