@@ -71,6 +71,13 @@ export interface Menu {
 /** Air between the popup's top and the picture's. */
 const AIR = 8;
 
+/**
+ * The tallest a popup grows, in pixels: about seven and a half rows, so
+ * the half row at the foot says the list goes on. A page sets its own
+ * with `--mbx-menu-max-height`.
+ */
+const MAX_HEIGHT = 264;
+
 /** An item's picture. Decorative: the item's text names it. Loaded when the popup first shows it. */
 function picture(url: string): HTMLImageElement {
   const node = el('img', 'item-image');
@@ -92,6 +99,9 @@ export function menu(options: MenuOptions): Menu {
   button.setAttribute('aria-haspopup', 'menu');
   button.setAttribute('aria-expanded', 'false');
   const popup = el('div', 'popup');
+  popup.addEventListener('scroll', () => {
+    more();
+  });
   popup.setAttribute('role', 'menu');
   popup.hidden = true;
 
@@ -119,15 +129,28 @@ export function menu(options: MenuOptions): Menu {
     if (!event.composedPath().includes(host)) close();
   }
 
-  /** Whatever room there is above the button and left of the popup's right edge, so the popup never leaves the picture. */
+  /**
+   * The popup's height: its maximum, or the room above the button if that
+   * is less, so the popup never leaves the picture. Its width: the room
+   * left of its right edge.
+   */
   function fit(): void {
     const picture = options.picture();
     if (picture === null) return;
     const room = button.getBoundingClientRect().top - picture.top - AIR;
-    popup.style.maxHeight = `${Math.max(0, Math.floor(room))}px`;
+    const most =
+      Number.parseFloat(getComputedStyle(host).getPropertyValue('--mbx-menu-max-height')) ||
+      MAX_HEIGHT;
+    popup.style.maxHeight = `${Math.max(0, Math.floor(Math.min(most, room)))}px`;
+    more();
     // The popup is anchored at the host's right edge and grows leftwards.
     const wide = host.getBoundingClientRect().right - picture.left - AIR;
     popup.style.maxWidth = `${Math.max(0, Math.floor(wide))}px`;
+  }
+
+  /** `more` on the popup while rows wait below its foot, which then fades out. */
+  function more(): void {
+    popup.toggleAttribute('more', popup.scrollTop + popup.clientHeight < popup.scrollHeight - 1);
   }
 
   function clear(): void {

@@ -7,6 +7,8 @@
   bottom: 100%;
   margin-bottom: 8px;
   min-width: 160px;
+  /* The fitted maximums are the popup's whole box, padding included. */
+  box-sizing: border-box;
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -19,6 +21,11 @@
 }
 [part~="popup"][hidden] {
   display: none;
+}
+/* Rows wait below the foot: the last one fades out. */
+[part~="popup"][more] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
 }
 [part~="section"] {
   display: flex;

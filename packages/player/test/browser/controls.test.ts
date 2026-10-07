@@ -2237,6 +2237,46 @@ function popup(node: HTMLElement): HTMLElement {
   return inside(node, 'popup');
 }
 
+describe('a long menu', () => {
+  const RATES = '0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4';
+
+  it('stops at its maximum in a tall player, and fades its foot while rows wait below', async () => {
+    const player = await ready(10);
+    player.style.height = '700px';
+    const menu = control(player, 'mbx-speed-menu');
+    menu.setAttribute('rates', RATES);
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(264);
+    expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
+    list.scrollTop = 0;
+    list.dispatchEvent(new Event('scroll'));
+    expect(list.hasAttribute('more')).toBe(true);
+    list.scrollTop = list.scrollHeight;
+    list.dispatchEvent(new Event('scroll'));
+    expect(list.hasAttribute('more')).toBe(false);
+  });
+
+  it('takes a page maximum, and less in a player without room for it', async () => {
+    const player = await ready(10);
+    player.style.height = '700px';
+    player.style.setProperty('--mbx-menu-max-height', '120px');
+    const menu = control(player, 'mbx-speed-menu');
+    menu.setAttribute('rates', RATES);
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(popup(menu).getBoundingClientRect().height).toBeLessThanOrEqual(120);
+    inner(menu).click();
+    player.style.removeProperty('--mbx-menu-max-height');
+    player.style.height = '220px';
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    const room = inner(menu).getBoundingClientRect().top - player.video.getBoundingClientRect().top;
+    expect(popup(menu).getBoundingClientRect().height).toBeLessThanOrEqual(Math.max(0, room));
+  });
+});
+
 describe('the speed menu', () => {
   it("offers the rates, marks the video's own, and writes a choice back", async () => {
     const player = await ready(10);

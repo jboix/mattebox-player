@@ -738,7 +738,7 @@ in a major version.
 Custom properties set on the player are inherited by every control:
 `--mbx-surface`, `--mbx-text`, `--mbx-muted`, `--mbx-accent`, `--mbx-error`,
 `--mbx-radius`, `--mbx-gap`, `--mbx-pad`, `--mbx-font`, `--mbx-live`,
-`--mbx-preview-width`, `--mbx-blocked` (the dashes of a blocked range).
+`--mbx-preview-width`, `--mbx-menu-max-height` (264px by default), `--mbx-blocked` (the dashes of a blocked range).
 
 The shadow roots are open. When `::part()` is not enough, a page adds a
 stylesheet inside a control: `control.shadowRoot.append(style)` in every
