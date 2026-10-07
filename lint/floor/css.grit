@@ -8,7 +8,7 @@ or {
   } as $m where {
     $m <: not within CssQualifiedRule() as $rule where {
       $rule <: r"(?s).*display\s*:\s*(?:inline-)?grid.*"
-    } ,
+    },
     register_diagnostic(span=$m, message="Flex gap needs Chromium 84. Space the items with margins; a grid gap is fine. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
   },
   or {
@@ -19,7 +19,7 @@ or {
     register_diagnostic(span=$m, message="inset needs Chromium 87. Write top, right, bottom and left. The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
   },
   `aspect-ratio: $v` as $m where {
-    $m <: not within CssSupportsAtRule() ,
+    $m <: not within CssSupportsAtRule(),
     register_diagnostic(span=$m, message="aspect-ratio needs Chromium 88. Size the box another way, or put it under @supports (aspect-ratio: 1). The TV floor is Chromium 76 (AGENTS.md, rule 9; lint/floor/README.md).")
   },
   or {
