@@ -589,15 +589,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const certificate = this.getAttribute('certificate-url');
     const page = this.options.drm;
     if (keySystems.length === 0 && license === null && page === undefined) return undefined;
-    // `certificateUrl` is an eme-core option from mattebox 0.12; an older
-    // engine ignores it.
-    const options: AttachEmeOptions & { certificateUrl?: string } = {
+    return {
       keySystems,
       ...page,
       ...(license === null ? {} : { licenseUrl: license }),
       ...(certificate === null ? {} : { certificateUrl: certificate }),
     };
-    return options;
   }
 
   /** What the attributes ask of the session's namespaces, once there is one. */
@@ -613,7 +610,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // would bundle it.
     if (license !== null && optional.drm !== undefined) optional.drm.setLicenseUrl(license);
     const certificate = this.getAttribute('certificate-url');
-    if (certificate !== null) optional.drm?.setCertificateUrl?.(certificate);
+    if (certificate !== null) optional.drm?.setCertificateUrl(certificate);
 
     const track = this.getAttribute('thumbnails');
     if (track !== null && optional.thumbnails !== undefined) {

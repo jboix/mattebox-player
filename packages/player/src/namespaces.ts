@@ -17,15 +17,9 @@ import type { TrickApi } from 'mattebox/stages/trick-play';
 
 export type { LiveApi, PdtApi };
 
-/**
- * `setCertificateUrl` arrived in mattebox 0.12. Optional here, so the
- * element runs on an older engine and gives the certificate where it can.
- */
-type Drm = DrmApi & { readonly setCertificateUrl?: (url: string) => void };
-
 export interface Namespaces {
   readonly live?: LiveApi;
-  readonly drm?: Drm;
+  readonly drm?: DrmApi;
   readonly thumbnails?: ThumbnailsApi;
   readonly pdt?: PdtApi;
   readonly chapters?: ChaptersApi;

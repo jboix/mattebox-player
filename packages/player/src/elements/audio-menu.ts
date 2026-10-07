@@ -19,15 +19,9 @@ import type { PlayerHost } from '../host.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
-/**
- * A track's channel layout, from its first rendition: `channels` and
- * `audioObjects` (`JOC` for Dolby Atmos) arrived in mattebox 0.12, so they
- * are read structurally and an older engine gives none.
- */
+/** A track's channel layout, from its first rendition: `audioObjects` `JOC` is Dolby Atmos. */
 function channels(track: Track): string | undefined {
-  const first = track.renditions[0] as
-    | { readonly channels?: number; readonly audioObjects?: string }
-    | undefined;
+  const first = track.renditions[0];
   return first?.channels === undefined
     ? undefined
     : layout(`${first.channels}${first.audioObjects ? `/${first.audioObjects}` : ''}`);

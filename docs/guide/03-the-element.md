@@ -12,7 +12,7 @@ over the picture under `controls="custom"`.
 | `type`                | Sets the MIME type of the source. Optional when the extension is known                                                                                                       |
 | `preset`              | Names the engine preset. The default is `full`                                                                                                                               |
 | `license-url`         | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
-| `certificate-url`     | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session. Needs mattebox 0.12            |
+| `certificate-url`     | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
 | `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
 | `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
 | `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
