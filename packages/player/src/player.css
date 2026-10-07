@@ -52,6 +52,11 @@
 :host([casting]) ::slotted(mbx-start-button) {
   display: none;
 }
+/* Nothing is left to skip once the media has ended, even when the page's
+   credits run past its last frame. */
+:host([ended]) ::slotted(mbx-marker-button) {
+  display: none;
+}
 /* controls="none" hides every child but the video, so a page keeps its
    composition in place and turns it off with one attribute. A normal rule
    from the page still wins over this one, the way it does over any rule

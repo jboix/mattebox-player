@@ -1201,6 +1201,20 @@ describe('markers', () => {
     await expect.poll(() => inner(button).textContent).toBe('Skip credits');
   });
 
+  it('the skip button leaves when playback ends inside the credits', async () => {
+    const player = await loaded({}, 100);
+    const button = control(player, 'mbx-marker-button');
+    // A content API can give credits that run past the media's last frame.
+    player.markers.set([{ start: 90, end: 105, kind: 'closing-credits' }]);
+    player.video.currentTime = 95;
+    await expect.poll(() => button.hidden).toBe(false);
+    await media(player.video).end();
+    // The player's stylesheet hides it from the host's ended state.
+    expect(getComputedStyle(button).display).toBe('none');
+    player.video.currentTime = 95;
+    await expect.poll(() => getComputedStyle(button).display).not.toBe('none');
+  });
+
   it('playback moves past a blocked range, which the seek bar draws broken', async () => {
     const player = await loaded({}, 100);
     const blocked: unknown[] = [];
