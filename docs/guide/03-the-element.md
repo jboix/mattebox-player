@@ -55,15 +55,48 @@ The player only reports `audio`. The box stays at 16:9 until the page
 changes it, for example with
 `mattebox-player[audio] video { aspect-ratio: auto; height: 0; }`.
 
+## Several sources
+
+The player reads `<source>` children when it has no `src` attribute. It
+tries them in their order, as a video does.
+
+```html
+<mattebox-player controls="custom">
+  <source
+    src="vod/master.m3u8"
+    type="application/vnd.apple.mpegurl"
+    license-url="https://drm.example/fps"
+    certificate-url="https://drm.example/fps.cer"
+  />
+  <source src="vod/manifest.mpd" type="application/dash+xml" license-url="https://drm.example/widevine" />
+</mattebox-player>
+```
+
+| Attribute of `<source>` | What it does                                                                      |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| `src`                   | Sets the URL of the source                                                        |
+| `type`                  | Sets its MIME type. Optional when the extension is known                          |
+| `license-url`           | Sets the DRM license URL of this source. The player's own is the default          |
+| `certificate-url`       | Sets the FairPlay certificate URL of this source. The player's own is the default |
+
+- The `src` attribute wins over the `sources` property, and the property wins over the children.
+- A source the browser cannot play is replaced by the next one, until the video's first `playing` event.
+- Each replaced source dispatches `error` with `fatal: false` and its `source`. The last one is fatal.
+- The player does not read the `media` attribute of a `<source>`.
+- The children are read when a load starts. A `<source>` added while nothing is loaded starts a load.
+
+[Chapter 02](02-handlers.md#several-sources) has the rules of the list.
+
 ## Properties
 
-| Property  | What it is                                                                               |
-| --------- | ---------------------------------------------------------------------------------------- |
-| `player`  | The `Player` of the core                                                                 |
-| `engine`  | The engine of the current session, or null                                               |
-| `video`   | The `<video>` inside, in light DOM                                                       |
-| `error`   | The fatal error of the current load. Null after a load starts and after playback resumes |
-| `markers` | The ranges the page named in this source: see [Markers](#markers)                        |
+| Property  | What it is                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------- |
+| `player`  | The `Player` of the core                                                                                |
+| `sources` | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children |
+| `engine`  | The engine of the current session, or null                                                              |
+| `video`   | The `<video>` inside, in light DOM                                                                      |
+| `error`   | The fatal error of the current load. Null after a load starts and after playback resumes                |
+| `markers` | The ranges the page named in this source: see [Markers](#markers)                                       |
 
 ## Events
 

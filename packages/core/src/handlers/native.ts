@@ -23,6 +23,7 @@ export interface NativeHandlerOptions {
    * The engine's DRM for the source, attached to the video before `src`:
    * key systems, license URLs and a request hook, as `attachEme` takes
    * them. A function answers per source, and undefined plays without DRM.
+   * The `drm` of the source itself goes over it.
    */
   readonly drm?: AttachEmeOptions | ((source: Source) => AttachEmeOptions | undefined);
 }
@@ -61,7 +62,8 @@ export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
     // the AirPlay target away. The browser plays this source itself, so
     // the target belongs back.
     video.disableRemotePlayback = false;
-    const drm = typeof options.drm === 'function' ? options.drm(source) : options.drm;
+    const base = typeof options.drm === 'function' ? options.drm(source) : options.drm;
+    const drm = source.drm === undefined ? base : { ...base, ...source.drm };
     // Before `src`, so no `encrypted` event is missed. The player's CDN
     // bundle reads `attachEme` from the engine's global, and only the
     // engine bundles with DRM carry it: without it the source plays as

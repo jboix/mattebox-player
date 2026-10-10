@@ -2935,6 +2935,7 @@ describe('the DRM badge', () => {
       keySystem: null as string | null,
       sessions: [],
       setLicenseUrl(): void {},
+      setLicenseUrls(): void {},
       setCertificateUrl(): void {},
     };
     const handler: Handler = {

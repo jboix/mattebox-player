@@ -6,12 +6,18 @@ refuses one.
 
 ## A source
 
-A source is a URL and, when known, a MIME type.
+A source is a URL and, when known, a MIME type. It can carry its own DRM
+servers.
 
 ```ts
 interface Source {
   url: string;
   type?: string;
+  drm?: {
+    licenseUrl?: string;
+    licenseUrls?: Record<string, string>;
+    certificateUrl?: string;
+  };
 }
 ```
 
@@ -182,6 +188,47 @@ next handler.
 When no handler takes the source, `load` rejects. The `error` event also
 fires, with `MANIFEST_UNSUPPORTED` and the URL. A UI that shows the event
 does not need to catch the rejection.
+
+## Several sources
+
+`load` takes one source or a list. The core tries a list in its order, as a
+video does with its `<source>` children. It never ranks the sources.
+
+```ts
+await player.load([
+  { url: 'vod/master.m3u8', drm: { licenseUrl: fairplay, certificateUrl: certificate } },
+  { url: 'vod/manifest.mpd', drm: { licenseUrl: widevine } },
+]);
+```
+
+- A source no handler takes is passed over. No request is made for it.
+- A source that fails with a fatal error before the video's first `playing` event is replaced by the next one.
+- After `playing`, the source is final. Its errors are reported as for one source.
+- An error that is not fatal never changes the source.
+
+Each source that fails reports an `error` with `fatal: false` and the
+`source` that failed. The error of the last source is fatal.
+
+`load` resolves with the first session. A later source replaces
+`player.session` and fires `sourcechange` again.
+
+The video is paused when a session ends. The core calls `play()` again on
+the next source when the video was playing. A browser can refuse that call
+without a new gesture from the viewer.
+
+A video ends its own window earlier, when the metadata is read. The core
+waits for `playing` because a DRM failure arrives between the two: the key
+system, the certificate and the license all fail before the first frame.
+
+The handlers apply the `drm` of a source over their own options:
+
+| Handler           | What it does with `source.drm`                                                  |
+| ----------------- | ------------------------------------------------------------------------------- |
+| `matteboxHandler` | Calls `setLicenseUrl`, `setLicenseUrls` and `setCertificateUrl` on `engine.drm` |
+| `nativeHandler`   | Merges it over the `drm` option and gives the result to `attachEme`             |
+
+Each source is a new attach, so no setting of a failed source reaches the
+next one.
 
 ## Loading replaces
 

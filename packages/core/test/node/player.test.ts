@@ -228,6 +228,7 @@ describe('a native session with DRM attached', () => {
             keySystem: null,
             sessions: [],
             setLicenseUrl: () => undefined,
+            setLicenseUrls: () => undefined,
             setCertificateUrl: () => undefined,
           },
           on: (_event: string, fn: (payload: unknown) => void) => {

@@ -9,6 +9,16 @@ import type { EmeAttachment } from 'mattebox/eme';
 export interface Source {
   readonly url: string;
   readonly type?: string;
+  /** The DRM servers of this source. The handlers apply them, over their own options. */
+  readonly drm?: SourceDrm;
+}
+
+/** Where one source gets its licenses and its FairPlay certificate. */
+export interface SourceDrm {
+  readonly licenseUrl?: string;
+  /** One server per key system, keyed by name such as `com.widevine.alpha`. It wins over `licenseUrl`. */
+  readonly licenseUrls?: Readonly<Record<string, string>>;
+  readonly certificateUrl?: string;
 }
 
 /** What a handler sees when asked whether it can play a source. */
@@ -63,6 +73,8 @@ export interface PlayerError {
   /** The handler whose session reported it, or null when no handler claimed the source. */
   readonly handler: string | null;
   readonly context?: Readonly<Record<string, unknown>>;
+  /** The source that failed, on the error of a source the list had another one after. */
+  readonly source?: Source;
 }
 
 export interface PlayerEvents {
@@ -79,8 +91,17 @@ export interface PlayerOptions {
 }
 
 export interface Player {
-  /** Disposes the current session, then runs the chain. Concurrent loads resolve in order; the last wins. */
-  load(source: Source): Promise<Session>;
+  /**
+   * Disposes the current session, then runs the chain. Concurrent loads resolve in order; the last wins.
+   *
+   * A list is tried in its order, as the `<source>` children of a video are.
+   * A source no handler takes is passed over. A source that fails with a
+   * fatal error before the video's first `playing` event is replaced by
+   * the next one: each reports a non-fatal `error` that carries `source`,
+   * and `sourcechange` fires for the session that replaces it. The error of
+   * the last source is fatal.
+   */
+  load(source: Source | readonly Source[]): Promise<Session>;
   unload(): Promise<void>;
   readonly session: Session | null;
   on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void;

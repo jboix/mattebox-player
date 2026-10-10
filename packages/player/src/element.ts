@@ -48,8 +48,11 @@ const NATIVE_HLS = 'native-hls';
 /** Attributes forwarded onto the video as attributes, never as properties. */
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
+const LICENSE_URL = 'license-url';
+const CERTIFICATE_URL = 'certificate-url';
+
 /** Everything else the element watches. Changing any of them reloads. */
-const OWN = ['src', 'type', 'preset', 'license-url', 'certificate-url', 'thumbnails', NATIVE_HLS];
+const OWN = ['src', 'type', 'preset', LICENSE_URL, CERTIFICATE_URL, 'thumbnails', NATIVE_HLS];
 
 /**
  * The chapters file URL. A session with the engine's `chapters` namespace
@@ -203,6 +206,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private track: HTMLTrackElement | null;
   /** The chapters URL the current session's engine was given, or null. */
   declare private given: string | null;
+  /** The sources the page set from script, or null. */
+  declare private list: readonly Source[] | null;
+  /** The sources of the last run, as text: what tells a new `<source>` child from the ones already tried. */
+  declare private tried: string;
   declare private readonly options: MatteboxPlayerOptions;
   declare private core: Player | null;
   declare private current: Session | null;
@@ -225,6 +232,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.focusable = false;
     this.track = null;
     this.given = null;
+    this.list = null;
+    this.tried = '';
     this.core = null;
     this.current = null;
     this.failure = null;
@@ -257,7 +266,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
     this.stage = document.createElement('div');
     this.stage.setAttribute('part', 'stage');
-    this.stage.append(document.createElement('slot'));
+    const slot = document.createElement('slot');
+    // The parser connects the element before its children exist, so the
+    // first run finds no `<source>`. A video starts its selection when a
+    // `<source>` arrives and nothing is loaded, and so does this.
+    slot.addEventListener('slotchange', () => {
+      if (this.current === null && JSON.stringify(this.wanted()) !== this.tried) this.reload();
+    });
+    this.stage.append(slot);
     this.surface = errorSurface(() => {
       this.reload();
     });
@@ -276,6 +292,22 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The ranges the page named in this source: credits to skip, parts that must not play. */
   get markers(): Markers {
     return this.marks;
+  }
+
+  /**
+   * The sources to try in order, set from script. The `src` attribute wins
+   * over them, and they win over the `<source>` children. Setting them
+   * loads, and null returns to the children.
+   */
+  get sources(): readonly Source[] | null {
+    return this.list;
+  }
+
+  set sources(value: readonly Source[] | null) {
+    this.list = value;
+    // Markers belong to a source, as for `src`.
+    if (this.marks.list.length > 0) this.marks.set([]);
+    this.reload();
   }
 
   /** The core, or null until the first source has been set up: resolving a preset is asynchronous. */
@@ -495,28 +527,67 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private async run(): Promise<void> {
     this.unmount();
     if (!this.isConnected) return;
-    const url = this.getAttribute('src');
-    if (url === null) return;
+    const sources = this.wanted();
+    this.tried = JSON.stringify(sources);
+    if (sources.length === 0) return;
 
     const core = await this.ensure();
-    const type = this.getAttribute('type');
-    const source: Source = type === null ? { url } : { url, type };
     this.failure = null;
     this.surface.clear();
 
-    let session: Session;
     try {
-      session = await core.load(source);
+      await core.load(sources);
     } catch {
       // The core already reported it on the error event, which the surface
       // and the element's own event both carry. Nothing to add here.
       return;
     }
-    if (!this.isConnected) {
-      await core.unload();
-      return;
+    if (!this.isConnected) await core.unload();
+  }
+
+  /**
+   * What to load, ranked as a video ranks them: the `src` attribute, then
+   * the `sources` property, then the `<source>` children in their order.
+   * A child carries its own `license-url` and `certificate-url`.
+   */
+  private wanted(): readonly Source[] {
+    const url = this.getAttribute('src');
+    if (url !== null) {
+      const type = this.getAttribute('type');
+      return [type === null ? { url } : { url, type }];
     }
-    this.current = session;
+    // A browser without EME gets no DRM stage, and a source must not bring DRM back.
+    const eme = drmGuard().without === undefined;
+    if (this.list !== null) {
+      return eme
+        ? this.list
+        : this.list.map(({ url, type }) => (type === undefined ? { url } : { url, type }));
+    }
+    const found: Source[] = [];
+    for (const child of Array.from(this.children)) {
+      const src = child.localName === 'source' ? child.getAttribute('src') : null;
+      if (src === null) continue;
+      const type = child.getAttribute('type');
+      const license = child.getAttribute(LICENSE_URL);
+      const certificate = child.getAttribute(CERTIFICATE_URL);
+      found.push({
+        url: src,
+        ...(type === null ? {} : { type }),
+        ...(!eme || (license === null && certificate === null)
+          ? {}
+          : {
+              drm: {
+                ...(license === null ? {} : { licenseUrl: license }),
+                ...(certificate === null ? {} : { certificateUrl: certificate }),
+              },
+            }),
+      });
+    }
+    return found;
+  }
+
+  /** Sets a session up. It runs for every session, the one that replaces a failed source included. */
+  private adopt(session: Session): void {
     this.given = null;
     this.configure(session);
     // The engine's attach empties the media element to reset its resource
@@ -536,6 +607,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         // Before the event goes out, so a control that reads `engine` on
         // `sourcechange` sees the session the event is about.
         this.current = session;
+        if (session !== null && this.isConnected) this.adopt(session);
         this.emit('sourcechange', session);
       }),
       core.on('error', (error) => {
@@ -587,8 +659,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private drm(stages: () => readonly Stage[]): AttachEmeOptions | undefined {
     if (drmGuard().without !== undefined) return undefined;
     const keySystems = stages().filter((stage) => KEY_SYSTEMS.includes(stage.name));
-    const license = this.getAttribute('license-url');
-    const certificate = this.getAttribute('certificate-url');
+    const license = this.getAttribute(LICENSE_URL);
+    const certificate = this.getAttribute(CERTIFICATE_URL);
     const page = this.options.drm;
     if (keySystems.length === 0 && license === null && page === undefined) return undefined;
     return {
@@ -606,13 +678,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
     const optional = namespaces(engine);
 
-    const license = this.getAttribute('license-url');
+    // The attributes are the default. A source's own URL is already on the
+    // engine: the handler set it from `source.drm` before the load.
+    const own = session.source.drm;
+    const license = this.getAttribute(LICENSE_URL);
     // After the session exists, not before: passing a license URL up front
     // means constructing eme-core, and importing a stage to configure it
     // would bundle it.
-    if (license !== null && optional.drm !== undefined) optional.drm.setLicenseUrl(license);
-    const certificate = this.getAttribute('certificate-url');
-    if (certificate !== null) optional.drm?.setCertificateUrl(certificate);
+    if (license !== null && own?.licenseUrl === undefined) optional.drm?.setLicenseUrl(license);
+    const certificate = this.getAttribute(CERTIFICATE_URL);
+    if (certificate !== null && own?.certificateUrl === undefined) {
+      optional.drm?.setCertificateUrl(certificate);
+    }
 
     const track = this.getAttribute('thumbnails');
     if (track !== null && optional.thumbnails !== undefined) {

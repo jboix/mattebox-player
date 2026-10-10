@@ -9,6 +9,7 @@ import type { KernelConfig, Mattebox, MatteboxError, Stage, TransportConfig } fr
 import { mattebox } from 'mattebox';
 // `Preset` is only reachable through a preset subpath.
 import type { Preset, PresetOptions } from 'mattebox/presets/full';
+import type { DrmApi } from 'mattebox/stages/eme-core';
 import { Declined } from '../errors.js';
 import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
 
@@ -98,6 +99,17 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
           }
         : {},
     );
+
+    // The source's own DRM servers. After the attach, which builds the
+    // namespace, and before the load: eme-core reads the certificate URL
+    // as soon as the manifest names a key system.
+    const drm = (held as { drm?: DrmApi }).drm;
+    if (source.drm !== undefined && drm !== undefined) {
+      const { licenseUrl, licenseUrls, certificateUrl } = source.drm;
+      if (licenseUrl !== undefined) drm.setLicenseUrl(licenseUrl);
+      if (licenseUrls !== undefined) drm.setLicenseUrls(licenseUrls);
+      if (certificateUrl !== undefined) drm.setCertificateUrl(certificateUrl);
+    }
 
     async function dispose(): Promise<void> {
       held.unload();

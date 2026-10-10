@@ -1,5 +1,5 @@
 import { MatteboxPlayerElement } from '@mattebox/player';
-import type { Handler } from '@mattebox/player-core';
+import type { Handler, PlayerError, Source } from '@mattebox/player-core';
 import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import type { Stage, TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
@@ -596,5 +596,117 @@ describe('native HLS on Apple WebKit', () => {
         ? 'native'
         : 'mattebox';
     await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe(expected);
+  });
+});
+
+describe('several sources', () => {
+  const HLS_TYPE = 'application/vnd.apple.mpegurl';
+  const DASH_TYPE = 'application/dash+xml';
+
+  /** A handler that takes DASH alone and records the sources it was given. */
+  function dashOnly(): { readonly handler: Handler; readonly seen: Source[] } {
+    const seen: Source[] = [];
+    const handler: Handler = {
+      name: 'stub',
+      canHandle: (source) => (source.type === DASH_TYPE ? 'probably' : ''),
+      handle: async (source) => {
+        seen.push(source);
+        return { handler: 'stub', engine: null, dispose: async () => undefined };
+      },
+    };
+    return { handler, seen };
+  }
+
+  function child(attributes: Readonly<Record<string, string>>): HTMLSourceElement {
+    const source = document.createElement('source');
+    for (const [name, value] of Object.entries(attributes)) source.setAttribute(name, value);
+    return source;
+  }
+
+  it('tries the source children in their order, each with its own DRM servers', async () => {
+    const { handler, seen } = dashOnly();
+    const player = new MatteboxPlayerElement({ handlers: [handler] });
+    const errors: PlayerError[] = [];
+    player.addEventListener('error', (event) => {
+      errors.push((event as CustomEvent<PlayerError>).detail);
+    });
+    player.append(
+      child({ src: 'a.m3u8', type: HLS_TYPE, 'certificate-url': 'https://drm.test/fps.cer' }),
+      child({ src: 'a.mpd', type: DASH_TYPE, 'license-url': 'https://drm.test/widevine' }),
+    );
+    document.body.append(player);
+
+    await expect.poll(() => player.player?.session?.source.url).toBe('a.mpd');
+    expect(seen).toEqual([
+      {
+        url: 'a.mpd',
+        type: DASH_TYPE,
+        ...(EME ? { drm: { licenseUrl: 'https://drm.test/widevine' } } : {}),
+      },
+    ]);
+    expect(errors.map((error) => [error.code, error.fatal, error.source?.url])).toEqual([
+      ['MANIFEST_UNSUPPORTED', false, 'a.m3u8'],
+    ]);
+    expect(player.error).toBeNull();
+  });
+
+  it('reads the src attribute before the children, and the sources property before them too', async () => {
+    const { handler, seen } = dashOnly();
+    const player = new MatteboxPlayerElement({ handlers: [handler] });
+    player.append(child({ src: 'child.mpd', type: DASH_TYPE }));
+    player.setAttribute('src', 'attribute.mpd');
+    document.body.append(player);
+    await expect.poll(() => player.player?.session?.source.url).toBe('attribute.mpd');
+
+    player.sources = [{ url: 'property.mpd' }];
+    await settled();
+    expect(player.player?.session?.source.url).toBe('attribute.mpd');
+
+    player.removeAttribute('src');
+    await expect.poll(() => player.player?.session?.source.url).toBe('property.mpd');
+
+    player.sources = null;
+    await expect.poll(() => player.player?.session?.source.url).toBe('child.mpd');
+    expect(seen.map((source) => source.url)).toEqual([
+      'attribute.mpd',
+      'attribute.mpd',
+      'property.mpd',
+      'child.mpd',
+    ]);
+  });
+
+  it('starts a load when a source child arrives and nothing is loaded', async () => {
+    const { handler, seen } = dashOnly();
+    const player = new MatteboxPlayerElement({ handlers: [handler] });
+    document.body.append(player);
+    await settled();
+    expect(player.player).toBeNull();
+
+    player.append(child({ src: 'late.mpd', type: DASH_TYPE }));
+
+    await expect.poll(() => player.player?.session?.source.url).toBe('late.mpd');
+    expect(seen).toHaveLength(1);
+  });
+
+  it('keeps the session when a source child arrives during playback', async () => {
+    const { handler, seen } = dashOnly();
+    const player = new MatteboxPlayerElement({ handlers: [handler] });
+    player.append(child({ src: 'first.mpd', type: DASH_TYPE }));
+    document.body.append(player);
+    await expect.poll(() => player.player?.session?.source.url).toBe('first.mpd');
+
+    player.append(child({ src: 'second.mpd', type: DASH_TYPE }));
+    await settled();
+    await settled();
+
+    expect(seen.map((source) => source.url)).toEqual(['first.mpd']);
+  });
+
+  it('draws nothing for a source child', async () => {
+    const player = new MatteboxPlayerElement({ handlers: [dashOnly().handler] });
+    const source = child({ src: 'a.mpd', type: DASH_TYPE });
+    player.append(source);
+    document.body.append(player);
+    expect(getComputedStyle(source).display).toBe('none');
   });
 });

@@ -37,6 +37,10 @@
   max-height: 100%;
   object-fit: contain;
 }
+/* A source child names what to play and draws nothing. */
+::slotted(source) {
+  display: none;
+}
 /* A browser without aspect-ratio (before Chromium 88, a 2021 TV) shows the
    video's default 2:1 box until the metadata gives the real one. */
 @supports (aspect-ratio: 1) {
