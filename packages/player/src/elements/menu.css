@@ -61,10 +61,16 @@
 [part~="item"]:hover {
   background: rgba(255, 255, 255, 0.12);
 }
+/* Two lines, then an ellipsis, within a bounded width: a long chapter
+   title reads whole more often, and the menu keeps its shape. */
 [part~="item-text"] {
   min-width: 0;
+  max-width: 16em;
   overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 [part~="item-image"] {
   flex: none;

@@ -72,3 +72,14 @@
 [part~="subheading"]:empty {
   display: none;
 }
+/* Beside the artwork, the heading has the artwork's height to use: three
+   lines alone, two above a subheading. Without artwork it stays one line. */
+:host([artwork]) [part~="heading"]:not(:empty) {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+:host([artwork][subheading]) [part~="heading"]:not(:empty) {
+  -webkit-line-clamp: 2;
+}
