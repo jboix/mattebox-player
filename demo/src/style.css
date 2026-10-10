@@ -729,9 +729,10 @@ button:hover {
   fill: var(--ink);
 }
 
-/* The markup */
+/* The markup, on the element's page and on the playlist's. */
 
-#markup {
+#markup,
+#code {
   margin: 0;
   padding: var(--step) calc(var(--step) * 1.5);
   overflow-x: auto;
