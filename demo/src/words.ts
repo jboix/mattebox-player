@@ -69,6 +69,9 @@ export interface Words {
   readonly diagnostics: string;
   readonly copyReport: string;
   readonly copied: string;
+  readonly skipIntro: string;
+  readonly skipCredits: string;
+  readonly skip: string;
 }
 
 export interface Language {
@@ -135,6 +138,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnòstic',
       copyReport: 'Copia l’informe',
       copied: 'Copiat',
+      skipIntro: 'Omet la introducció',
+      skipCredits: 'Omet els crèdits',
+      skip: 'Omet',
     },
   },
   es: {
@@ -195,6 +201,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnóstico',
       copyReport: 'Copiar el informe',
       copied: 'Copiado',
+      skipIntro: 'Saltar intro',
+      skipCredits: 'Saltar créditos',
+      skip: 'Saltar',
     },
   },
   fr: {
@@ -255,6 +264,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnostic',
       copyReport: 'Copier le rapport',
       copied: 'Copié',
+      skipIntro: "Passer l'intro",
+      skipCredits: 'Passer le générique',
+      skip: 'Passer',
     },
   },
   de: {
@@ -315,6 +327,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnose',
       copyReport: 'Bericht kopieren',
       copied: 'Kopiert',
+      skipIntro: 'Intro überspringen',
+      skipCredits: 'Abspann überspringen',
+      skip: 'Überspringen',
     },
   },
   it: {
@@ -375,6 +390,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnostica',
       copyReport: 'Copia il rapporto',
       copied: 'Copiato',
+      skipIntro: 'Salta intro',
+      skipCredits: 'Salta titoli di coda',
+      skip: 'Salta',
     },
   },
   pt: {
@@ -435,6 +453,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'Diagnóstico',
       copyReport: 'Copiar o relatório',
       copied: 'Copiado',
+      skipIntro: 'Pular abertura',
+      skipCredits: 'Pular créditos',
+      skip: 'Pular',
     },
   },
   zh: {
@@ -495,6 +516,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: '诊断',
       copyReport: '复制报告',
       copied: '已复制',
+      skipIntro: '跳过片头',
+      skipCredits: '跳过片尾',
+      skip: '跳过',
     },
   },
   ja: {
@@ -555,6 +579,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: '診断',
       copyReport: 'レポートをコピー',
       copied: 'コピーしました',
+      skipIntro: 'イントロをスキップ',
+      skipCredits: 'クレジットをスキップ',
+      skip: 'スキップ',
     },
   },
   ko: {
@@ -615,6 +642,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: '진단',
       copyReport: '보고서 복사',
       copied: '복사됨',
+      skipIntro: '인트로 건너뛰기',
+      skipCredits: '크레딧 건너뛰기',
+      skip: '건너뛰기',
     },
   },
   hi: {
@@ -675,6 +705,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'निदान',
       copyReport: 'रिपोर्ट कॉपी करें',
       copied: 'कॉपी हो गई',
+      skipIntro: 'इंट्रो छोड़ें',
+      skipCredits: 'क्रेडिट छोड़ें',
+      skip: 'छोड़ें',
     },
   },
   ar: {
@@ -735,6 +768,9 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       diagnostics: 'التشخيص',
       copyReport: 'نسخ التقرير',
       copied: 'تم النسخ',
+      skipIntro: 'تخطي المقدمة',
+      skipCredits: 'تخطي شارة النهاية',
+      skip: 'تخطي',
     },
   },
 };
@@ -793,6 +829,12 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
         'label-key': words.key,
         'label-keys': words.keys,
         'label-no-key': words.noKey,
+      };
+    case 'mbx-marker-button':
+      return {
+        'label-opening-credits': words.skipIntro,
+        'label-closing-credits': words.skipCredits,
+        'label-skip': words.skip,
       };
     case 'mbx-spinner':
       return { label: words.loading };
