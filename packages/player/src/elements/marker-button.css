@@ -7,6 +7,11 @@
   /* Over the bar: the bar's box, fade included, reaches up past the button,
      and comes later, so it would take the button's clicks. */
   z-index: 1;
+  transition: transform 0.3s ease;
+}
+/* The bar hidden, the button moves down into its place. */
+:host([idle]) {
+  transform: translateY(var(--mbx-marker-lift, 56px));
 }
 :host([hidden]) {
   display: none;
@@ -24,4 +29,9 @@
 }
 [part~="button"]:hover {
   background: rgba(0, 0, 0, 0.8);
+}
+@media (prefers-reduced-motion: reduce) {
+  :host {
+    transition: none;
+  }
 }

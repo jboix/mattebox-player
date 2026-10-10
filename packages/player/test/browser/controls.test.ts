@@ -1201,6 +1201,32 @@ describe('markers', () => {
     await expect.poll(() => inner(button).textContent).toBe('Skip credits');
   });
 
+  it('the skip button leaves the closing credits to an up next card, and keeps the others', async () => {
+    const player = await loaded({}, 100);
+    const button = control(player, 'mbx-marker-button');
+    player.markers.set([
+      { start: 0, end: 20, kind: 'opening-credits' },
+      { start: 90, end: 100, kind: 'closing-credits' },
+    ]);
+    // A card that offers the next item marks the player while it shows.
+    player.setAttribute('upnext', '');
+    expect(button.hidden).toBe(false);
+    player.video.currentTime = 95;
+    await expect.poll(() => button.hidden).toBe(true);
+    player.removeAttribute('upnext');
+    await expect.poll(() => button.hidden).toBe(false);
+  });
+
+  it('the skip button follows the bar down when the bar hides', async () => {
+    const player = await loaded({}, 100);
+    const button = control(player, 'mbx-marker-button');
+    player.markers.set([{ start: 0, end: 20, kind: 'opening-credits' }]);
+    player.setAttribute('idle', '');
+    await expect.poll(() => button.hasAttribute('idle')).toBe(true);
+    player.removeAttribute('idle');
+    await expect.poll(() => button.hasAttribute('idle')).toBe(false);
+  });
+
   it('the skip button leaves when playback ends inside the credits', async () => {
     const player = await loaded({}, 100);
     const button = control(player, 'mbx-marker-button');
