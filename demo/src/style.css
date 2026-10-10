@@ -171,6 +171,32 @@ body {
   flex: none;
 }
 
+/* The other demo page, as a quiet link beside the room toggle. */
+.page-link {
+  flex: none;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  line-height: 1;
+}
+.page-link:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* The playlist page's event log: newest first, in the mono face. */
+.log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 12px / 1.5 var(--mono);
+  color: var(--ink-soft);
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
 /* The repository, as the mark alone. */
 .github {
   flex: none;

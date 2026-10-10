@@ -33,6 +33,7 @@ import {
   searchMedia,
   tokenize,
 } from './srgssr.js';
+import { wireTheme } from './theme.js';
 import { attributesFor, LANGUAGES } from './words.js';
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -1231,37 +1232,9 @@ byId<HTMLButtonElement>('copy-markup').addEventListener('click', () => {
   );
 });
 
-// ---- the room: one button, naming the room it would switch to ------------------
+// ---- the room ------------------------------------------------------------------
 
-{
-  const KEY = 'mattebox.demo.theme';
-  const button = byId<HTMLButtonElement>('theme-toggle');
-  const system = window.matchMedia('(prefers-color-scheme: dark)');
-  function current(): 'light' | 'dark' {
-    const set = document.documentElement.dataset.theme;
-    if (set === 'light' || set === 'dark') return set;
-    return system.matches ? 'dark' : 'light';
-  }
-  function paint(): void {
-    const dark = current() === 'dark';
-    button.textContent = dark ? '☀ Light' : '☾ Dark';
-    button.title = `Switch to the ${dark ? 'light' : 'dark'} room`;
-    button.setAttribute('aria-pressed', String(dark));
-  }
-  button.addEventListener('click', () => {
-    const next = current() === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem(KEY, next);
-    } catch {
-      // Storage may be unavailable; the room still changes.
-    }
-    paint();
-  });
-  // Follows the system until a choice is made.
-  system.addEventListener('change', paint);
-  paint();
-}
+wireTheme(byId<HTMLButtonElement>('theme-toggle'));
 
 loadPreferences();
 byId<HTMLButtonElement>('reset-options').addEventListener('click', () => {

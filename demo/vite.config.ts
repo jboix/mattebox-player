@@ -37,5 +37,12 @@ export default defineConfig({
     // The hosted demo is lowered to the same target as the packages' default
     // build, so a deployment exercises what users ship.
     target: 'es2015',
+    // Two pages: the element, and the playlist.
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('index.html', import.meta.url)),
+        playlist: fileURLToPath(new URL('playlist.html', import.meta.url)),
+      },
+    },
   },
 });
