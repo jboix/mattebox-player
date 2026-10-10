@@ -114,3 +114,6 @@ playlist.addEventListener('change', () => console.log(playlist.index));
 
 `playlistOf(player)` returns the playlist of a player, whether the markup or
 a script made it.
+
+The [guide](https://github.com/jboix/mattebox-player/blob/main/docs/guide/07-playlist.md)
+explains the items, the controls and the script API.
