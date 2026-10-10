@@ -1,0 +1,20 @@
+import { defineConfig } from 'rolldown';
+import { inlineCss } from '../../scripts/lib/inline-css.mjs';
+
+// The CDN bundle: one minified IIFE behind the `matteboxPlayerPlaylist`
+// global. It takes nothing from the engine or the player at runtime; the
+// page loads the engine, the player and then this.
+export default defineConfig({
+  input: 'cdn/playlist.ts',
+  external: [/^mattebox(\/|$)/, /^@mattebox\/player(\/|$)/],
+  plugins: [inlineCss()],
+  output: {
+    file: 'dist/cdn/mattebox-player-playlist.min.js',
+    format: 'iife',
+    name: 'matteboxPlayerPlaylist',
+    exports: 'named',
+    globals: (id) => (id === 'mattebox' ? 'mattebox' : 'matteboxPlayer'),
+    minify: true,
+  },
+  transform: { target: 'es2015' },
+});

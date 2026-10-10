@@ -29,7 +29,8 @@
       "@mattebox/player/elements/*": ["./packages/player/src/entries/*.ts"],
       "@mattebox/player-diagnostics": ["./packages/diagnostics/src/index.ts"],
       "@mattebox/player-cast": ["./packages/cast/src/index.ts"],
-      "@mattebox/player-spatial-nav": ["./packages/spatial-nav/src/index.ts"]
+      "@mattebox/player-spatial-nav": ["./packages/spatial-nav/src/index.ts"],
+      "@mattebox/player-playlist": ["./packages/playlist/src/index.ts"]
     }
   },
   "include": [

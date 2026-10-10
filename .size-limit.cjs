@@ -57,4 +57,14 @@ module.exports = [
     brotli: true,
     limit: '2 kB',
   },
+  {
+    name: '@mattebox/player-playlist',
+    path: 'packages/playlist/dist/cdn/mattebox-player-playlist.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The player is a peer, read for its types alone. The controller, the
+    // markup, the list panel and its buttons measured 6.45 kB; the up next
+    // card and the preload come on top. 8 kB holds them.
+    brotli: true,
+    limit: '8 kB',
+  },
 ];

@@ -1,0 +1,101 @@
+:host {
+  display: inline-flex;
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="button"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  cursor: pointer;
+  opacity: 0.9;
+  position: relative;
+}
+/* The button's name as a tooltip, from the aria-label a label attribute
+   sets, so a translated label translates it too. Shown on hover where
+   there is a pointer, and on keyboard focus, after a beat. A page or the
+   bar turns it off with --mbx-tooltip: none. */
+[part~="button"][aria-label]::after {
+  content: attr(aria-label);
+  display: var(--mbx-tooltip, block);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  transform: translateX(-50%);
+  background: var(--mbx-surface);
+  border-radius: var(--mbx-radius);
+  font-size: 13px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+[part~="button"][aria-label]:focus::after {
+  opacity: 1;
+  transition-delay: 0.4s;
+}
+/* Focus a pointer gave shows nothing; before Chromium 86, any focus does. */
+[part~="button"][aria-label]:focus:not(:focus-visible)::after {
+  opacity: 0;
+  transition-delay: 0s;
+}
+@media (hover: hover) {
+  [part~="button"][aria-label]:hover::after {
+    opacity: 1;
+    transition-delay: 0.4s;
+  }
+}
+/* The last control of a row sits at the player's edge: its tooltip grows
+   inward instead of past the edge. */
+:host(:last-child) [part~="button"][aria-label]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+[part~="button"]:hover {
+  opacity: 1;
+}
+[part~="button"]:focus {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: -2px;
+}
+[part~="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+[part~="icon"],
+::slotted(*) {
+  width: 1.75em;
+  height: 1.75em;
+  fill: currentColor;
+}
+slot[hidden] {
+  display: none;
+}
+/* A mode that is on: shuffle, repeat. */
+[part~="button"][aria-pressed="true"] {
+  color: var(--mbx-accent);
+}
+/* Repeat one: the repeat glyph with a 1 over its corner. */
+[part~="badge"] {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+[part~="badge"][hidden] {
+  display: none;
+}

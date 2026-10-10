@@ -31,3 +31,4 @@ player=$(node -p "require('./packages/player/package.json').version")
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/diagnostics
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/cast
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/spatial-nav
+npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/playlist

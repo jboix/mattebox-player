@@ -36,6 +36,7 @@
         "packages/core/src/**",
         "packages/player/src/**",
         "packages/spatial-nav/src/**",
+        "packages/playlist/src/**",
         "packages/diagnostics/src/**"
       ],
       "plugins": ["./lint/floor/css.grit", "./lint/floor/js.grit"]

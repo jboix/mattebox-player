@@ -35,6 +35,10 @@
     "packages/spatial-nav": {
       "entry": ["src/index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/playlist": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }
 }

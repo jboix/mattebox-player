@@ -44,6 +44,7 @@ export default defineConfig({
         'packages/diagnostics/src/**',
         'packages/cast/src/**',
         'packages/spatial-nav/src/**',
+        'packages/playlist/src/**',
         'packages/core/src/index.ts',
         'packages/core/src/types.ts',
       ],

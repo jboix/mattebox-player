@@ -21,6 +21,9 @@ export default defineConfig({
       '@mattebox/player-spatial-nav': fileURLToPath(
         new URL('../packages/spatial-nav/src/index.ts', import.meta.url),
       ),
+      '@mattebox/player-playlist': fileURLToPath(
+        new URL('../packages/playlist/src/index.ts', import.meta.url),
+      ),
       '@mattebox/player': fileURLToPath(
         new URL('../packages/player/src/index.ts', import.meta.url),
       ),

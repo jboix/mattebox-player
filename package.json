@@ -19,7 +19,8 @@
     "packages/player",
     "packages/diagnostics",
     "packages/cast",
-    "packages/spatial-nav"
+    "packages/spatial-nav",
+    "packages/playlist"
   ],
   "devEngines": {
     "runtime": {
