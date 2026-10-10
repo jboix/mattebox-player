@@ -2251,6 +2251,33 @@ function popup(node: HTMLElement): HTMLElement {
   return inside(node, 'popup');
 }
 
+describe('tooltips', () => {
+  it('show a button\'s name, follow its label, and go with tooltips="off"', async () => {
+    const player = await custom();
+    const play = inner(playButton(player));
+    const tip = () => getComputedStyle(play, '::after');
+    expect(tip().content).toBe('"Play"');
+    expect(tip().display).toBe('block');
+    playButton(player).setAttribute('label-play', 'Reproduir');
+    await expect.poll(() => tip().content).toBe('"Reproduir"');
+    player.setAttribute('tooltips', 'off');
+    expect(tip().display).toBe('none');
+  });
+
+  it('give way to an open menu: the bar stacks above the screens and hides them', async () => {
+    const player = await custom();
+    const root = bar(player) as MbxControlBar;
+    const menu = control(player, 'mbx-speed-menu');
+    expect(root.hasAttribute('menu')).toBe(false);
+    inner(menu).click();
+    await expect.poll(() => root.hasAttribute('menu')).toBe(true);
+    expect(getComputedStyle(root).zIndex).toBe('2');
+    expect(getComputedStyle(inner(playButton(player)), '::after').display).toBe('none');
+    inner(menu).click();
+    await expect.poll(() => root.hasAttribute('menu')).toBe(false);
+  });
+});
+
 describe('the quality menu under Auto', () => {
   it('names what plays in the Auto row, and stops once a quality is pinned', async () => {
     const rendition = (id: string, height: number) => ({

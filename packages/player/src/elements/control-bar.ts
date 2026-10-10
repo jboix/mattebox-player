@@ -340,6 +340,16 @@ export class MbxControlBar extends Component {
     };
     this.keep(screen.watch(reflect));
     reflect();
+    // `menu` while one of the bar's menus is open, by its `open` attribute:
+    // the bar then stacks above the screens and hides its tooltips.
+    const menus = new MutationObserver(() => {
+      this.toggleAttribute('menu', this.querySelector('[open]') !== null);
+    });
+    menus.observe(this, { subtree: true, attributes: true, attributeFilter: ['open'] });
+    this.keep(() => {
+      menus.disconnect();
+      this.removeAttribute('menu');
+    });
 
     const pointer = (): void => {
       this.keyboard = false;

@@ -14,6 +14,7 @@ over the picture under `controls="custom"`.
 | `license-url`         | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
 | `certificate-url`     | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
 | `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
+| `tooltips`            | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
 | `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
 | `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
 | `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
@@ -740,7 +741,7 @@ in a major version.
 Custom properties set on the player are inherited by every control:
 `--mbx-surface`, `--mbx-text`, `--mbx-muted`, `--mbx-accent`, `--mbx-error`,
 `--mbx-radius`, `--mbx-gap`, `--mbx-pad`, `--mbx-font`, `--mbx-live`,
-`--mbx-preview-width`, `--mbx-menu-max-height` (264px by default), `--mbx-blocked` (the dashes of a blocked range).
+`--mbx-preview-width`, `--mbx-menu-max-height` (264px by default), `--mbx-tooltip` (`none` hides the tooltips), `--mbx-blocked` (the dashes of a blocked range).
 
 The shadow roots are open. When `::part()` is not enough, a page adds a
 stylesheet inside a control: `control.shadowRoot.append(style)` in every

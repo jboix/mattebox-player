@@ -12,6 +12,12 @@
   font: 500 16px / 1.2 var(--mbx-font);
   transition: opacity 0.2s;
 }
+/* While a menu is open the bar stacks above the screens, the skip button
+   among them, so the menu is never under one; and no tooltip shows over it. */
+:host([menu]) {
+  z-index: 2;
+  --mbx-tooltip: none;
+}
 :host([idle]) {
   opacity: 0;
   pointer-events: none;

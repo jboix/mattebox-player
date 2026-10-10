@@ -121,3 +121,7 @@
 [hidden] {
   display: none;
 }
+/* tooltips="off": no control shows its name over itself. */
+:host([tooltips="off"]) {
+  --mbx-tooltip: none;
+}
