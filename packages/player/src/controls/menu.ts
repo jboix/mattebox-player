@@ -37,6 +37,13 @@ export interface MenuGroup {
   >;
   readonly value: string;
   readonly onSelect: (value: string) => void;
+  /** A glyph drawn before the heading, such as the two sizes of a letter on Size. */
+  readonly glyph?: () => SVGSVGElement;
+  /**
+   * The badges drawn as a glyph, by their text. The text stays in the
+   * badge for a screen reader and as its tooltip.
+   */
+  readonly badgeGlyphs?: Readonly<Record<string, () => SVGSVGElement>>;
 }
 
 /** An entry that opens a page of groups, with a Back at its top. */
@@ -210,7 +217,9 @@ export function menu(options: MenuOptions): Menu {
       section.setAttribute('role', 'group');
       if (entry.label !== undefined) {
         section.setAttribute('aria-label', entry.label);
-        section.append(el('div', `section-label ${entry.name}-label`, entry.label));
+        const heading = el('div', `section-label ${entry.name}-label`, entry.label);
+        if (entry.glyph !== undefined) heading.prepend(entry.glyph());
+        section.append(heading);
       }
       for (const [id, text, detail, image, badges] of entry.items) {
         const choice = item(`item ${entry.name}-item`, text, () => {
@@ -218,7 +227,18 @@ export function menu(options: MenuOptions): Menu {
           button.focus();
           entry.onSelect(id);
         });
-        for (const badge of badges ?? []) choice.append(el('span', 'item-badge', badge));
+        for (const badge of badges ?? []) {
+          const glyph = entry.badgeGlyphs?.[badge];
+          if (glyph === undefined) {
+            choice.append(el('span', 'item-badge', badge));
+            continue;
+          }
+          // The glyph is what a viewer sees, and the text is what a screen reader says.
+          const drawn = el('span', 'item-badge item-glyph');
+          drawn.title = badge;
+          drawn.append(glyph(), el('span', 'badge-text', badge));
+          choice.append(drawn);
+        }
         if (detail !== undefined) choice.append(el('span', 'item-detail', detail));
         if (image !== undefined) {
           // The text in a box of its own, so a long title ends in an ellipsis beside the picture.

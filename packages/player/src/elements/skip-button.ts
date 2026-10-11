@@ -1,7 +1,7 @@
 /**
  * <mbx-skip-button>: moves the playhead by `seconds`, negative for back,
  * within what the video can reach. The glyph says the amount where the
- * set has one, 10 and 30, and a plain arrow otherwise; `icon` takes a
+ * set has one, 5, 10, 15 and 30, and a plain arrow otherwise; `icon` takes a
  * page's own. The name comes from `label`, where `{seconds}` is the
  * amount without its sign: "Back {seconds} seconds".
  */
@@ -15,10 +15,10 @@ import { BUTTON_STYLE, style } from './shared.js';
 
 const SECONDS = 10;
 
-/** The glyph for a skip amount: the set draws 10 and 30, and a plain arrow says the rest. */
+/** The glyph for a skip amount: the set draws 5, 10, 15 and 30, and a plain arrow says the rest. */
 function glyphFor(back: boolean, amount: number): IconName {
   const side = back ? 'seek-backward' : 'seek-forward';
-  if (amount === 10 || amount === 30) return `${side}-${amount}`;
+  if (amount === 5 || amount === 10 || amount === 15 || amount === 30) return `${side}-${amount}`;
   return side;
 }
 

@@ -57,8 +57,7 @@
     }
   },
   "files": [
-    "dist",
-    "NOTICE"
+    "dist"
   ],
   "scripts": {
     "clean": "rm -rf dist",

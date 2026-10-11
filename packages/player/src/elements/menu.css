@@ -37,12 +37,17 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 [part~="section-label"] {
+  display: flex;
+  align-items: center;
   padding: 0.3636em 1.0909em 0.1818em;
   font-size: 0.7857em;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mbx-muted);
+}
+[part~="section-label"] svg {
+  margin-right: 0.5em;
 }
 [part~="item"] {
   display: flex;
@@ -90,6 +95,28 @@
   line-height: 1.5;
   border: 1px solid currentColor;
   border-radius: 2px;
+}
+/* A badge drawn as a glyph: no box, and its text kept for a screen reader. */
+[part~="item-glyph"] {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  font-size: 1em;
+}
+[part~="item-glyph"] svg,
+[part~="section-label"] svg {
+  flex: none;
+  width: 1.5em;
+  height: 1.5em;
+  fill: currentColor;
+}
+[part~="badge-text"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 [part~="item-detail"] {
   margin-left: auto;
@@ -143,6 +170,7 @@
 }
 [part~="checked"] {
   position: relative;
+  background: rgba(255, 255, 255, 0.08);
 }
 [part~="checked"]::before {
   content: "";

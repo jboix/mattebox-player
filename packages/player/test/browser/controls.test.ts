@@ -1098,10 +1098,14 @@ describe('the skip buttons', () => {
     expect(inner(forward).getAttribute('aria-label')).toBe('Forward 30 seconds');
     forward.setAttribute('seconds', '15');
     expect(fallbackGlyph(forward, 'icon')).toBe(
+      icon('seek-forward-15').firstElementChild?.getAttribute('d'),
+    );
+    forward.setAttribute('seconds', '20');
+    expect(fallbackGlyph(forward, 'icon')).toBe(
       icon('seek-forward').firstElementChild?.getAttribute('d'),
     );
     inner(forward).click();
-    expect(player.video.currentTime).toBe(15);
+    expect(player.video.currentTime).toBe(20);
   });
 
   it('fill the amount into a label the page wrote', async () => {

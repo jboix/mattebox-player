@@ -23,7 +23,7 @@ export class MbxQualityMenu extends MenuElement {
   declare private playing: string | undefined;
 
   constructor() {
-    super(...single('settings'));
+    super(...single('quality'));
     this.engine = null;
     this.playing = undefined;
     show(this.slots, 'default');

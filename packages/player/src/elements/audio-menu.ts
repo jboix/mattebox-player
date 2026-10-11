@@ -11,6 +11,7 @@
  */
 import type { ContentType, Mattebox, Track } from 'mattebox';
 import { isAudioDescription, isOriginal } from 'mattebox';
+import { icon } from '../controls/icons.js';
 import type { NativeTrack } from '../controls/native-tracks.js';
 import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { TrackEntry } from '../controls/track-names.js';
@@ -78,7 +79,7 @@ export class MbxAudioMenu extends MenuElement {
   declare private engine: Mattebox | null;
 
   constructor() {
-    super(...single('music'));
+    super(...single('audio'));
     this.engine = null;
     show(this.slots, 'default');
   }
@@ -141,6 +142,8 @@ export class MbxAudioMenu extends MenuElement {
       {
         name: 'track',
         items,
+        // The audio description badge is the AD mark, named by `label-ad`.
+        badgeGlyphs: { [this.getAttribute('label-ad') ?? 'AD']: () => icon('audio-description') },
         value: active ?? '',
         onSelect: (value) => {
           // One audio track plays at a time, so the others are turned off.

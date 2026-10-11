@@ -505,6 +505,9 @@ track functions.
 | `SDH`      | `label-sdh`      | subtitles | Subtitles for the deaf and hard of hearing |
 | `CC`       | `label-cc`       | subtitles | Closed captions carried in the video       |
 
+The player draws `AD`, `SDH` and `CC` as a glyph. The label is the glyph's
+tooltip, and the text a screen reader says.
+
 The quality menu lists `engine.quality.selectable`, best first: what the
 browser can play, one entry per video stream. A name grows only as far as
 it must to tell entries apart.
@@ -536,8 +539,8 @@ screen reader reads it.
 </mbx-play-button>
 ```
 
-The player's own icons come from Vidstack's media-icons, under the MIT
-license. The package ships the notice as `NOTICE`.
+The player's own icons are Mattebox's drawings: one filled path each, on a
+32-unit grid, so they scale to any size and take the text colour.
 
 ### A control of your own
 
@@ -762,19 +765,19 @@ Two rules make this work:
 - No stylesheet of the player uses `!important`. For normal declarations, a rule from the page wins over a rule from the shadow tree, whatever its specificity. An `!important` inside the shadow tree would reverse that.
 - Every element a control draws has a `part`, because `::part()` cannot select the descendants of a part.
 
-| Element                             | Parts                                                                                                                                                                                |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `mattebox-player`                   | `stage`, and the error surface: `error`, `error-category`, `error-code`, `error-retry`, `value`, `button`                                                                            |
-| `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                                                                     |
-| Every button control                | `button`, `icon`                                                                                                                                                                     |
-| `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                                                           |
-| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`              |
-| `mbx-scan-button`                   | `button`, `icon`, `rate`                                                                                                                                                             |
-| `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                                                              |
-| Every menu                          | `button`, `icon`, `popup`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-detail`, `page-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
-| The chosen item of a menu           | `checked`, added to the part of the item. It is the only state in a part name, because a page cannot otherwise select the state of an item inside a shadow root                      |
-| `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                                                                   |
-| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `retry`                                                                                                                   |
+| Element                             | Parts                                                                                                                                                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mattebox-player`                   | `stage`, and the error surface: `error`, `error-category`, `error-code`, `error-retry`, `value`, `button`                                                                                                        |
+| `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                                                                                                 |
+| Every button control                | `button`, `icon`                                                                                                                                                                                                 |
+| `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                                                                                       |
+| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`                                          |
+| `mbx-scan-button`                   | `button`, `icon`, `rate`                                                                                                                                                                                         |
+| `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                                                                                          |
+| Every menu                          | `button`, `icon`, `popup`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-glyph`, `badge-text`, `item-detail`, `page-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
+| The chosen item of a menu           | `checked`, added to the part of the item. It is the only state in a part name, because a page cannot otherwise select the state of an item inside a shadow root                                                  |
+| `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                                                                                               |
+| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `retry`                                                                                                                                               |
 
 Part names are public API. A release can add names. A name is only renamed
 in a major version.

@@ -24,6 +24,7 @@
  */
 import type { Mattebox } from 'mattebox';
 import { isSdh } from 'mattebox';
+import type { IconName } from '../controls/icons.js';
 import { icon } from '../controls/icons.js';
 import type { MenuGroup } from '../controls/menu.js';
 import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
@@ -73,7 +74,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
   declare private engine: Mattebox | null;
 
   constructor() {
-    super(STATES, (state) => icon(state === 'on' ? 'closed-captions-on' : 'closed-captions'));
+    super(STATES, (state) => icon(state === 'on' ? 'subtitles-on' : 'subtitles'));
     this.engine = null;
     show(this.slots, 'off');
   }
@@ -90,12 +91,14 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     fallback: string,
     choices: ReadonlyArray<readonly [string, string]>,
     initial: string,
+    glyph: IconName,
   ): MenuGroup {
     const set = player.getAttribute(attribute);
     const value = set !== null && choices.some(([id]) => id === set) ? set : initial;
     return {
       name,
       label: this.getAttribute(`label-${name}`) ?? fallback,
+      glyph: () => icon(glyph),
       items: choices.map(([id, text]) => [id, this.getAttribute(`label-${id}`) ?? text]),
       value,
       onSelect: (chosen) => {
@@ -172,6 +175,11 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         name: 'track',
         label: word ?? 'Track',
         items,
+        // The badges are glyphs, named by `label-cc` and `label-sdh`.
+        badgeGlyphs: {
+          [this.getAttribute('label-cc') ?? 'CC']: () => icon('closed-captions'),
+          [this.getAttribute('label-sdh') ?? 'SDH']: () => icon('sdh'),
+        },
         value: active ?? OFF,
         onSelect: (value) => {
           if (listed !== undefined) {
@@ -188,8 +196,16 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         name: 'settings',
         label: this.getAttribute('label-settings') ?? 'Settings',
         entries: [
-          this.looks(player, SUBTITLE_SIZE, 'size', 'Size', SIZES, 'medium'),
-          this.looks(player, SUBTITLE_BACKGROUND, 'background', 'Background', BACKGROUNDS, 'dark'),
+          this.looks(player, SUBTITLE_SIZE, 'size', 'Size', SIZES, 'medium', 'text-size'),
+          this.looks(
+            player,
+            SUBTITLE_BACKGROUND,
+            'background',
+            'Background',
+            BACKGROUNDS,
+            'dark',
+            'text-background',
+          ),
         ],
       },
     ]);
