@@ -3,8 +3,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 2.5em;
+  height: 2.5em;
   color: var(--mbx-muted);
   border-radius: var(--mbx-radius);
   cursor: default;
@@ -29,13 +29,13 @@
   position: absolute;
   right: 0;
   bottom: 100%;
-  margin-bottom: 8px;
-  padding: 8px 10px;
+  margin-bottom: 0.6154em;
+  padding: 0.6154em 0.7692em;
   background: rgba(16, 17, 20, 0.95);
   border-radius: var(--mbx-radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   color: var(--mbx-text);
-  font-size: 13px;
+  font-size: 0.8125em;
   line-height: 1.4;
   text-align: left;
   white-space: nowrap;

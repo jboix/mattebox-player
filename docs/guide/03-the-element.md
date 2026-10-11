@@ -20,6 +20,7 @@ over the picture under `controls="custom"`.
 | `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
 | `subtitle-size`       | Sets the subtitle size: `small`, `medium`, `large` or `xlarge`. The subtitles menu writes it. The default is `medium`                                                        |
 | `subtitle-background` | Sets the subtitle background: `none`, `dark` or `solid`. The default is `dark`                                                                                               |
+| `layout`              | The size tier the controls draw for: `compact`, `regular` or `wide`. The player sets it from its own size. A value you write stays. See [Size tiers](#size-tiers)            |
 | `playsinline`         | Plays inline on an iPhone. On by default. `playsinline="false"` lets the iPhone go to fullscreen on play. Changing it never reloads                                          |
 | `autoplay`            | Copied onto the video as an attribute                                                                                                                                        |
 | `muted`               | Copied onto the video, as an attribute and as the muted state. The player also writes the video's muted state back to it                                                     |
@@ -110,6 +111,9 @@ player.addEventListener('error', (event) => {
   console.error(event.detail.code);
 });
 ```
+
+`layoutchange` fires when the size tier changes. Its `detail` is the new
+tier.
 
 `castload` comes from the button of `@mattebox/player-cast`. It fires
 before the request goes to the receiver. It bubbles, it is composed, and it
@@ -775,10 +779,56 @@ Two rules make this work:
 Part names are public API. A release can add names. A name is only renamed
 in a major version.
 
+### Size
+
+Every size in the controls is an em of the player's font size, which is
+16 pixels. One rule scales the whole interface: the buttons, the bar, the
+text, the menus.
+
+```css
+mattebox-player {
+  font-size: 20px;
+}
+```
+
+Borders and outlines stay one or two pixels at every size.
+
+### Size tiers
+
+The player measures its own box and sets `layout` on itself. The controls
+draw for that tier. The box decides, not the screen: a small embed on a
+desktop page is compact, and a phone in fullscreen is not.
+
+| Tier      | When                                     | What the controls do                                                                                                     |
+| --------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `compact` | Under 480 pixels wide, or under 320 high | One time readout, the time left. The title is one line at the top. Menus and the playlist open as sheets from the bottom |
+| `regular` | Between the two                          | The design at 16 pixels                                                                                                  |
+| `wide`    | From 1280 pixels wide and 700 high       | The same design at 20 pixels, for a TV or a fullscreen                                                                   |
+
+You write the same markup for all three. A stylesheet reads the tier from
+the player, and every control carries it too:
+
+```css
+mattebox-player[layout="compact"] mbx-skip-button {
+  display: none;
+}
+```
+
+To fix the tier, write the attribute. The player then leaves it alone.
+Remove it to hand it back.
+
+```html
+<mattebox-player layout="compact" src="…"></mattebox-player>
+```
+
+A font size of your own on the player wins over the tier's.
+
+### Tokens
+
 Custom properties set on the player are inherited by every control:
 `--mbx-surface`, `--mbx-text`, `--mbx-muted`, `--mbx-accent`, `--mbx-error`,
 `--mbx-radius`, `--mbx-gap`, `--mbx-pad`, `--mbx-font`, `--mbx-live`,
-`--mbx-preview-width`, `--mbx-menu-max-height` (264px by default), `--mbx-tooltip` (`none` hides the tooltips), `--mbx-blocked` (the dashes of a blocked range).
+`--mbx-preview-width` (in pixels, 10em by default), `--mbx-menu-max-height` (in pixels, 16.5em by default), `--mbx-tooltip` (`none` hides the tooltips), `--mbx-blocked` (the dashes of a blocked range).
 
 The shadow roots are open. When `::part()` is not enough, a page adds a
 stylesheet inside a control: `control.shadowRoot.append(style)` in every

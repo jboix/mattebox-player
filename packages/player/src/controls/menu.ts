@@ -76,7 +76,8 @@ const AIR = 8;
  * the half row at the foot says the list goes on. A page sets its own
  * with `--mbx-menu-max-height`.
  */
-const MAX_HEIGHT = 264;
+/* In em of the menu's own font size. */
+const MAX_HEIGHT = 16.5;
 
 /** An item's picture. Decorative: the item's text names it. Loaded when the popup first shows it. */
 function picture(url: string): HTMLImageElement {
@@ -135,12 +136,19 @@ export function menu(options: MenuOptions): Menu {
    * left of its right edge.
    */
   function fit(): void {
+    // A compact player's menu is a sheet on the page: the stylesheet sizes it.
+    if (host.getAttribute('layout') === 'compact') {
+      popup.style.maxHeight = '';
+      popup.style.maxWidth = '';
+      more();
+      return;
+    }
     const picture = options.picture();
     if (picture === null) return;
     const room = button.getBoundingClientRect().top - picture.top - AIR;
     const most =
       Number.parseFloat(getComputedStyle(host).getPropertyValue('--mbx-menu-max-height')) ||
-      MAX_HEIGHT;
+      MAX_HEIGHT * (Number.parseFloat(getComputedStyle(host).fontSize) || 16);
     popup.style.maxHeight = `${Math.max(0, Math.floor(Math.min(most, room)))}px`;
     more();
     // The popup is anchored at the host's right edge and grows leftwards.

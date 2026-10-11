@@ -94,8 +94,8 @@ const CANCEL_KEYS = ['Escape', 'GoBack', 'BrowserBack'];
 const PAGE = 30;
 const LIVE_WINDOW = 3;
 
-/** What the tile scales down to when the page sets no `--mbx-preview-width`. */
-const PREVIEW_WIDTH = 160;
+/** What the tile scales down to, in em, when the page sets no `--mbx-preview-width`. */
+const PREVIEW_WIDTH = 10;
 
 /** The buffer goal assumed for a session that reports none. */
 const BUFFER_GOAL = 30;
@@ -466,7 +466,8 @@ export class MbxSeekBar extends Component {
     const set = Number.parseFloat(
       getComputedStyle(this.preview).getPropertyValue('--mbx-preview-width'),
     );
-    return Number.isFinite(set) && set > 0 ? set : PREVIEW_WIDTH;
+    if (Number.isFinite(set) && set > 0) return set;
+    return PREVIEW_WIDTH * (Number.parseFloat(getComputedStyle(this).fontSize) || 16);
   }
 
   /** The preview's picture sources from `preview`, in order of preference: frames then tiles by default. */

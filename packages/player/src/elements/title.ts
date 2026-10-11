@@ -60,6 +60,10 @@ export class MbxTitle extends Component {
         this.fit(player);
       });
       this.resizer.observe(player);
+      // The bar's rows change height with the player's size tier, without
+      // the player's box changing.
+      const bar = player.querySelector('mbx-control-bar');
+      if (bar !== null) this.resizer.observe(bar);
     }
     this.fit(player);
     this.state(player);

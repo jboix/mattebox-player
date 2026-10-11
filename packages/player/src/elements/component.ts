@@ -41,6 +41,19 @@ export abstract class Component extends HTMLElement {
       customElements.upgrade(found);
       if (!('video' in found)) return;
       this.player = found as PlayerHost;
+      // The player's size tier, on the control itself: a shadow tree cannot
+      // match an attribute of an ancestor in every browser, and with it
+      // here a control's stylesheet says `:host([layout="compact"])`.
+      const tier = (): void => {
+        const layout = found.getAttribute('layout');
+        if (layout === null) this.removeAttribute('layout');
+        else this.setAttribute('layout', layout);
+      };
+      this.listen(found, ['layoutchange'], () => {
+        tier();
+        this.render();
+      });
+      tier();
       this.attach(this.player);
     };
     if ('video' in found) attach();

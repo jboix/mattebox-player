@@ -81,6 +81,24 @@ const CONTROLS = 'controls';
  */
 const PLAYSINLINE = 'playsinline';
 
+/**
+ * The size tier the controls draw for: `compact` on a small player, such
+ * as a phone held upright, `wide` on a large one, such as a TV or
+ * fullscreen, and `regular` between. The element measures itself and sets
+ * the attribute, so a stylesheet matches `mattebox-player[layout="compact"]`.
+ * A page that writes one of the three values fixes it, and removing the
+ * attribute hands it back. The player's own box decides, not the screen:
+ * a small embed on a desktop is compact, and a phone in fullscreen is not.
+ */
+const LAYOUT = 'layout';
+const LAYOUTS = ['compact', 'regular', 'wide'];
+/** Under either, the player is compact. */
+const COMPACT_WIDTH = 480;
+const COMPACT_HEIGHT = 320;
+/** From both, the player is wide. */
+const WIDE_WIDTH = 1280;
+const WIDE_HEIGHT = 700;
+
 /** The video's state, as attributes on the element, read on the events the video fires for it. */
 const STATE_EVENTS = [
   'play',
@@ -111,6 +129,8 @@ const DEFAULT_PRESET = 'full';
  */
 export interface MatteboxPlayerEventMap {
   sourcechange: CustomEvent<Session | null>;
+  /** The size tier changed: `compact`, `regular` or `wide`. */
+  layoutchange: CustomEvent<string>;
   error: CustomEvent<PlayerError>;
   /** The markers changed: set by the page, or cleared by a new source. */
   markerschange: CustomEvent<readonly Marker[]>;
@@ -179,7 +199,7 @@ let defaults: MatteboxPlayerOptions = {};
 // biome-ignore lint/suspicious/noUnsafeDeclarationMerging: method overloads only, no properties
 export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   static get observedAttributes(): readonly string[] {
-    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS, PLAYSINLINE];
+    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS, PLAYSINLINE, LAYOUT];
   }
 
   /**
@@ -217,6 +237,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private failure: PlayerError | null;
   /** Whether an attribute change is the element's own reflection, which must not write back to the video. */
   declare private reflecting: boolean;
+  /** Watches the element's box for `layout`, while connected. */
+  declare private sizes: ResizeObserver | null;
+  /** Whether the page wrote `layout`, so the element leaves it alone. */
+  declare private fixed: boolean;
   /** The video has played once since its source was set: `started`, which tells a first play from a pause. */
   declare private started: boolean;
   /** The video waits for data: `waiting`, set on `waiting` and `stalled`, cleared once it can play. */
@@ -239,6 +263,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.current = null;
     this.failure = null;
     this.reflecting = false;
+    this.sizes = null;
+    this.fixed = false;
     this.started = false;
     this.waiting = false;
     this.offs = [];
@@ -335,7 +361,34 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (this.media.parentNode !== this) this.append(this.media);
     for (const name of FORWARDED) this.forward(name);
     this.reflect();
+    if (typeof ResizeObserver !== 'undefined') {
+      this.sizes = new ResizeObserver(() => {
+        this.measure();
+      });
+      this.sizes.observe(this);
+    }
+    this.measure();
     this.reload();
+  }
+
+  /** Sets `layout` from the element's box, unless the page fixed it. */
+  private measure(): void {
+    if (this.fixed) return;
+    const width = this.clientWidth;
+    const height = this.clientHeight;
+    // Not laid out yet: no tier until there is a box to judge.
+    if (width === 0 || height === 0) return;
+    const layout =
+      width < COMPACT_WIDTH || height < COMPACT_HEIGHT
+        ? 'compact'
+        : width >= WIDE_WIDTH && height >= WIDE_HEIGHT
+          ? 'wide'
+          : 'regular';
+    if (this.getAttribute(LAYOUT) === layout) return;
+    this.reflecting = true;
+    this.setAttribute(LAYOUT, layout);
+    this.reflecting = false;
+    this.emit('layoutchange', layout);
   }
 
   /** The two states the video does not hold: whether it has played once, and whether it waits for data. */
@@ -389,6 +442,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   }
 
   disconnectedCallback(): void {
+    this.sizes?.disconnect();
+    this.sizes = null;
     // A single-page app must not leave a pipeline attached to a video it
     // navigated away from. Reconnecting loads the `src` again.
     this.enqueue(() => this.teardown());
@@ -405,6 +460,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     if (name === CHAPTERS) {
       this.chapters();
+      return;
+    }
+    if (name === LAYOUT) {
+      // The element's own write is not the page's.
+      if (this.reflecting) return;
+      const value = this.getAttribute(LAYOUT);
+      this.fixed = value !== null && LAYOUTS.includes(value);
+      if (this.fixed) this.emit('layoutchange', value);
+      else this.measure();
       return;
     }
     if (name === PLAYSINLINE) {

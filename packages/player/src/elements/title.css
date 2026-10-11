@@ -7,8 +7,8 @@
   align-items: flex-end;
   /* The band runs under the bar to the bottom edge, one ramp with the
      bar's own fade, so there is no seam where the bar begins; the text
-     sits 12px above the bar's rows, inside the bar's fade. */
-  padding: 72px calc(var(--mbx-pad) + 8px) calc(var(--mbx-bar-rows, 0px) + 12px);
+     sits 0.75em above the bar's rows, inside the bar's fade. */
+  padding: 4.5em calc(var(--mbx-pad) + 0.5em) calc(var(--mbx-bar-rows, 0px) + 0.75em);
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.55),
@@ -16,7 +16,7 @@
     rgba(0, 0, 0, 0)
   );
   color: var(--mbx-text);
-  font: 400 14px / 1.35 var(--mbx-font);
+  font: 400 1em / 1.35 var(--mbx-font);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   pointer-events: none;
 }
@@ -31,30 +31,33 @@
 }
 [part~="artwork"] {
   flex: none;
-  height: 72px;
+  height: 4.5em;
   width: auto;
-  max-width: 128px;
+  max-width: 8em;
   border-radius: var(--mbx-radius);
   object-fit: cover;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 [part~="artwork"] {
-  margin-right: 14px;
+  margin-right: 0.875em;
 }
 [part~="artwork"][hidden] {
   display: none;
 }
+/* The text is a size under the player's own. It is set here and not on the
+   host, so the host's paddings are ems of the player's size, as the bar's are. */
 [part~="text"] {
+  font-size: 0.875em;
   display: flex;
   flex-direction: column;
   min-width: 0;
   max-width: 60ch;
 }
 [part~="text"] > :not([hidden]) ~ :not([hidden]) {
-  margin-top: 2px;
+  margin-top: 0.1429em;
 }
 [part~="heading"] {
-  font-size: 20px;
+  font-size: 1.4286em;
   font-weight: 600;
   letter-spacing: -0.01em;
   line-height: 1.2;
@@ -82,4 +85,22 @@
 }
 :host([artwork][subheading]) [part~="heading"]:not(:empty) {
   -webkit-line-clamp: 2;
+}
+/* A compact player has one line for the title, at the top of the picture:
+   the bottom is the bar's and the marker button's. */
+:host([layout="compact"]) {
+  top: 0;
+  bottom: auto;
+  align-items: flex-start;
+  padding: 0.75em calc(var(--mbx-pad) + 0.5em) 2.5em;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+}
+:host([layout="compact"]) [part~="artwork"],
+:host([layout="compact"]) [part~="subheading"] {
+  display: none;
+}
+:host([layout="compact"]) [part~="text"] [part~="heading"]:not(:empty) {
+  display: block;
+  font-size: 1.1429em;
+  white-space: nowrap;
 }

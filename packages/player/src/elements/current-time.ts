@@ -21,6 +21,9 @@ export class MbxCurrentTime extends TimeElement {
     this.text.data = on
       ? (wall(engine, time) ?? `-${format(span(video, engine).end - time)}`)
       : format(time);
-    this.hidden = on && player.hasAttribute('live') && !player.hasAttribute('seekable');
+    // A compact player keeps one readout, the time left, which the duration shows.
+    this.hidden =
+      (on && player.hasAttribute('live') && !player.hasAttribute('seekable')) ||
+      (!on && this.getAttribute('layout') === 'compact');
   }
 }

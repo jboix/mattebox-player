@@ -95,11 +95,11 @@ const PRIORITY: Readonly<Record<string, number>> = {
   [MUTE_BUTTON]: 1,
 };
 
-/** The width the volume group unfolds its slider to, from volume.ts: what a folded slider is counted at. */
-const SLIDER_WIDTH = 80;
+/** The width the volume group unfolds its slider to, in em, from volume.css: what a folded slider is counted at. */
+const SLIDER_WIDTH = 5;
 
-/** Room kept between the last button and the edge, so nothing sits flush against it. */
-const SLACK = 8;
+/** Room kept between the last button and the edge, in em, so nothing sits flush against it. */
+const SLACK = 0.5;
 
 interface Candidate {
   readonly node: Element;
@@ -180,6 +180,11 @@ export class MbxControlBar extends Component {
    * folded slider at the width it unfolds to. The row's own width says nothing, because the
    * spacer fills it whatever the buttons take.
    */
+  /** The bar's em in pixels: its sizes follow the player's font size. */
+  private em(): number {
+    return Number.parseFloat(getComputedStyle(this).fontSize) || 16;
+  }
+
   private needed(children: readonly Element[]): number {
     let sum = 0;
     for (const child of children) {
@@ -189,7 +194,7 @@ export class MbxControlBar extends Component {
       sum += Number.parseFloat(margins.marginLeft) + Number.parseFloat(margins.marginRight);
       const folded = slider(child);
       if (folded !== null && shown(folded)) {
-        sum += Math.max(0, SLIDER_WIDTH - folded.getBoundingClientRect().width);
+        sum += Math.max(0, SLIDER_WIDTH * this.em() - folded.getBoundingClientRect().width);
       }
     }
     return sum;
@@ -219,7 +224,7 @@ export class MbxControlBar extends Component {
       if (shown(child)) candidates.push({ node: child, index, priority: priority(child) });
     }
     candidates.sort((a, b) => b.priority - a.priority || b.index - a.index);
-    const room = this.buttonsRow.clientWidth - SLACK;
+    const room = this.buttonsRow.clientWidth - SLACK * this.em();
     for (const { node, priority: level } of candidates) {
       if (level === 0) return;
       if (this.needed(children) <= room) return;

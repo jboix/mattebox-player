@@ -3,15 +3,19 @@
   position: relative;
   outline: none;
   background: #000;
+  /* Every size in the controls is an em of this one. A page's own
+     "mattebox-player { font-size: 20px }" beats a :host rule, and scales
+     the whole interface with it. */
+  font-size: 16px;
   --mbx-surface: #101114;
   --mbx-text: #f2f3f5;
   --mbx-muted: #9aa0a6;
   --mbx-accent: #5b8cff;
   --mbx-error: #ffb4ab;
   --mbx-live: #ff4d4d;
-  --mbx-radius: 4px;
-  --mbx-gap: 10px;
-  --mbx-pad: 8px;
+  --mbx-radius: 0.25em;
+  --mbx-gap: 0.625em;
+  --mbx-pad: 0.5em;
   --mbx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 /* The stage is a column as tall as the host, so the picture is centred
@@ -84,7 +88,7 @@
   padding: calc(var(--mbx-pad) - var(--mbx-gap) / 2);
   background: var(--mbx-surface);
   color: var(--mbx-error);
-  font: 400 13px / 1.4 var(--mbx-font);
+  font: 400 0.8125em / 1.4 var(--mbx-font);
 }
 /* Fullscreen goes on the host, so every control the page placed inside
    comes along. The browser gives the host the whole screen with
@@ -120,7 +124,7 @@
   background: transparent;
   border: 1px solid currentColor;
   border-radius: var(--mbx-radius);
-  padding: 2px 6px;
+  padding: 0.125em 0.375em;
 }
 [hidden] {
   display: none;
@@ -128,4 +132,9 @@
 /* tooltips="off": no control shows its name over itself. */
 :host([tooltips="off"]) {
   --mbx-tooltip: none;
+}
+/* A wide player is watched from further away, a TV or a fullscreen: every
+   control grows with the one size they are all ems of. */
+:host([layout="wide"]) {
+  font-size: 20px;
 }

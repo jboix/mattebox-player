@@ -7,10 +7,10 @@
 [part~="button"] {
   display: inline-flex;
   align-items: center;
-  height: 40px;
-  padding: 0 8px;
+  height: 2.5em;
+  padding: 0 0.5em;
   font: inherit;
-  font-size: 12px;
+  font-size: 0.75em;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: inherit;
@@ -35,9 +35,9 @@
   outline: none;
 }
 [part~="dot"] {
-  margin-right: 6px;
-  width: 10px;
-  height: 10px;
+  margin-right: 0.375em;
+  width: 0.625em;
+  height: 0.625em;
   border-radius: 50%;
   background: var(--mbx-muted);
   transition: background 0.2s;

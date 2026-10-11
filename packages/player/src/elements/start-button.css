@@ -4,11 +4,11 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -32px 0 0 -52px;
+  margin: -2em 0 0 -3.25em;
 }
 [part~="button"] {
-  width: 104px;
-  height: 64px;
+  width: 6.5em;
+  height: 4em;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.45);
   color: var(--mbx-text);
@@ -27,9 +27,9 @@
 }
 [part~="icon"],
 ::slotted(*) {
-  width: 40px;
-  height: 40px;
-  margin-left: 2px;
+  width: 2.5em;
+  height: 2.5em;
+  margin-left: 0.125em;
 }
 @media (prefers-reduced-motion: reduce) {
   [part~="button"] {

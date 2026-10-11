@@ -185,6 +185,33 @@ describe('the playlist controls', () => {
   });
 });
 
+describe('the list on a compact player', () => {
+  it('is a sheet on the page, and over the picture again on a larger player', async () => {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    player.style.width = '390px';
+    player.style.height = '219px';
+    player.innerHTML = '<mbx-playlist></mbx-playlist>';
+    document.body.append(player);
+    await customElements.whenDefined('mattebox-player');
+    createPlaylist(player).load([{ src: silence(5), type: 'audio/wav', heading: 'One' }]);
+    const panel = player.querySelector('mbx-playlist') as HTMLElement;
+
+    await expect.poll(() => panel.getAttribute('layout')).toBe('compact');
+    panel.setAttribute('open', '');
+    expect(getComputedStyle(panel).position).toBe('fixed');
+    // A press beside the list, on the dimmed page, closes it.
+    panel.click();
+    expect(panel.hasAttribute('open')).toBe(false);
+
+    player.style.width = '800px';
+    player.style.height = '450px';
+    await expect.poll(() => panel.getAttribute('layout')).toBe('regular');
+    panel.setAttribute('open', '');
+    expect(getComputedStyle(panel).position).toBe('absolute');
+  });
+});
+
 describe('the preload of the next item', () => {
   const MASTER = `#EXTM3U
 #EXT-X-VERSION:7

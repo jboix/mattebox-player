@@ -6,7 +6,7 @@
 }
 [part~="slider"] {
   position: relative;
-  height: 40px;
+  height: 2.6667em;
   border-radius: var(--mbx-radius);
   cursor: pointer;
   touch-action: none;
@@ -22,15 +22,15 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 8px;
-  right: 8px;
+  left: 0.5333em;
+  right: 0.5333em;
 }
 [part~="track"] {
   position: absolute;
   top: 50%;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 0.2667em;
   transform: translateY(-50%);
   background: rgba(255, 255, 255, 0.35);
   border-radius: 2px;
@@ -46,9 +46,9 @@
 [part~="thumb"] {
   position: absolute;
   top: 50%;
-  width: 12px;
-  height: 12px;
-  margin: -6px 0 0 -6px;
+  width: 0.8em;
+  height: 0.8em;
+  margin: -0.4em 0 0 -0.4em;
   border-radius: 50%;
   background: var(--mbx-text);
   pointer-events: none;

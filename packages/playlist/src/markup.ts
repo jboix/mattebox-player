@@ -130,6 +130,10 @@ export class MbxPlaylist extends PlaylistControl {
       this.step(event);
     });
     root.append(style(BUTTON_STYLE + PANEL_STYLE), header, controls, this.list);
+    // On a compact player the host covers the page: a press beside the list closes it.
+    this.addEventListener('click', (event) => {
+      if (event.composedPath()[0] === this) this.dismiss();
+    });
     this.addEventListener('keydown', (event) => {
       if (event.key !== 'Escape' && event.key !== 'GoBack') return;
       event.preventDefault();

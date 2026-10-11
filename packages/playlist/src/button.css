@@ -9,8 +9,8 @@
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 2.5em;
+  height: 2.5em;
   padding: 0;
   font: inherit;
   color: inherit;
@@ -31,12 +31,12 @@
   position: absolute;
   bottom: 100%;
   left: 50%;
-  margin-bottom: 6px;
-  padding: 4px 8px;
+  margin-bottom: 0.4615em;
+  padding: 0.3077em 0.6154em;
   transform: translateX(-50%);
   background: var(--mbx-surface);
   border-radius: var(--mbx-radius);
-  font-size: 13px;
+  font-size: 0.8125em;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;
@@ -90,9 +90,9 @@ slot[hidden] {
 /* Repeat one: the repeat glyph with a 1 over its corner. */
 [part~="badge"] {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
-  font-size: 10px;
+  right: 0.4em;
+  bottom: 0.4em;
+  font-size: 0.625em;
   font-weight: 700;
   line-height: 1;
 }

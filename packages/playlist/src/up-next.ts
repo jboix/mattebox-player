@@ -92,6 +92,9 @@ export class MbxUpNext extends PlaylistControl {
         this.fit(player);
       });
       this.resizer.observe(player);
+      // The bar's height follows the player's size tier too.
+      const bar = player.querySelector('mbx-control-bar');
+      if (bar !== null) this.resizer.observe(bar);
     }
     this.fit(player);
     this.keep(() => {

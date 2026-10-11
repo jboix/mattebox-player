@@ -4,8 +4,8 @@
 [part~="rate"] {
   position: absolute;
   right: 0;
-  bottom: 2px;
-  font-size: 10px;
+  bottom: 0.2em;
+  font-size: 0.625em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1;

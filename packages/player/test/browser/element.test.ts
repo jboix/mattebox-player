@@ -516,6 +516,74 @@ describe('the config option', () => {
   });
 });
 
+describe('the layout attribute', () => {
+  /** The real button inside a control's shadow root. */
+  function inner(control: HTMLElement): HTMLElement {
+    return control.shadowRoot?.querySelector('button') as HTMLElement;
+  }
+
+  function sized(width: number, height: number): MatteboxPlayerElement {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    player.style.width = `${width}px`;
+    player.style.height = `${height}px`;
+    player.innerHTML = '<mbx-control-bar><mbx-play-button></mbx-play-button></mbx-control-bar>';
+    document.body.append(player);
+    return player;
+  }
+
+  it('follows the size of the player, and reaches its controls', async () => {
+    const player = sized(390, 219);
+    const button = player.querySelector('mbx-play-button') as HTMLElement;
+    await expect.poll(() => player.getAttribute('layout')).toBe('compact');
+    await expect.poll(() => button.getAttribute('layout')).toBe('compact');
+
+    const seen: string[] = [];
+    player.addEventListener('layoutchange', (event) => {
+      seen.push((event as CustomEvent<string>).detail);
+    });
+    player.style.width = '800px';
+    player.style.height = '450px';
+    await expect.poll(() => player.getAttribute('layout')).toBe('regular');
+    expect(button.getAttribute('layout')).toBe('regular');
+
+    player.style.width = '1600px';
+    player.style.height = '900px';
+    await expect.poll(() => player.getAttribute('layout')).toBe('wide');
+    expect(seen).toEqual(['regular', 'wide']);
+  });
+
+  it('sizes every control from the one font size of its tier', async () => {
+    const player = sized(800, 450);
+    const button = player.querySelector('mbx-play-button') as HTMLElement;
+    await expect.poll(() => player.getAttribute('layout')).toBe('regular');
+    expect(inner(button).getBoundingClientRect().width).toBeCloseTo(40, 0);
+
+    player.style.width = '1600px';
+    player.style.height = '900px';
+    await expect.poll(() => player.getAttribute('layout')).toBe('wide');
+    expect(inner(button).getBoundingClientRect().width).toBeCloseTo(50, 0);
+
+    // A page's own size wins over the tier's.
+    player.style.fontSize = '32px';
+    expect(inner(button).getBoundingClientRect().width).toBeCloseTo(80, 0);
+  });
+
+  it('stays what the page wrote, and goes back to the size once removed', async () => {
+    const player = sized(800, 450);
+    await expect.poll(() => player.getAttribute('layout')).toBe('regular');
+    player.setAttribute('layout', 'compact');
+    player.style.width = '1600px';
+    player.style.height = '900px';
+    // Two frames: a resize observation would have landed by then.
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    expect(player.getAttribute('layout')).toBe('compact');
+
+    player.removeAttribute('layout');
+    expect(player.getAttribute('layout')).toBe('wide');
+  });
+});
+
 describe('the options of define()', () => {
   afterEach(() => {
     MatteboxPlayerElement.define({});

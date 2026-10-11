@@ -41,7 +41,8 @@ const POLL_MS = 500;
 const DRAW_MS = 250;
 const WINDOW = 120;
 const WINDOWS = [30, 60, 120, 300, 600];
-const PANEL_WIDTH = 560;
+/** The panel's width in em, when the picture has the room. */
+const PANEL_WIDTH = 35;
 /** Air between the panel's top and the picture's, and around it. */
 const AIR = 8;
 
@@ -375,7 +376,8 @@ export class MbxDiagnostics extends HTMLElement {
     const top = player.video.getBoundingClientRect().top;
     const room = host.top - top - AIR;
     this.panel.style.maxHeight = `${Math.max(120, Math.floor(room))}px`;
-    const width = Math.min(PANEL_WIDTH, Math.max(200, box.width - AIR * 2));
+    const em = Number.parseFloat(getComputedStyle(this).fontSize) || 16;
+    const width = Math.min(PANEL_WIDTH * em, Math.max(200, box.width - AIR * 2));
     this.panel.style.width = `${width}px`;
     const left = Math.max(box.left + AIR, Math.min(host.right - width, box.right - AIR - width));
     this.panel.style.right = 'auto';

@@ -110,6 +110,17 @@ export abstract class PlaylistControl extends HTMLElement {
         off();
         player.removeEventListener('playlist', follow);
       });
+      // The player's size tier, on the control itself, for its stylesheet.
+      const tier = (): void => {
+        const layout = player.getAttribute('layout');
+        if (layout === null) this.removeAttribute('layout');
+        else this.setAttribute('layout', layout);
+      };
+      player.addEventListener('layoutchange', tier);
+      this.offs.push(() => {
+        player.removeEventListener('layoutchange', tier);
+      });
+      tier();
       this.attach(player);
       follow();
     });

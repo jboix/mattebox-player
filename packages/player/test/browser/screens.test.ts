@@ -67,9 +67,10 @@ describe('<mbx-title>', () => {
     expect(title.hasAttribute('playing')).toBe(false);
     // The height of the bar's rows, for the text to sit just above them.
     const bar = player.querySelector('mbx-control-bar') as HTMLElement;
-    const rows =
-      bar.getBoundingClientRect().height - Number.parseFloat(getComputedStyle(bar).paddingTop);
-    expect(title.style.getPropertyValue('--mbx-bar-rows')).toBe(`${rows}px`);
+    const rows = (): string =>
+      `${bar.getBoundingClientRect().height - Number.parseFloat(getComputedStyle(bar).paddingTop)}px`;
+    // The title measures the bar again when the size tier changes its rows.
+    await expect.poll(() => title.style.getPropertyValue('--mbx-bar-rows')).toBe(rows());
   });
 
   it('lets the page keep it to the time before the first play', async () => {

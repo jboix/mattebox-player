@@ -149,6 +149,12 @@ marks the item that plays.
 With `pause-on-open`, the video pauses while the list is open. It plays
 again when the list closes without a pick.
 
+On a compact player, such as a phone held upright, the list opens as a
+sheet from the bottom of the page. The page behind it is dimmed, and a
+press there closes the list. On a larger player, and in fullscreen, the
+list is over the picture again. See
+[Size tiers](03-the-element.md#size-tiers).
+
 Without children, `<mbx-playlist>` shows the list a script loaded.
 
 ### The up next card

@@ -19,7 +19,7 @@
 }
 :host(:hover) ::slotted(mbx-volume-slider),
 :host(:focus-within:not([pointer])) ::slotted(mbx-volume-slider) {
-  width: 80px;
+  width: 5em;
   opacity: 1;
 }
 @media (prefers-reduced-motion: reduce) {

@@ -49,7 +49,9 @@ function settled(): Promise<void> {
 async function custom(
   attributes: Readonly<Record<string, string>> = {},
 ): Promise<MatteboxPlayerElement> {
-  const player = mount({ controls: 'custom', ...attributes });
+  // The regular tier, whatever the test page's size: a test of another
+  // tier asks for it.
+  const player = mount({ controls: 'custom', layout: 'regular', ...attributes });
   player.append(...compose());
   // Wide enough for every control: at the test page's width the bar
   // collapses its buttons, which the tests of the narrow bar set up for
@@ -1539,6 +1541,18 @@ describe('the times', () => {
     expect(text(current)).toBe('0:03');
   });
 
+  it('show the time left alone on a compact player', async () => {
+    const player = await ready(10);
+    const current = control(player, 'mbx-current-time');
+    const duration = control(player, 'mbx-duration');
+    expect(current.hidden).toBe(false);
+    expect(text(duration)).toBe('0:10');
+
+    player.setAttribute('layout', 'compact');
+    await expect.poll(() => current.hidden).toBe(true);
+    expect(text(duration)).toBe('-0:10');
+  });
+
   it('read the distance behind the edge on a live stream, the wall clock when pdt can say it, and no duration', async () => {
     const player = await session({ live: liveApi(8), bufferGoal: 2 });
     expect(control(player, 'mbx-duration').hidden).toBe(true);
@@ -2385,6 +2399,21 @@ describe('a long menu', () => {
     await expect.poll(() => popup(menu).hidden).toBe(false);
     const room = inner(menu).getBoundingClientRect().top - player.video.getBoundingClientRect().top;
     expect(popup(menu).getBoundingClientRect().height).toBeLessThanOrEqual(Math.max(0, room));
+  });
+});
+
+describe('a menu on a compact player', () => {
+  it('is a sheet on the page, sized by the stylesheet', async () => {
+    const player = await ready(10);
+    player.setAttribute('layout', 'compact');
+    const menu = control(player, 'mbx-speed-menu');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(getComputedStyle(list).position).toBe('fixed');
+    expect(list.style.maxHeight).toBe('');
+    expect(Math.round(list.getBoundingClientRect().width)).toBe(window.innerWidth);
   });
 });
 

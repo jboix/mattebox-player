@@ -5,11 +5,11 @@
   position: absolute;
   right: 0;
   bottom: 100%;
-  margin-bottom: 8px;
-  min-width: 160px;
+  margin-bottom: 0.5714em;
+  min-width: 11.4286em;
   /* The fitted maximums are the popup's whole box, padding included. */
   box-sizing: border-box;
-  padding: 6px;
+  padding: 0.4286em;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -17,28 +17,28 @@
   background: rgba(16, 17, 20, 0.95);
   border-radius: var(--mbx-radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-  font-size: 14px;
+  font-size: 0.875em;
 }
 [part~="popup"][hidden] {
   display: none;
 }
 /* Rows wait below the foot: the last one fades out. */
 [part~="popup"][more] {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
 }
 [part~="section"] {
   display: flex;
   flex-direction: column;
 }
 [part~="section"] + [part~="section"] {
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 0.4286em;
+  padding-top: 0.4286em;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 [part~="section-label"] {
-  padding: 4px 12px 2px;
-  font-size: 11px;
+  padding: 0.3636em 1.0909em 0.1818em;
+  font-size: 0.7857em;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -48,7 +48,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 8px 12px 8px 28px;
+  padding: 0.5714em 0.8571em 0.5714em 2em;
   font: inherit;
   color: inherit;
   text-align: left;
@@ -74,17 +74,17 @@
 }
 [part~="item-image"] {
   flex: none;
-  width: 64px;
-  height: 36px;
-  margin-right: 12px;
+  width: 4.5714em;
+  height: 2.5714em;
+  margin-right: 0.8571em;
   object-fit: cover;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.08);
 }
 [part~="item-badge"] {
   flex: none;
-  margin-left: 8px;
-  padding: 0 4px;
+  margin-left: 0.7619em;
+  padding: 0 0.381em;
   font-size: 0.75em;
   font-weight: 600;
   line-height: 1.5;
@@ -93,7 +93,7 @@
 }
 [part~="item-detail"] {
   margin-left: auto;
-  padding-left: 12px;
+  padding-left: 0.8571em;
   color: var(--mbx-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -106,16 +106,16 @@
 }
 [part~="page-item"] {
   position: relative;
-  padding-right: 28px;
+  padding-right: 2em;
 }
 [part~="page-item"]::after {
   content: "";
   position: absolute;
-  right: 12px;
+  right: 0.8571em;
   top: 50%;
-  width: 7px;
-  height: 7px;
-  margin-top: -4px;
+  width: 0.5em;
+  height: 0.5em;
+  margin-top: -0.2857em;
   border: solid currentColor;
   border-width: 1.5px 1.5px 0 0;
   transform: rotate(45deg);
@@ -126,16 +126,16 @@
   font-weight: 600;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0;
-  margin-bottom: 6px;
+  margin-bottom: 0.4286em;
 }
 [part~="back-item"]::before {
   content: "";
   position: absolute;
-  left: 12px;
+  left: 0.8571em;
   top: 50%;
-  width: 7px;
-  height: 7px;
-  margin-top: -4px;
+  width: 0.5em;
+  height: 0.5em;
+  margin-top: -0.2857em;
   border: solid currentColor;
   border-width: 1.5px 0 0 1.5px;
   transform: rotate(-45deg);
@@ -147,11 +147,28 @@
 [part~="checked"]::before {
   content: "";
   position: absolute;
-  left: 12px;
+  left: 0.8571em;
   top: 50%;
-  width: 6px;
-  height: 6px;
-  margin-top: -3px;
+  width: 0.4286em;
+  height: 0.4286em;
+  margin-top: -0.2143em;
   border-radius: 50%;
   background: var(--mbx-accent);
+}
+/* On a compact player a popup over the picture has no room, so the menu is
+   a sheet from the bottom of the page. The spread shadow dims the page, and
+   a press on it is a press outside the menu, which closes it. */
+:host([layout="compact"]) [part~="popup"] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  margin: 0;
+  max-height: 70vh;
+  padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
+  border-radius: 0.75em 0.75em 0 0;
+  background: rgb(16, 17, 20);
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+  font-size: 1em;
 }
