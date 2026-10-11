@@ -1,9 +1,10 @@
 /**
  * Subtitles and the bar. Two things.
  *
- * The lift: the browser draws native cues at the bottom of the video, under
- * the bar. While the bar shows, every active cue the author left
- * unpositioned is moved above it, and put back when the bar hides. The
+ * The lift: the browser draws native cues on the bottom edge of the video,
+ * and under the bar. Every active cue the author left unpositioned is
+ * moved up: above the bar while it shows, and one line off the edge while
+ * it is hidden, so the text never sits on the picture's border. The
  * position is a negative line count, the one form every browser wraps at
  * the video's width; a percentage does not wrap in Chromium. Chromium
  * anchors the box's top on the count and Gecko its bottom, and their
@@ -45,6 +46,8 @@ const LINE_HEIGHT = 1.2;
 const CUE_WIDTH = 0.96;
 /** Pixels of air between the bar and the cue above it, before rounding up to a line. */
 const AIR = 6;
+/** Lines of air under a cue while the bar is hidden. */
+const REST = 1;
 
 /** Puts the cue rules in the document, once. */
 export function cueStyle(): void {
@@ -75,6 +78,8 @@ export function cueLift(video: HTMLVideoElement, host: HTMLElement, covered: Cov
   /** The cues moved, with what they were, so they and only they are put back. */
   const lifted = new Map<VTTCue, Placed>();
   let on = false;
+  /** False once disposed: the cues go back to where the author left them. */
+  let live = true;
   let canvas: CanvasRenderingContext2D | null | undefined;
 
   function showing(): TextTrack[] {
@@ -131,11 +136,13 @@ export function cueLift(video: HTMLVideoElement, host: HTMLElement, covered: Cov
     const height = box.height;
     const span = covered();
     const pixels = span.bottom - span.top;
-    const lift = on && height > 0 && pixels > 0 && pixels < height;
+    const lift = live && height > 0;
     const font = fontSize(height);
     const unit = font * LINE_HEIGHT;
-    // The lines the bar covers, with a little air, rounded up to whole lines.
-    const base = Math.ceil((pixels + AIR) / unit);
+    // The lines the bar covers, with a little air, rounded up to whole
+    // lines. With the bar hidden, the cue rests a line off the edge.
+    const barred = on && pixels > 0 && pixels < height;
+    const base = barred ? Math.ceil((pixels + AIR) / unit) : REST;
     for (const track of showing()) {
       // Earliest first, the order the browser stacks them in, so the first
       // sits lowest and the rest climb.
@@ -207,6 +214,7 @@ export function cueLift(video: HTMLVideoElement, host: HTMLElement, covered: Cov
     },
     dispose(): void {
       on = false;
+      live = false;
       apply();
       video.textTracks.removeEventListener('change', watch);
       video.textTracks.removeEventListener('addtrack', watch);

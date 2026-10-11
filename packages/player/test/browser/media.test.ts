@@ -110,7 +110,7 @@ describe('the controls over a real video', () => {
     await expect.poll(() => player.video.currentTime, ROOM).toBeCloseTo(0, 1);
   });
 
-  it('lift an unpositioned active cue above the bar while it shows, and put it back', async () => {
+  it('lift an unpositioned active cue above the bar while it shows, and a line off the edge while it hides', async () => {
     // A bare video and a stand-in bar, so no other lift holds the cues.
     const video = document.createElement('video');
     video.muted = true;
@@ -150,10 +150,20 @@ describe('the controls over a real video', () => {
     // The lift rebuilds the track's display, and WebKit empties the active
     // cues for a moment while it does; the restore reads them again.
     await expect.poll(active, ROOM).toBe(3);
+    // With the bar hidden the cues rest one line off the picture's edge,
+    // lower than over the bar, and still stacked.
     lift.lifted(false);
+    const rest = cue.line as number;
+    expect(rest).toBe(-2);
+    expect(rest).toBeGreaterThan(first);
+    expect(second.line as number).toBeLessThanOrEqual(rest - 2);
+    expect(placed.line).toBe(10);
+
+    // Without the bar at all, every cue is back where its author left it.
+    await expect.poll(active, ROOM).toBe(3);
+    lift.dispose();
     expect(cue.line).toBe('auto');
     expect(second.line).toBe('auto');
     expect(placed.line).toBe(10);
-    lift.dispose();
   });
 });
