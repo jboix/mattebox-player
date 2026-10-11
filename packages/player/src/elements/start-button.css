@@ -4,22 +4,44 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  margin: -2em 0 0 -3.25em;
+  margin: -2.5em 0 0 -2.5em;
 }
+/* A square plate with two corners cut at 45 degrees, like a panel of the
+   mark. The plate is a layer under the glyph, so the cut does not clip the
+   button's focus ring. */
 [part~="button"] {
-  width: 6.5em;
-  height: 4em;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.45);
+  position: relative;
+  z-index: 0;
+  width: 5em;
+  height: 5em;
+  border: 0;
+  background: transparent;
   color: var(--mbx-text);
-  opacity: 0.9;
+  transition: color 0.15s;
+}
+[part~="button"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  background: var(--mbx-surface);
+  opacity: 0.88;
+  -webkit-clip-path: polygon(0 0, 79% 0, 100% 21%, 100% 100%, 21% 100%, 0 79%);
+  clip-path: polygon(0 0, 79% 0, 100% 21%, 100% 100%, 21% 100%, 0 79%);
   transition:
     opacity 0.15s,
     background 0.15s;
 }
+/* Under the pointer the plate takes the accent, and the glyph the surface. */
 [part~="button"]:hover {
+  color: var(--mbx-surface);
+}
+[part~="button"]:hover::before {
+  background: var(--mbx-accent);
   opacity: 1;
-  background: rgba(0, 0, 0, 0.6);
 }
 /* A box too short for the button above the bar: the bar's play does the job. */
 :host([cramped]) {
@@ -27,12 +49,12 @@
 }
 [part~="icon"],
 ::slotted(*) {
-  width: 2.5em;
-  height: 2.5em;
-  margin-left: 0.125em;
+  width: 3em;
+  height: 3em;
 }
 @media (prefers-reduced-motion: reduce) {
-  [part~="button"] {
+  [part~="button"],
+  [part~="button"]::before {
     transition: none;
   }
 }
