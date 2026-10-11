@@ -27,6 +27,8 @@ export interface MenuGroup {
   readonly name: string;
   /** A heading, or none for a menu of one group. */
   readonly label?: string;
+  /** The label names the group for a screen reader, and no heading is drawn. */
+  readonly hideLabel?: boolean;
   /**
    * Each item's id, its text, a detail drawn at its end, such as a chapter's
    * time, the URL of a picture drawn at its start, and short badges drawn
@@ -37,8 +39,6 @@ export interface MenuGroup {
   >;
   readonly value: string;
   readonly onSelect: (value: string) => void;
-  /** A glyph drawn before the heading, such as the two sizes of a letter on Size. */
-  readonly glyph?: () => SVGSVGElement;
   /**
    * The badges drawn as a glyph, by their text. The text stays in the
    * badge for a screen reader and as its tooltip.
@@ -51,6 +51,10 @@ export interface MenuPage {
   readonly name: string;
   readonly label: string;
   readonly entries: readonly MenuEntry[];
+  /** A glyph drawn before the label of the item that opens the page. */
+  readonly glyph?: () => SVGSVGElement;
+  /** A detail drawn at the end of that item, such as the value chosen on the page. */
+  readonly detail?: string;
 }
 
 export type MenuEntry = MenuGroup | MenuPage;
@@ -79,12 +83,12 @@ export interface Menu {
 const AIR = 8;
 
 /**
- * The tallest a popup grows, in pixels: about seven and a half rows, so
+ * The tallest a popup grows, in pixels: the title and about seven and a half rows, so
  * the half row at the foot says the list goes on. A page sets its own
  * with `--mbx-menu-max-height`.
  */
 /* In em of the menu's own font size. */
-const MAX_HEIGHT = 16.5;
+const MAX_HEIGHT = 22;
 
 /** An item's picture. Decorative: the item's text names it. Loaded when the popup first shows it. */
 function picture(url: string): HTMLImageElement {
@@ -191,6 +195,12 @@ export function menu(options: MenuOptions): Menu {
     const page = stack[stack.length - 1];
     if (page === undefined) return;
     let tab = true;
+    // The first page starts with the menu's name. The popup already carries it for a screen reader.
+    if (stack.length === 1 && name !== '') {
+      const title = el('div', 'title', name);
+      title.setAttribute('aria-hidden', 'true');
+      popup.append(title);
+    }
     if (stack.length > 1) {
       const back = item('item back-item', page.label, () => {
         stack.pop();
@@ -210,6 +220,11 @@ export function menu(options: MenuOptions): Menu {
         });
         link.setAttribute('role', 'menuitem');
         link.setAttribute('aria-haspopup', 'menu');
+        if (entry.glyph !== undefined) {
+          link.prepend(entry.glyph());
+          state(link, `item page-item ${entry.name}-item`, { 'glyph-item': true });
+        }
+        if (entry.detail !== undefined) link.append(el('span', 'item-detail', entry.detail));
         popup.append(link);
         continue;
       }
@@ -217,9 +232,9 @@ export function menu(options: MenuOptions): Menu {
       section.setAttribute('role', 'group');
       if (entry.label !== undefined) {
         section.setAttribute('aria-label', entry.label);
-        const heading = el('div', `section-label ${entry.name}-label`, entry.label);
-        if (entry.glyph !== undefined) heading.prepend(entry.glyph());
-        section.append(heading);
+        if (entry.hideLabel !== true) {
+          section.append(el('div', `section-label ${entry.name}-label`, entry.label));
+        }
       }
       for (const [id, text, detail, image, badges] of entry.items) {
         const choice = item(`item ${entry.name}-item`, text, () => {

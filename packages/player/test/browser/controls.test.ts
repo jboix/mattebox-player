@@ -2377,7 +2377,7 @@ describe('a long menu', () => {
     inner(menu).click();
     const list = popup(menu);
     await expect.poll(() => list.hidden).toBe(false);
-    expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(264);
+    expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(352);
     expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
     list.scrollTop = 0;
     list.dispatchEvent(new Event('scroll'));
@@ -2575,7 +2575,7 @@ describe('the subtitles menu over a stubbed session', () => {
     { id: 't-en', contentType: 'text', lang: 'en' },
   ];
 
-  it('offers off and the tracks under a heading, and a settings page behind them', async () => {
+  it('offers off and the tracks under the title, and a settings page behind them', async () => {
     const engine = tracksEngine(tracks);
     const player = await over([fakeHandler(engine)]);
     const menu = control(player, 'mbx-subtitles-menu');
@@ -2585,7 +2585,11 @@ describe('the subtitles menu over a stubbed session', () => {
       [...(menu.shadowRoot?.querySelectorAll('[part~="section-label"]') ?? [])].map(
         (node) => node.textContent,
       );
-    expect(labels()).toEqual(['Track']);
+    // The title names the list, so the tracks carry no heading of their own.
+    expect(menu.shadowRoot?.querySelector('[part~="title"]')?.textContent).toBe(
+      inner(menu).getAttribute('aria-label'),
+    );
+    expect(labels()).toEqual([]);
     expect(items(menu).map((item) => item.textContent)).toEqual(['Off', 'English', 'Settings']);
     expect(items(menu)[2]?.getAttribute('aria-haspopup')).toBe('menu');
 
@@ -2594,25 +2598,33 @@ describe('the subtitles menu over a stubbed session', () => {
     expect(engine.chosen).toEqual(['t-en']);
     expect(shown(menu)).toBe('icon-on');
 
-    // The looks sit on the Settings page behind the tracks, with a Back at its top.
+    // The Settings page has a Back at its top and an item per look, with the value chosen.
     inner(menu).click();
     items(menu)[2]?.click();
-    expect(labels()).toEqual(['Size', 'Background']);
+    expect(menu.shadowRoot?.querySelector('[part~="title"]')).toBeNull();
     expect(items(menu)[0]?.getAttribute('part')?.split(' ')).toContain('back-item');
     expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Back from Settings');
+    const detail = (index: number) =>
+      items(menu)[index]?.querySelector('[part~="item-detail"]')?.textContent;
+    expect([detail(1), detail(2)]).toEqual(['Medium', 'Dark']);
+    expect(items(menu)[1]?.querySelector('svg')).not.toBeNull();
     const item = (group: string, value: string) =>
       items(menu).find(
         (node) =>
           node.getAttribute('part')?.split(' ').includes(`${group}-item`) && node.value === value,
       );
+    // Each look opens a page of its choices.
+    items(menu)[1]?.click();
+    expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Back from Size');
     expect(item('size', 'medium')?.getAttribute('aria-checked')).toBe('true');
-    expect(item('background', 'dark')?.getAttribute('aria-checked')).toBe('true');
     item('size', 'large')?.click();
     expect(player.getAttribute('subtitle-size')).toBe('large');
-    // A choice closes the menu back at its first page; the page shows the choice.
+    // A choice closes the menu back at its first page; the Settings page shows the choice.
     inner(menu).click();
     items(menu)[2]?.click();
-    expect(item('size', 'large')?.getAttribute('aria-checked')).toBe('true');
+    expect(detail(1)).toBe('Large');
+    items(menu)[2]?.click();
+    expect(item('background', 'dark')?.getAttribute('aria-checked')).toBe('true');
     item('background', 'none')?.click();
     expect(player.getAttribute('subtitle-background')).toBe('none');
   });
@@ -2629,6 +2641,7 @@ describe('the subtitles menu over a stubbed session', () => {
     inner(menu).click();
     items(menu)[2]?.click();
     expect(items(menu)[0]?.getAttribute('aria-label')).toBe('Torna de Opcions');
+    items(menu)[1]?.click();
     const checked = items(menu).find(
       (node) =>
         node.getAttribute('part')?.split(' ').includes('size-item') &&

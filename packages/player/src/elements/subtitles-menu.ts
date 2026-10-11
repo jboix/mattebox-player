@@ -26,7 +26,7 @@ import type { Mattebox } from 'mattebox';
 import { isSdh } from 'mattebox';
 import type { IconName } from '../controls/icons.js';
 import { icon } from '../controls/icons.js';
-import type { MenuGroup } from '../controls/menu.js';
+import type { MenuGroup, MenuPage } from '../controls/menu.js';
 import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { TrackEntry } from '../controls/track-names.js';
 import { trackNames } from '../controls/track-names.js';
@@ -83,7 +83,11 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     return 'Subtitles';
   }
 
-  /** A look's group: the choices named from the attributes, the value from the player's. */
+  /**
+   * A look's page: an item with the look's glyph, its name and the value
+   * chosen, which opens the choices. They are named from the attributes,
+   * and the value is the player's.
+   */
   private looks(
     player: PlayerHost,
     attribute: string,
@@ -92,19 +96,31 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     choices: ReadonlyArray<readonly [string, string]>,
     initial: string,
     glyph: IconName,
-  ): MenuGroup {
+  ): MenuPage {
     const set = player.getAttribute(attribute);
     const value = set !== null && choices.some(([id]) => id === set) ? set : initial;
+    const label = this.getAttribute(`label-${name}`) ?? fallback;
+    const items = choices.map(
+      ([id, text]) => [id, this.getAttribute(`label-${id}`) ?? text] as const,
+    );
     return {
       name,
-      label: this.getAttribute(`label-${name}`) ?? fallback,
+      label,
       glyph: () => icon(glyph),
-      items: choices.map(([id, text]) => [id, this.getAttribute(`label-${id}`) ?? text]),
-      value,
-      onSelect: (chosen) => {
-        player.setAttribute(attribute, chosen);
-        this.render();
-      },
+      detail: items.find(([id]) => id === value)?.[1] ?? '',
+      entries: [
+        {
+          name,
+          label,
+          hideLabel: true,
+          items,
+          value,
+          onSelect: (chosen) => {
+            player.setAttribute(attribute, chosen);
+            this.render();
+          },
+        },
+      ],
     };
   }
 
@@ -174,6 +190,8 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       {
         name: 'track',
         label: word ?? 'Track',
+        // The menu's title says what the list is.
+        hideLabel: true,
         items,
         // The badges are glyphs, named by `label-cc` and `label-sdh`.
         badgeGlyphs: {
