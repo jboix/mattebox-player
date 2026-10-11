@@ -195,7 +195,35 @@ body {
   flex: none;
 }
 
-/* The other demo page, as a quiet link beside the room toggle. */
+/* The other demo pages. On a wide screen their links sit in the masthead's
+   row. On a phone one button opens them as a list, so the row stays one row.
+   The list is a popover, which the wide layout draws in place. */
+.pages {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+.pages-toggle {
+  display: none;
+}
+
+.pages-list {
+  position: static;
+  inset: auto;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--step) * 1.5);
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
 .page-link {
   flex: none;
   padding: 0.4rem 0.8rem;
@@ -1017,14 +1045,50 @@ label[title] > span {
 
   .masthead {
     position: static;
-    flex-wrap: wrap;
-    gap: var(--step);
+    gap: calc(var(--step) * 0.75);
     padding: 0.5rem var(--step);
   }
 
-  /* The title fills the first line beside the mark; the links take the second. */
+  /* One row: the title gives way before the buttons do. */
   .masthead h1 {
-    flex-basis: calc(100% - 2.25rem - var(--step));
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* The other pages fold into one button, and open as a list under the masthead. */
+  .pages-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    color: var(--ink-soft);
+    background: transparent;
+  }
+
+  .pages-toggle svg {
+    display: block;
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: currentColor;
+  }
+
+  .pages-list:not(:popover-open) {
+    display: none;
+  }
+
+  .pages-list:popover-open {
+    position: fixed;
+    inset: 3.25rem var(--step) auto auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: var(--step);
+    border: 1px solid var(--rule);
+    background: var(--panel);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   }
 
   .rig {

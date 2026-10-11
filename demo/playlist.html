@@ -24,8 +24,15 @@
   <header class="masthead">
     <a class="home" href="https://jboix.github.io/mattebox-site/"><img class="logo" alt="Mattebox, the website"></a>
     <h1>Mattebox playlist</h1>
-    <a class="page-link" href="./">The element</a>
-    <a class="page-link" href="./reels.html">Reels</a>
+    <nav class="pages" aria-label="Demo pages">
+      <button type="button" class="pages-toggle" popovertarget="pages-menu" aria-label="The other demo pages">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M4 13h24v14H4zM13.5 16v8l6.5-4zM7 8.5h18v2.5h-18zM10 4h12v2.5h-12z" /></svg>
+      </button>
+      <div id="pages-menu" class="pages-list" popover>
+        <a class="page-link" href="./">The element</a>
+        <a class="page-link" href="./reels.html">Reels</a>
+      </div>
+    </nav>
     <button type="button" id="theme-toggle" class="theme-toggle"></button>
   </header>
 
