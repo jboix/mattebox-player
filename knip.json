@@ -6,6 +6,7 @@
       "entry": [
         "demo/src/main.ts",
         "demo/src/playlist.ts",
+        "demo/src/reels.ts",
         "scripts/*.mjs",
         "scripts/lib/inline-css.mjs",
         "test/e2e/**/*.ts"

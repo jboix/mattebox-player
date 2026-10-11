@@ -22,6 +22,8 @@ export interface SearchResult {
   readonly date: string;
   /** Milliseconds. */
   readonly duration: number;
+  /** The picture is taller than wide, 9:16: a reel. */
+  readonly upright: boolean;
 }
 
 interface DrmEntry {
@@ -157,14 +159,19 @@ export async function searchMedia(
   const url = `https://${IL_HOST}/integrationlayer/2.0/${bu}/searchResultMediaList?${params}`;
   const response = await fetch(url, { signal });
   if (!response.ok) throw new Error(`search failed: HTTP ${response.status}`);
-  const data = (await response.json()) as { searchResultMediaList?: SearchResult[] };
-  return (data.searchResultMediaList ?? []).map(({ title, urn, mediaType, date, duration }) => ({
-    title,
-    urn,
-    mediaType,
-    date,
-    duration,
-  }));
+  const data = (await response.json()) as {
+    searchResultMediaList?: Array<Omit<SearchResult, 'upright'> & { aspectRatio?: string }>;
+  };
+  return (data.searchResultMediaList ?? []).map(
+    ({ title, urn, mediaType, date, duration, aspectRatio }) => ({
+      title,
+      urn,
+      mediaType,
+      date,
+      duration,
+      upright: aspectRatio === '9:16',
+    }),
+  );
 }
 
 export async function fetchComposition(urn: string, signal: AbortSignal): Promise<Composition> {

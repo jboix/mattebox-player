@@ -807,3 +807,127 @@ label[title] > span {
   text-underline-offset: 0.2em;
   cursor: help;
 }
+
+/* The reels page: a feed the height of the page and the shape of a phone,
+   one reel per screen of it. */
+.reels-stage {
+  grid-area: frame;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.feed {
+  height: 100%;
+  aspect-ratio: 9 / 16;
+  max-width: 100%;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  background: #000;
+  border: 1px solid var(--rule);
+}
+
+.reel {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  background: #101214;
+  cursor: pointer;
+}
+
+/* What the feed says while the reels load. */
+.feed-notice {
+  margin: 0;
+  padding: 1rem;
+  color: #f2f1ec;
+  font: 12px / 1.5 var(--mono);
+}
+
+/* The artwork shows until the picture starts. */
+.reel-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* The player fills the reel, and the picture is cropped to it as a feed
+   crops a wide clip. It stays clear until its first frame plays. */
+/* Over the artwork, which comes after it in the reel. */
+.reel mattebox-player {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+}
+
+.reel mattebox-player:not([started]) {
+  opacity: 0;
+}
+
+.reel mattebox-player::part(stage) {
+  height: 100%;
+}
+
+.reel mattebox-player video {
+  height: 100%;
+  max-height: none;
+  object-fit: cover;
+}
+
+.reel-meta {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  padding: 3rem 1rem 1rem;
+  color: #f2f1ec;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+  pointer-events: none;
+}
+
+.reel-title {
+  margin: 0;
+  font: 600 1.5rem / 1.1 var(--condensed);
+}
+
+.reel-meta p {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+}
+
+.reel-meta .reel-hud {
+  min-height: 1.5em;
+  font: 12px / 1.5 var(--mono);
+  color: #7fd0b4;
+}
+
+/* The two medians the page compares. */
+.tally {
+  margin: var(--step) 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tally dt {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+}
+
+.tally dd {
+  margin: 0;
+  font: 500 0.9375rem / 1.4 var(--mono);
+}
+
+@media (max-width: 60rem) {
+  .reels-stage {
+    height: 80vh;
+  }
+}
