@@ -5,13 +5,13 @@
   <text x="44" y="176" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#f4f4f5">mattebox player</text>
   <text x="44" y="200" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · + mattebox v0.14.0, full preset</text>
   <rect x="480" y="150" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="150" width="56.7" height="54" fill="#f5a524"/>
+  <rect x="480" y="150" width="56.6" height="54" fill="#f5a524"/>
   <text x="1056" y="186" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="30" font-weight="700" fill="#f4f4f5">107.9 KB</text>
   <text x="44" y="260" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">video.js 8 + vhs</text>
   <text x="44" y="284" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v8.24.0 · VHS built in</text>
   <rect x="480" y="234" width="420" height="54" fill="#18181c"/>
   <rect x="480" y="234" width="111.1" height="54" fill="#9a9aa2"/>
-  <text x="1056" y="270" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">211.6 KB</text>
+  <text x="1056" y="270" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">211.5 KB</text>
   <text x="44" y="344" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">shaka player + ui</text>
   <text x="44" y="368" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v5.2.10 · the ui build</text>
   <rect x="480" y="318" width="420" height="54" fill="#18181c"/>
@@ -20,22 +20,22 @@
   <text x="44" y="428" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">media chrome + hls.js + dash.js</text>
   <text x="44" y="452" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v4.19.2 · hls- and dash-video-element</text>
   <rect x="480" y="402" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="402" width="235.9" height="54" fill="#9a9aa2"/>
-  <text x="1056" y="438" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">449.3 KB</text>
+  <rect x="480" y="402" width="235.8" height="54" fill="#9a9aa2"/>
+  <text x="1056" y="438" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">449.2 KB</text>
   <text x="44" y="512" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">video.js 10 + hls.js + dash.js</text>
   <text x="44" y="536" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v10.0.0-rc.2 · skin, hlsjs- and dash-video</text>
   <rect x="480" y="486" width="420" height="54" fill="#18181c"/>
   <rect x="480" y="486" width="248.9" height="54" fill="#9a9aa2"/>
-  <text x="1056" y="522" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">474.1 KB</text>
+  <text x="1056" y="522" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">474.0 KB</text>
   <text x="44" y="596" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">vidstack + hls.js + dash.js</text>
   <text x="44" y="620" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v1.15.6 · default layout</text>
   <rect x="480" y="570" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="570" width="275.3" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="570" width="275.2" height="54" fill="#9a9aa2"/>
   <text x="1056" y="606" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">524.3 KB</text>
   <text x="44" y="680" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">bitmovin player</text>
   <text x="44" y="704" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v8.279.0 · the full bundle, with its ui</text>
   <rect x="480" y="654" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="654" width="347.9" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="654" width="347.8" height="54" fill="#9a9aa2"/>
   <text x="1056" y="690" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">662.6 KB</text>
   <text x="44" y="764" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">theoplayer</text>
   <text x="44" y="788" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">v11.13.0 · the full bundle, with its ui</text>
