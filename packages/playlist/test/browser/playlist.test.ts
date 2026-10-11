@@ -186,7 +186,7 @@ describe('the playlist controls', () => {
 });
 
 describe('the list on a compact player', () => {
-  it('is a sheet on the page, and over the picture again on a larger player', async () => {
+  it('is a sheet inside the player, and beside the picture again on a larger player', async () => {
     const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
     player.setAttribute('controls', 'custom');
     player.style.width = '390px';
@@ -199,8 +199,14 @@ describe('the list on a compact player', () => {
 
     await expect.poll(() => panel.getAttribute('layout')).toBe('compact');
     panel.setAttribute('open', '');
-    expect(getComputedStyle(panel).position).toBe('fixed');
-    // A press beside the list, on the dimmed page, closes it.
+    // The sheet's host covers the player and nothing of the page around it.
+    expect(getComputedStyle(panel).position).toBe('absolute');
+    const box = player.getBoundingClientRect();
+    const sheet = panel.getBoundingClientRect();
+    expect([sheet.left, sheet.top, sheet.width, sheet.height].map(Math.round)).toEqual(
+      [box.left, box.top, box.width, box.height].map(Math.round),
+    );
+    // A press beside the list, on the dimmed picture, closes it.
     panel.click();
     expect(panel.hasAttribute('open')).toBe(false);
 

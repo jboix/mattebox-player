@@ -123,11 +123,11 @@
   padding-left: 0.8333em;
   font-variant-numeric: tabular-nums;
 }
-/* A compact player is too short to hold a list, so the list is a sheet
-   from the bottom of the page. The host covers the page and
-   dims it, and the three parts sit at its bottom with their own ground. */
+/* A compact player is too narrow for a list beside the picture, so the
+   list is a sheet from the foot of the player. The host covers the player,
+   never the page around it, and dims it. The three parts sit at its
+   bottom with their own ground. */
 :host([layout="compact"]) {
-  position: fixed;
   left: 0;
   z-index: 1000;
   justify-content: flex-end;
@@ -146,7 +146,7 @@
 }
 :host([layout="compact"]) [part~="list"] {
   flex: 0 1 auto;
-  max-height: 60vh;
+  max-height: 70%;
   padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
 }
 :host([layout="compact"]) [part~="item"] {
