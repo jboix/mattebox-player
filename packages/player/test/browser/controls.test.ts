@@ -1316,6 +1316,33 @@ describe('the start button in a short box', () => {
     await expect.poll(() => start.hasAttribute('cramped')).toBe(false);
   });
 
+  it("sits in the middle of the picture over the bar's controls", async () => {
+    const player = await custom();
+    const start = control(player, 'mbx-start-button');
+    player.style.width = '640px';
+    player.style.height = '400px';
+    await laidOut();
+    const box = player.getBoundingClientRect();
+    const bar = player.querySelector('mbx-control-bar') as HTMLElement;
+    const controls =
+      bar.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(bar).paddingTop);
+    await expect
+      .poll(() => {
+        const button = inner(start).getBoundingClientRect();
+        return Math.round(button.top + button.height / 2);
+      })
+      .toBe(Math.round((box.top + controls) / 2));
+    // Without a bar the middle is the player's own.
+    bar.remove();
+    player.style.height = '402px';
+    await expect
+      .poll(() => {
+        const button = inner(start).getBoundingClientRect();
+        return Math.round(button.top + button.height / 2);
+      })
+      .toBe(Math.round(player.getBoundingClientRect().top + 201));
+  });
+
   it('is not cramped without a bar to sit over', async () => {
     // Under `none` the element composes no bar, and a start button the page writes still attaches.
     const player = mount({ controls: 'none' });

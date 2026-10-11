@@ -80,6 +80,9 @@ export class MbxStartButton extends Component {
         this.fit(player);
       });
       this.resizer.observe(player);
+      // The bar's height moves the middle too, when its rows wrap or a tier changes.
+      const bar = player.querySelector('mbx-control-bar');
+      if (bar !== null) this.resizer.observe(bar);
     }
     this.fit(player);
     this.render();
@@ -89,9 +92,15 @@ export class MbxStartButton extends Component {
     this.resizer?.disconnect();
     this.resizer = null;
     this.removeAttribute('cramped');
+    this.style.removeProperty('--mbx-start-top');
   }
 
   /**
+   * The button sits in the middle of the picture left over the bar's
+   * controls, not of the whole player: with the bar at the foot, the
+   * player's own middle reads as too low. The bar's top padding is the
+   * lead-in of its gradient, so the controls start under it.
+   *
    * Cramped when the button's foot would be inside the bar's box, which
    * starts at the top of its gradient: then the bar's own play button is
    * the one to press. Measured with the button shown, since a hidden one
@@ -101,13 +110,18 @@ export class MbxStartButton extends Component {
     const bar = player.querySelector('mbx-control-bar');
     if (bar === null) {
       this.removeAttribute('cramped');
+      this.style.removeProperty('--mbx-start-top');
       return;
     }
+    const box = player.getBoundingClientRect();
+    const barBox = bar.getBoundingClientRect();
+    const controls = barBox.top + (Number.parseFloat(getComputedStyle(bar).paddingTop) || 0);
+    this.style.setProperty('--mbx-start-top', `${(controls - box.top) / 2}px`);
     const wasHidden = this.hidden;
     const wasCramped = this.hasAttribute('cramped');
     this.hidden = false;
     this.removeAttribute('cramped');
-    const cramped = this.button.getBoundingClientRect().bottom > bar.getBoundingClientRect().top;
+    const cramped = this.button.getBoundingClientRect().bottom > barBox.top;
     this.hidden = wasHidden;
     this.toggleAttribute('cramped', cramped);
     if (cramped !== wasCramped) this.render();
