@@ -359,6 +359,9 @@ input::placeholder {
 
 select {
   appearance: none;
+  /* A long option is cut at the field: WebKit otherwise widens the page by it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding-right: 2.2rem;
   background-image: var(--chevron);
   background-repeat: no-repeat;
@@ -929,5 +932,62 @@ label[title] > span {
 @media (max-width: 60rem) {
   .reels-stage {
     height: 80vh;
+  }
+}
+
+/* A phone. The picture takes the whole width at 16:9 and stays at the top
+   while the page scrolls, so an option can be changed with its result in
+   view. The masthead wraps and scrolls away to leave the picture the room. */
+@media (max-width: 40rem) {
+  body {
+    padding-inline: 0;
+  }
+
+  .masthead {
+    position: static;
+    flex-wrap: wrap;
+    gap: var(--step);
+    padding: 0.5rem var(--step);
+  }
+
+  /* The title fills the first line beside the mark; the links take the second. */
+  .masthead h1 {
+    flex-basis: calc(100% - 2.25rem - var(--step));
+  }
+
+  .rig {
+    display: block;
+    padding: 0 0 calc(var(--step) * 2);
+  }
+
+  /* The frame's sections become the page's own, so the first one can stick
+     past the end of the frame. */
+  .frame {
+    display: contents;
+  }
+
+  .frame > section:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--ground);
+  }
+
+  .frame > section:first-child > mattebox-player:not([fullscreen]) {
+    height: 56.25vw;
+    border-inline: 0;
+  }
+
+  .status {
+    padding-inline: var(--step);
+  }
+
+  .flag,
+  .flag-bottom {
+    margin: calc(var(--step) * 2) var(--step) 0;
+  }
+
+  .reels-stage {
+    height: 78vh;
   }
 }
