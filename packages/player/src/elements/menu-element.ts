@@ -27,7 +27,7 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
     });
     this.slots = iconSlots(states, glyphs);
     for (const state of states) this.menu.button.append(this.slots[state]);
-    root.append(style(MENU_STYLE), this.menu.button, this.menu.popup);
+    root.append(style(MENU_STYLE), this.menu.button, this.menu.backdrop, this.menu.popup);
   }
 
   /** The default name of the button. */

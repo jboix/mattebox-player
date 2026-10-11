@@ -610,7 +610,8 @@ API. `mattebox-player[fullscreen] > video` is where a page lifts a height
 limit it set on the video.
 
 The subtitles are the browser's own cues on the video. The bar moves the
-active cues above itself while it shows, and moves them back when it hides.
+active cues above itself while it shows. When it hides, they rest one line
+above the picture's bottom edge.
 It only moves a cue the author did not position. Two cues that show at once
 stack, each by its measured height.
 
@@ -802,11 +803,11 @@ The player measures its own box and sets `layout` on itself. The controls
 draw for that tier. The box decides, not the screen: a small embed on a
 desktop page is compact, and a phone in fullscreen is not.
 
-| Tier      | When                                     | What the controls do                                                                                                     |
-| --------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `compact` | Under 480 pixels wide, or under 320 high | One time readout, the time left. The title is one line at the top. Menus and the playlist open as sheets from the bottom |
-| `regular` | Between the two                          | The design at 16 pixels                                                                                                  |
-| `wide`    | From 1280 pixels wide and 700 high       | The same design at 20 pixels, for a TV or a fullscreen                                                                   |
+| Tier      | When                                     | What the controls do                                                                                                                                                                          |
+| --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `compact` | Under 480 pixels wide, or under 320 high | One time readout, the time left. The title is one line at the top. Menus and the playlist open as sheets from the bottom of the player, over the controls. A menu's first row is the way back |
+| `regular` | Between the two                          | The design at 16 pixels                                                                                                                                                                       |
+| `wide`    | From 1280 pixels wide and 700 high       | The same design at 20 pixels, for a TV or a fullscreen                                                                                                                                        |
 
 You write the same markup for all three. A stylesheet reads the tier from
 the player, and every control carries it too:

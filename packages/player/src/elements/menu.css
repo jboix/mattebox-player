@@ -22,26 +22,6 @@
 [part~="popup"][hidden] {
   display: none;
 }
-/* Rows wait below the foot: the last one fades out. */
-[part~="popup"][more] {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
-}
-/* The menu's name over its first page, and the Back item over the others:
-   one line in small capitals, ruled off from the rows. */
-[part~="title"],
-[part~="back-item"] {
-  font-size: 0.8125em;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--mbx-muted);
-}
-[part~="title"] {
-  margin: -0.5275em -0.5275em 0.5275em;
-  padding: 0.9231em 1.4066em;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
 [part~="section"] {
   display: flex;
   flex-direction: column;
@@ -206,19 +186,25 @@
   background: var(--mbx-accent);
 }
 /* On a compact player a popup over the picture has no room, so the menu is
-   a sheet from the bottom of the page. The spread shadow dims the page, and
-   a press on it is a press outside the menu, which closes it. */
+   a sheet from the foot of the picture. The menu places it and sizes it
+   against the picture, so it never leaves the player. The backdrop dims
+   the picture behind it, and a press on it closes the menu. */
 :host([layout="compact"]) [part~="popup"] {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  right: auto;
   z-index: 1000;
   margin: 0;
-  max-height: 70vh;
   padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
   border-radius: 0.75em 0.75em 0 0;
   background: rgb(28, 28, 32);
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
+  /* No shadow: it would fall on the page around the player. */
+  box-shadow: none;
   font-size: 1em;
+}
+[part~="backdrop"] {
+  position: absolute;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.5);
+}
+[part~="backdrop"][hidden] {
+  display: none;
 }

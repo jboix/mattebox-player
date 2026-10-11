@@ -96,10 +96,13 @@ export class MbxStartButton extends Component {
   }
 
   /**
-   * The button sits in the middle of the picture left over the bar's
-   * controls, not of the whole player: with the bar at the foot, the
-   * player's own middle reads as too low. The bar's top padding is the
-   * lead-in of its gradient, so the controls start under it.
+   * The button sits between two middles: the player's own, and the middle
+   * of the picture left over the bar's controls. With the bar at the foot,
+   * the player's middle reads as too low. The bar is light, a line and a
+   * few glyphs over a gradient, so the middle of what it leaves reads as
+   * too high, most of all in a short player. Halfway between them is where
+   * the eye puts the centre. The bar's top padding is the lead-in of its
+   * gradient, so the controls start under it.
    *
    * Cramped when the button's foot would be inside the bar's box, which
    * starts at the top of its gradient: then the bar's own play button is
@@ -116,7 +119,7 @@ export class MbxStartButton extends Component {
     const box = player.getBoundingClientRect();
     const barBox = bar.getBoundingClientRect();
     const controls = barBox.top + (Number.parseFloat(getComputedStyle(bar).paddingTop) || 0);
-    this.style.setProperty('--mbx-start-top', `${(controls - box.top) / 2}px`);
+    this.style.setProperty('--mbx-start-top', `${(box.height + controls - box.top) / 4}px`);
     const wasHidden = this.hidden;
     const wasCramped = this.hasAttribute('cramped');
     this.hidden = false;

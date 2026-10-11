@@ -1,4 +1,17 @@
 /**
+ * A test's player is regular unless the test sizes it: the browser's test
+ * frame is narrow, and a player that fills it would be compact, where the
+ * menus are sheets with a way back as their first row. A page's rule, so a
+ * test's own inline size wins over it.
+ */
+if (document.head.querySelector('style[data-test-size]') === null) {
+  const size = document.createElement('style');
+  size.setAttribute('data-test-size', '');
+  size.textContent = 'mattebox-player { width: 800px; }';
+  document.head.append(size);
+}
+
+/**
  * A valid WAV, so a native session in a hermetic test reaches `loadedmetadata`
  * instead of a MediaError. 8-bit mono at 8 kHz, an eighth of a second of
  * silence by default, the smallest file a browser will actually decode;

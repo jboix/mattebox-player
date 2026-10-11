@@ -1316,7 +1316,7 @@ describe('the start button in a short box', () => {
     await expect.poll(() => start.hasAttribute('cramped')).toBe(false);
   });
 
-  it("sits in the middle of the picture over the bar's controls", async () => {
+  it("sits halfway between the player's middle and the middle over the bar's controls", async () => {
     const player = await custom();
     const start = control(player, 'mbx-start-button');
     player.style.width = '640px';
@@ -1331,7 +1331,7 @@ describe('the start button in a short box', () => {
         const button = inner(start).getBoundingClientRect();
         return Math.round(button.top + button.height / 2);
       })
-      .toBe(Math.round((box.top + controls) / 2));
+      .toBe(Math.round(box.top + (box.height + controls - box.top) / 4));
     // Without a bar the middle is the player's own.
     bar.remove();
     player.style.height = '402px';
@@ -2396,7 +2396,7 @@ describe('the quality menu under Auto', () => {
 describe('a long menu', () => {
   const RATES = '0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 3 3.5 4';
 
-  it('stops at its maximum in a tall player, and fades its foot while rows wait below', async () => {
+  it('stops at its maximum in a tall player, and scrolls to the rows below', async () => {
     const player = await ready(10);
     player.style.height = '700px';
     const menu = control(player, 'mbx-speed-menu');
@@ -2406,12 +2406,8 @@ describe('a long menu', () => {
     await expect.poll(() => list.hidden).toBe(false);
     expect(list.getBoundingClientRect().height).toBeLessThanOrEqual(352);
     expect(list.scrollHeight).toBeGreaterThan(list.clientHeight);
-    list.scrollTop = 0;
-    list.dispatchEvent(new Event('scroll'));
-    expect(list.hasAttribute('more')).toBe(true);
-    list.scrollTop = list.scrollHeight;
-    list.dispatchEvent(new Event('scroll'));
-    expect(list.hasAttribute('more')).toBe(false);
+    // No fade over the foot: the row cut in half says the list goes on.
+    expect(getComputedStyle(list).maskImage).toBe('none');
   });
 
   it('takes a page maximum, and less in a player without room for it', async () => {
@@ -2434,7 +2430,7 @@ describe('a long menu', () => {
 });
 
 describe('a menu on a compact player', () => {
-  it('is a sheet on the page, sized by the stylesheet', async () => {
+  it('is a sheet at the foot of the picture, inside the player', async () => {
     const player = await ready(10);
     player.setAttribute('layout', 'compact');
     const menu = control(player, 'mbx-speed-menu');
@@ -2442,9 +2438,56 @@ describe('a menu on a compact player', () => {
     inner(menu).click();
     const list = popup(menu);
     await expect.poll(() => list.hidden).toBe(false);
-    expect(getComputedStyle(list).position).toBe('fixed');
-    expect(list.style.maxHeight).toBe('');
-    expect(Math.round(list.getBoundingClientRect().width)).toBe(window.innerWidth);
+    const picture = player.video.getBoundingClientRect();
+    const sheet = list.getBoundingClientRect();
+    expect(getComputedStyle(list).position).toBe('absolute');
+    expect(Math.round(sheet.left)).toBe(Math.round(picture.left));
+    expect(Math.round(sheet.width)).toBe(Math.round(picture.width));
+    expect(Math.round(sheet.bottom)).toBe(Math.round(picture.bottom));
+    expect(sheet.top).toBeGreaterThanOrEqual(picture.top);
+    // The backdrop dims the picture and nothing else, and a press on it closes the menu.
+    const backdrop = menu.shadowRoot?.querySelector<HTMLElement>('[part~="backdrop"]');
+    expect(backdrop?.hidden).toBe(false);
+    const dim = backdrop?.getBoundingClientRect();
+    expect([dim?.left, dim?.top, dim?.width, dim?.height].map((v) => Math.round(v ?? -1))).toEqual(
+      [picture.left, picture.top, picture.width, picture.height].map(Math.round),
+    );
+    backdrop?.click();
+    expect(list.hidden).toBe(true);
+    expect(backdrop?.hidden).toBe(true);
+  });
+
+  it('starts with a way back, which closes the sheet', async () => {
+    const player = await ready(10);
+    player.setAttribute('layout', 'compact');
+    const menu = control(player, 'mbx-speed-menu');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    const back = items(menu)[0];
+    expect(back?.getAttribute('part')?.split(' ')).toContain('back-item');
+    expect(back?.textContent).toBe(inner(menu).getAttribute('aria-label'));
+    expect(back?.getAttribute('aria-label')).toBe(`Back from ${back?.textContent}`);
+    expect(menu.shadowRoot?.querySelector('[part~="title"]')).toBeNull();
+    back?.click();
+    expect(list.hidden).toBe(true);
+  });
+
+  it('is a popup again on a larger player, with no backdrop', async () => {
+    const player = await ready(10);
+    player.setAttribute('layout', 'compact');
+    const menu = control(player, 'mbx-speed-menu');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    inner(menu).click();
+    inner(menu).click();
+    player.setAttribute('layout', 'regular');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('regular');
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(list.style.width).toBe('');
+    expect(menu.shadowRoot?.querySelector<HTMLElement>('[part~="backdrop"]')?.hidden).toBe(true);
   });
 });
 

@@ -71,6 +71,8 @@ export interface MenuOptions {
 export interface Menu {
   readonly button: HTMLButtonElement;
   readonly popup: HTMLElement;
+  /** The dim over the picture behind a compact player's sheet. A press on it closes the menu. */
+  readonly backdrop: HTMLElement;
   /** The accessible name of the button and the popup. */
   label(text: string): void;
   /** Replaces the entries, back at the first page. */
@@ -111,13 +113,17 @@ export function menu(options: MenuOptions): Menu {
   button.setAttribute('aria-haspopup', 'menu');
   button.setAttribute('aria-expanded', 'false');
   const popup = el('div', 'popup');
-  popup.addEventListener('scroll', () => {
-    more();
-  });
   popup.setAttribute('role', 'menu');
   popup.hidden = true;
+  const backdrop = el('div', 'backdrop');
+  backdrop.hidden = true;
+  backdrop.addEventListener('click', () => {
+    close();
+  });
 
   let open = false;
+  /** Whether the page drawn last was drawn for a compact player. */
+  let drawnCompact = false;
   let name = '';
   let first: readonly MenuEntry[] = [];
   /** The pages opened, the first being the menu itself. */
@@ -147,29 +153,37 @@ export function menu(options: MenuOptions): Menu {
    * left of its right edge.
    */
   function fit(): void {
-    // A compact player's menu is a sheet on the page: the stylesheet sizes it.
-    if (host.getAttribute('layout') === 'compact') {
-      popup.style.maxHeight = '';
+    const picture = options.picture();
+    const compact = host.getAttribute('layout') === 'compact';
+    backdrop.hidden = !(open && compact && picture !== null);
+    for (const node of [popup, backdrop]) {
+      node.style.left = node.style.bottom = node.style.width = '';
+    }
+    backdrop.style.height = '';
+    if (picture === null) return;
+    // A compact player's menu is a sheet from the foot of the picture, as wide
+    // as the picture and never taller. It stays inside the player: a page
+    // around a small player keeps its own space. The dim covers the picture.
+    if (compact) {
+      const box = host.getBoundingClientRect();
+      for (const node of [popup, backdrop]) {
+        node.style.left = `${picture.left - box.left}px`;
+        node.style.bottom = `${box.bottom - picture.bottom}px`;
+        node.style.width = `${picture.width}px`;
+      }
+      backdrop.style.height = `${picture.height}px`;
+      popup.style.maxHeight = `${Math.max(0, Math.floor(picture.height - AIR))}px`;
       popup.style.maxWidth = '';
-      more();
       return;
     }
-    const picture = options.picture();
-    if (picture === null) return;
     const room = button.getBoundingClientRect().top - picture.top - AIR;
     const most =
       Number.parseFloat(getComputedStyle(host).getPropertyValue('--mbx-menu-max-height')) ||
       MAX_HEIGHT * (Number.parseFloat(getComputedStyle(host).fontSize) || 16);
     popup.style.maxHeight = `${Math.max(0, Math.floor(Math.min(most, room)))}px`;
-    more();
     // The popup is anchored at the host's right edge and grows leftwards.
     const wide = host.getBoundingClientRect().right - picture.left - AIR;
     popup.style.maxWidth = `${Math.max(0, Math.floor(wide))}px`;
-  }
-
-  /** `more` on the popup while rows wait below its foot, which then fades out. */
-  function more(): void {
-    popup.toggleAttribute('more', popup.scrollTop + popup.clientHeight < popup.scrollHeight - 1);
   }
 
   function clear(): void {
@@ -195,8 +209,20 @@ export function menu(options: MenuOptions): Menu {
     const page = stack[stack.length - 1];
     if (page === undefined) return;
     let tab = true;
-    // The first page starts with the menu's name. The popup already carries it for a screen reader.
-    if (stack.length === 1 && name !== '') {
+    // The first page starts with the menu's name. On a compact player the
+    // menu is a sheet over the controls, so the name is the way back: a
+    // press on it closes the sheet. Elsewhere it is a title, and the popup
+    // already carries the name for a screen reader.
+    drawnCompact = host.getAttribute('layout') === 'compact';
+    if (stack.length === 1 && name !== '' && drawnCompact) {
+      const leave = item('item back-item', name, () => {
+        close();
+        button.focus();
+      });
+      leave.setAttribute('role', 'menuitem');
+      leave.setAttribute('aria-label', options.back(name));
+      popup.append(leave);
+    } else if (stack.length === 1 && name !== '') {
       const title = el('div', 'title', name);
       title.setAttribute('aria-hidden', 'true');
       popup.append(title);
@@ -282,6 +308,7 @@ export function menu(options: MenuOptions): Menu {
     if (!open) return;
     open = false;
     popup.hidden = true;
+    backdrop.hidden = true;
     button.setAttribute('aria-expanded', 'false');
     host.removeAttribute('open');
     document.removeEventListener('pointerdown', outside, true);
@@ -294,6 +321,8 @@ export function menu(options: MenuOptions): Menu {
   function show(): void {
     if (open) return;
     open = true;
+    // The tier may have changed since the page was drawn: its first row differs.
+    if ((host.getAttribute('layout') === 'compact') !== drawnCompact) render();
     popup.hidden = false;
     button.setAttribute('aria-expanded', 'true');
     host.setAttribute('open', '');
@@ -350,6 +379,7 @@ export function menu(options: MenuOptions): Menu {
   return {
     button,
     popup,
+    backdrop,
     label(text: string): void {
       name = text;
       button.setAttribute('aria-label', text);

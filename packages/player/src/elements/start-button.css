@@ -53,6 +53,11 @@
   width: 3em;
   height: 3em;
 }
+/* The triangle's weight is left of its box's middle, so it moves right by
+   as much to look centred in the plate. The replay glyph is round, and stays. */
+slot[name="icon-play"] > [part~="icon"] {
+  margin-left: 0.125em;
+}
 @media (prefers-reduced-motion: reduce) {
   [part~="button"],
   [part~="button"]::before {
