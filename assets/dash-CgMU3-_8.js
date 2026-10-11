@@ -1,0 +1,1 @@
+import{n as e,t}from"./tiers-CgdgK4DZ.js";import{t as n}from"./define-Ctvo4V-L.js";var r=n(`dash`,()=>[...e(),...t()]);export{r as default};
