@@ -188,12 +188,63 @@ function run(reels: readonly PlaylistItem[]): void {
     preloadTimer = window.setInterval(ask, PRELOAD_EVERY);
   }
 
+  // The reel's progress: one thin seek bar, moved with the player. The
+  // player has no controls here, so the page draws it and it never hides.
+  const progress = document.createElement('div');
+  progress.className = 'reel-progress';
+  progress.tabIndex = 0;
+  progress.setAttribute('role', 'slider');
+  progress.setAttribute('aria-label', 'Seek');
+  progress.setAttribute('aria-valuemin', '0');
+  progress.setAttribute('aria-valuemax', '100');
+  const fill = document.createElement('div');
+  fill.className = 'reel-progress-fill';
+  progress.append(fill);
+  slides[0]?.slide.append(progress);
+
+  /** Draws how far the reel is, on every frame, so the line moves without steps. */
+  function drawProgress(): void {
+    const { currentTime, duration } = player.video;
+    const part = duration > 0 && Number.isFinite(duration) ? currentTime / duration : 0;
+    fill.style.transform = `scaleX(${Math.min(1, Math.max(0, part))})`;
+    progress.setAttribute('aria-valuenow', String(Math.round(part * 100)));
+    requestAnimationFrame(drawProgress);
+  }
+  requestAnimationFrame(drawProgress);
+
+  /** Seeks to where the pointer is along the bar. */
+  function seekTo(event: PointerEvent): void {
+    const { duration } = player.video;
+    if (!(duration > 0) || !Number.isFinite(duration)) return;
+    const box = progress.getBoundingClientRect();
+    const part = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
+    player.video.currentTime = part * duration;
+  }
+  progress.addEventListener('pointerdown', (event) => {
+    progress.setPointerCapture(event.pointerId);
+    seekTo(event);
+  });
+  progress.addEventListener('pointermove', (event) => {
+    if (progress.hasPointerCapture(event.pointerId)) seekTo(event);
+  });
+  // A press on the bar seeks. It must not also reach the feed, which pauses.
+  progress.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+  progress.addEventListener('keydown', (event) => {
+    const step = event.key === 'ArrowRight' ? 5 : event.key === 'ArrowLeft' ? -5 : 0;
+    if (step === 0) return;
+    event.preventDefault();
+    player.video.currentTime = Math.max(0, player.video.currentTime + step);
+  });
+
   /** Moves the player into the reel on screen and plays its item. */
   function show(index: number): void {
     const target = slides[index];
     if (target === undefined || index === playlist.index) return;
     clearInterval(preloadTimer);
     target.slide.prepend(player);
+    target.slide.append(progress);
     selectedAt = performance.now();
     // In the same task as the move: the element loads once, with the new source.
     playlist.select(index);

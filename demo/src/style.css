@@ -323,6 +323,11 @@ mattebox-player {
   border: 1px solid var(--rule);
 }
 
+/* The page's own display beats the player's rule for `hidden`, so the page says it too. */
+mattebox-player[hidden] {
+  display: none;
+}
+
 /* A tall frame would push the bar off the screen. Not in fullscreen, which
    the element reflects as an attribute on itself. */
 mattebox-player > video {
@@ -892,6 +897,8 @@ label[title] > span {
   z-index: 1;
   width: 100%;
   height: 100%;
+  /* The feed has the border: a second one inside it reads as a doubled edge. */
+  border: 0;
 }
 
 .reel mattebox-player:not([started]) {
@@ -914,7 +921,8 @@ label[title] > span {
   right: 0;
   bottom: 0;
   z-index: 2;
-  padding: 3rem 1rem 1rem;
+  /* The foot leaves the progress bar's line clear. */
+  padding: 3rem 1rem 1.25rem;
   color: #f3ede4;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
   pointer-events: none;
@@ -933,7 +941,47 @@ label[title] > span {
 .reel-meta .reel-hud {
   min-height: 1.5em;
   font: 12px / 1.5 var(--mono);
-  color: #9fd3ad;
+  color: #cfc8bd;
+}
+
+/* The reel's progress: a thin bar at its foot that never hides, over the
+   title's gradient. The box is taller than the line, so a finger can seek. */
+.reel-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  height: 1rem;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.reel-progress::before,
+.reel-progress-fill {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+}
+
+.reel-progress::before {
+  background: rgba(243, 237, 228, 0.3);
+}
+
+.reel-progress-fill {
+  background: #e0543c;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+.reel-progress:hover::before,
+.reel-progress:hover .reel-progress-fill,
+.reel-progress:focus-visible::before,
+.reel-progress:focus-visible .reel-progress-fill {
+  height: 6px;
 }
 
 /* The two medians the page compares. */
