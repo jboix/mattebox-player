@@ -96,9 +96,12 @@ markers.
 - Previous on a live item always goes to the previous item.
 - A fatal error plays the next item after 3 seconds, and fires `skip`.
 
-Near the end of an item, the engine preloads the next one: inside the
-closing-credits marker, or in the last 30 seconds. A native session has no
-engine and preloads nothing.
+Near the end of an item, the engine preloads the manifest of the next one:
+inside the closing-credits marker, or in the last 30 seconds. The engine
+keeps it for 30 seconds, so the playlist asks again every 25 seconds until
+the item ends. The segments are not preloaded. The player asks the handler
+that will play the next item, so a source the browser plays itself is not
+preloaded.
 
 The system's media keys, a lock screen and a TV remote go to next and
 previous through the Media Session API. The system shows the item's

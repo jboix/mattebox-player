@@ -4,8 +4,9 @@
  * WAV clips on a native session, so `ended` is the browser's own.
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
-import { nativeHandler } from '@mattebox/player-core';
+import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import { createPlaylist, playlistOf } from '@mattebox/player-playlist';
+import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import { afterEach, describe, expect, it } from 'vitest';
 import { once, silence } from './helpers.js';
 
@@ -181,5 +182,74 @@ describe('the playlist controls', () => {
     part('play').click();
     expect(playlistOf(player)?.index).toBe(1);
     await expect.poll(() => card.hidden).toBe(true);
+  });
+});
+
+describe('the preload of the next item', () => {
+  const MASTER = `#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-STREAM-INF:BANDWIDTH=300000,CODECS="avc1.42c015",RESOLUTION=480x270
+v1.m3u8
+`;
+  const MEDIA = `#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-TARGETDURATION:4
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-PLAYLIST-TYPE:VOD
+#EXT-X-MAP:URI="init.mp4"
+#EXTINF:4.0,
+seg1.m4s
+#EXT-X-ENDLIST
+`;
+  const HLS = 'application/vnd.apple.mpegurl';
+
+  it('reaches the engine, and the next item then starts without a second manifest request', async () => {
+    const fetched: string[] = [];
+    const player = new MatteboxPlayerElement({
+      handlers: [
+        matteboxHandler({
+          stages: [hlsCmaf()],
+          transport: {
+            fetchImpl: (url: string) => {
+              const path = new URL(url).pathname;
+              fetched.push(path);
+              const body = path.endsWith('master.m3u8')
+                ? MASTER
+                : path.endsWith('v1.m3u8')
+                  ? MEDIA
+                  : null;
+              return Promise.resolve(
+                body === null
+                  ? new Response(null, { status: 404 })
+                  : new Response(body, { status: 200, headers: { 'content-type': HLS } }),
+              );
+            },
+            retry: { maxAttempts: 1 },
+          },
+        }),
+      ],
+    });
+    player.setAttribute('muted', '');
+    document.body.append(player);
+    const playlist = createPlaylist(player, { skipOnError: false });
+    playlist.load([
+      { src: 'https://cdn.test/a/master.m3u8', type: HLS },
+      { src: 'https://cdn.test/b/master.m3u8', type: HLS },
+    ]);
+    await expect.poll(() => fetched).toContain('/a/v1.m3u8');
+    expect(fetched).not.toContain('/b/master.m3u8');
+
+    // The last seconds of the first item, without playing it.
+    Object.defineProperty(player.video, 'duration', { configurable: true, value: 4 });
+    player.video.dispatchEvent(new Event('timeupdate'));
+    await expect.poll(() => fetched).toContain('/b/master.m3u8');
+    // The engine keeps the bytes once it has read them.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    playlist.next();
+    await expect.poll(() => fetched).toContain('/b/v1.m3u8');
+    expect(player.player?.session?.source.url).toBe('https://cdn.test/b/master.m3u8');
+    expect(fetched.filter((path) => path === '/b/master.m3u8')).toHaveLength(1);
+    expect(fetched.filter((path) => path === '/a/master.m3u8')).toHaveLength(1);
   });
 });

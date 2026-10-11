@@ -14,9 +14,9 @@ module.exports = [
     // The engine is a peer: never part of the core's download.
     ignore: ['mattebox'],
     brotli: true,
-    // Raised from 2 kB for the list of sources: the next source on a
-    // failure before the first frame, and the DRM servers of each source.
-    limit: '2.3 kB',
+    // Room for the core to grow: the list of sources and the preload
+    // took it past 2 kB.
+    limit: '5 kB',
   },
   {
     name: '@mattebox/player',

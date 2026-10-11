@@ -107,6 +107,15 @@ export function playlistOf(player: HTMLElement): Playlist | null {
 
 const REPEATS: readonly RepeatMode[] = ['none', 'all', 'one'];
 
+/**
+ * How long a preload counts, in milliseconds. The engine keeps a preloaded
+ * manifest for 30 seconds, and closing credits or a pause last longer.
+ * Wanted: one preload per item. Had to: ask again before the engine drops
+ * it. The surface that would make it one call: a lifetime option on
+ * `engine.preload`.
+ */
+const PRELOAD_FRESH = 25_000;
+
 /** The player's attributes an item sets, by item field. Absent fields remove them. */
 const ATTRIBUTES: ReadonlyArray<readonly [keyof PlaylistItem, string]> = [
   ['type', 'type'],
@@ -157,8 +166,9 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
   let skipTimer = 0;
   /** The index whose end stays put, by `stay`; -1 for none. */
   let stayed = -1;
-  /** The index whose next item was preloaded, so it is asked once. */
+  /** The index whose next item was preloaded, and when, so it is asked once while that preload counts. */
   let preloaded = -1;
+  let preloadedAt = 0;
 
   const index = (): number => order.sequence[order.position] ?? -1;
 
@@ -247,21 +257,27 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
   };
 
   /**
-   * Near an item's end, the next one's manifest and first segments load
-   * ahead, so it starts at once: from its closing credits, or 30 seconds
-   * before its end. A native session has no engine to preload with.
+   * Near an item's end, the next one's manifest loads ahead, so its start
+   * saves that request: from its closing credits, or 30 seconds before its
+   * end. The core asks the handler that will play the next item, so an
+   * engine item is preloaded also while the browser plays this one itself.
    */
   const onTime = (): void => {
     const at = index();
     const next = api.upcoming;
-    if (preloaded === at || next === null || next === items[at]) return;
+    const now = Date.now();
+    if (next === null || next === items[at]) return;
+    if (preloaded === at && now - preloadedAt < PRELOAD_FRESH) return;
     const left = video.duration - video.currentTime;
     const credits = player.markers
       .within(video.currentTime)
       .some((marker) => marker.kind === 'closing-credits');
     if (!credits && !(left <= 30)) return;
     preloaded = at;
-    player.engine?.preload(next.src).catch(() => undefined);
+    preloadedAt = now;
+    player.player
+      ?.preload(next.type === undefined ? { url: next.src } : { url: next.src, type: next.type })
+      .catch(() => undefined);
   };
 
   const onSource = (): void => {

@@ -11,7 +11,14 @@ import { mattebox } from 'mattebox';
 import type { Preset, PresetOptions } from 'mattebox/presets/full';
 import type { DrmApi } from 'mattebox/stages/eme-core';
 import { Declined } from '../errors.js';
-import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
+import type {
+  CanHandle,
+  Handler,
+  HandlerEnvironment,
+  HandlerSession,
+  PreloadOptions,
+  Source,
+} from '../types.js';
 
 const NAME = 'mattebox';
 
@@ -162,5 +169,17 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
     });
   }
 
-  return { name: NAME, canHandle, handle };
+  /**
+   * The handler's own engine preloads, whatever session holds the video:
+   * the engine exists for every load, also while the browser plays a
+   * source itself. Only an attached engine fetches more than the manifest.
+   */
+  function preload(source: Source, preloadOptions: PreloadOptions = {}): Promise<void> {
+    return ensure().preload(source.url, {
+      ...preloadOptions,
+      ...(source.type === undefined ? {} : { mimeType: source.type }),
+    });
+  }
+
+  return { name: NAME, canHandle, handle, preload };
 }

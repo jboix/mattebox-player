@@ -21,6 +21,14 @@ export interface SourceDrm {
   readonly certificateUrl?: string;
 }
 
+/** How much of a source to fetch ahead of its load. */
+export interface PreloadOptions {
+  /** Media segments per track, with the playlists and init segments they need. 0, the default, is the manifest alone. */
+  readonly segments?: number;
+  /** Seconds the responses are kept for the load. 30 by default. */
+  readonly keepSeconds?: number;
+}
+
 /** What a handler sees when asked whether it can play a source. */
 export interface HandlerEnvironment {
   readonly video: HTMLMediaElement;
@@ -41,6 +49,11 @@ export interface Handler {
    */
   prefers?(source: Source, env: HandlerEnvironment): boolean;
   handle(source: Source, video: HTMLMediaElement): Promise<HandlerSession>;
+  /**
+   * Fetches the start of a source ahead of its load, while another source
+   * plays. A handler without it preloads nothing.
+   */
+  preload?(source: Source, options?: PreloadOptions): Promise<void>;
 }
 
 /** What a handler returns: its claim on the element. The chain runner adds the source. */
@@ -103,6 +116,13 @@ export interface Player {
    */
   load(source: Source | readonly Source[]): Promise<Session>;
   unload(): Promise<void>;
+  /**
+   * Fetches the start of a source ahead of its load. It asks the handler
+   * `load` would give the source to, whatever session plays now: of a list,
+   * the first source a handler takes. It resolves with nothing done when
+   * that handler has no `preload`, and never rejects.
+   */
+  preload(source: Source | readonly Source[], options?: PreloadOptions): Promise<void>;
   readonly session: Session | null;
   on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void;
 }

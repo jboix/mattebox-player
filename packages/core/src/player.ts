@@ -14,6 +14,7 @@
 import { Declined, fromEngineError, fromMediaError } from './errors.js';
 import { inferType } from './infer-type.js';
 import type {
+  Handler,
   HandlerEnvironment,
   HandlerSession,
   Player,
@@ -21,6 +22,7 @@ import type {
   PlayerEvent,
   PlayerEvents,
   PlayerOptions,
+  PreloadOptions,
   Session,
   Source,
 } from './types.js';
@@ -134,23 +136,33 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     if (session !== null) await session.dispose();
   }
 
+  function environment(): HandlerEnvironment {
+    return { video, mse: 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis };
+  }
+
+  /** The source with its type, from the page or from the extension. */
+  function resolve(given: Source): Source {
+    const type = given.type ?? inferType(given.url);
+    return type === undefined ? given : { ...given, type };
+  }
+
+  /** The handlers in the order `load` asks them. Each is asked only when its turn comes. */
+  function ordered(resolved: Source, env: HandlerEnvironment): Handler[] {
+    // A handler that prefers the source goes first. The rest keep the page's order.
+    const first = options.handlers.filter((handler) => handler.prefers?.(resolved, env) === true);
+    const rest = options.handlers.filter((handler) => !first.includes(handler));
+    return [...first, ...rest];
+  }
+
   /** Runs the chain for each source from `index`, until a handler takes one. */
   async function select(mine: number): Promise<Session> {
-    const env: HandlerEnvironment = {
-      video,
-      mse: 'MediaSource' in globalThis || 'ManagedMediaSource' in globalThis,
-    };
+    const env = environment();
     let url = '';
     for (; index < candidates.length; index += 1) {
-      const given = candidates[index] as Source;
-      const type = given.type ?? inferType(given.url);
-      const resolved: Source = type === undefined ? given : { ...given, type };
+      const resolved = resolve(candidates[index] as Source);
       url = resolved.url;
 
-      // A handler that prefers the source goes first. The rest keep the page's order.
-      const first = options.handlers.filter((handler) => handler.prefers?.(resolved, env) === true);
-      const rest = options.handlers.filter((handler) => !first.includes(handler));
-      for (const handler of [...first, ...rest]) {
+      for (const handler of ordered(resolved, env)) {
         if (handler.canHandle(resolved, env) === '') continue;
         let handled: HandlerSession;
         try {
@@ -202,6 +214,23 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     return started;
   }
 
+  async function preload(
+    source: Source | readonly Source[],
+    preloadOptions?: PreloadOptions,
+  ): Promise<void> {
+    const env = environment();
+    for (const given of Array.isArray(source)
+      ? (source as readonly Source[])
+      : [source as Source]) {
+      const resolved = resolve(given);
+      const handler = ordered(resolved, env).find((h) => h.canHandle(resolved, env) !== '');
+      if (handler === undefined) continue;
+      // The handler that would play it, or nothing: another one's bytes would go unread.
+      await handler.preload?.(resolved, preloadOptions)?.catch(() => undefined);
+      return;
+    }
+  }
+
   function unload(): Promise<void> {
     generation += 1;
     const started = queue.then(release, release).then(() => {
@@ -214,6 +243,7 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   return {
     load,
     unload,
+    preload,
     get session(): Session | null {
       return current;
     },

@@ -325,3 +325,70 @@ describe('the DRM of a source', () => {
     expect(own.eme).toBeDefined();
   });
 });
+
+describe('preload', () => {
+  /** A handler for one type that records what it was asked to preload. */
+  function preloader(type: string, fails = false) {
+    const asked: Array<[string, unknown]> = [];
+    const handler: Handler = {
+      name: type,
+      canHandle: (source) => (source.type === type ? 'probably' : ''),
+      handle: async () => ({ handler: type, engine: null, dispose: async () => undefined }),
+      preload: async (source, options) => {
+        asked.push([source.url, options]);
+        if (fails) throw new Error('no network');
+      },
+    };
+    return { handler, asked };
+  }
+
+  it('asks the handler that would play the source, with the options', async () => {
+    const hls = preloader(HLS.type as string);
+    const dash = preloader(DASH.type as string);
+    const player = createPlayer(fakeVideo().video, { handlers: [hls.handler, dash.handler] });
+
+    await player.preload({ url: DASH.url }, { segments: 2 });
+
+    expect(hls.asked).toEqual([]);
+    expect(dash.asked).toEqual([[DASH.url, { segments: 2 }]]);
+  });
+
+  it('preloads the first source of a list a handler takes', async () => {
+    const dash = preloader(DASH.type as string);
+    const player = createPlayer(fakeVideo().video, { handlers: [dash.handler] });
+
+    await player.preload([HLS, DASH, { ...DASH, url: 'https://cdn.example/b.mpd' }]);
+
+    expect(dash.asked.map(([url]) => url)).toEqual([DASH.url]);
+  });
+
+  it('does nothing for a handler without preload, and never rejects', async () => {
+    const plain = engines([HLS.type as string]);
+    const failing = preloader(DASH.type as string, true);
+    const player = createPlayer(fakeVideo().video, {
+      handlers: [plain.handler, failing.handler],
+    });
+
+    await expect(player.preload(HLS)).resolves.toBeUndefined();
+    await expect(player.preload(DASH)).resolves.toBeUndefined();
+    await expect(player.preload(MP4)).resolves.toBeUndefined();
+    expect(plain.handled).toEqual([]);
+  });
+
+  it('reaches the engine of the mattebox handler with the type and the options', async () => {
+    const asked: unknown[] = [];
+    const engine = {
+      accepts: () => true,
+      preload: async (url: string, options: unknown) => {
+        asked.push([url, options]);
+      },
+    };
+    const handler = matteboxHandler({ preset: (() => engine) as unknown as Preset });
+
+    await handler.preload?.(DASH, { segments: 1, keepSeconds: 60 });
+
+    expect(asked).toEqual([
+      [DASH.url, { segments: 1, keepSeconds: 60, mimeType: 'application/dash+xml' }],
+    ]);
+  });
+});

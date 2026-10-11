@@ -49,9 +49,9 @@ function fakePlayer() {
       within: (time: number) =>
         (markers[markers.length - 1] ?? []).filter((m) => m.start <= time && time < m.end),
     },
-    engine: {
-      preload(src: string) {
-        preloads.push(src);
+    player: {
+      preload(source: { readonly url: string }) {
+        preloads.push(source.url);
         return Promise.resolve();
       },
     },
@@ -240,6 +240,30 @@ describe('a playlist', () => {
     video.currentTime = 71;
     video.dispatchEvent(new Event('timeupdate'));
     expect(preloads).toEqual([ITEMS[1]?.src, ITEMS[2]?.src]);
+  });
+
+  it('preloads the next item again once the engine has dropped the first preload', () => {
+    vi.useFakeTimers();
+    try {
+      const { player, video, preloads } = fakePlayer();
+      const playlist = createPlaylist(player);
+      playlist.load([
+        item('one', { markers: [{ start: 10, end: 100, kind: 'closing-credits' }] }),
+        item('two'),
+      ]);
+      video.currentTime = 12;
+      video.dispatchEvent(new Event('timeupdate'));
+      vi.advanceTimersByTime(24_000);
+      video.currentTime = 36;
+      video.dispatchEvent(new Event('timeupdate'));
+      expect(preloads).toHaveLength(1);
+      vi.advanceTimersByTime(2_000);
+      video.currentTime = 38;
+      video.dispatchEvent(new Event('timeupdate'));
+      expect(preloads).toEqual([ITEMS[1]?.src, ITEMS[1]?.src]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shuffles the play order and keeps the list; off goes back to the list order', () => {
