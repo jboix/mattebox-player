@@ -18,6 +18,11 @@
   --mbx-pad: 0.5em;
   --mbx-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
+/* `hidden` hides the player: the host's own display would otherwise beat
+   the browser's rule for the attribute. */
+:host([hidden]) {
+  display: none;
+}
 /* The stage is a column as tall as the host, so the picture is centred
    in whatever height the page gives. The height comes from the
    page, or from the browser in fullscreen, and not from a display on the
