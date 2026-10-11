@@ -12,6 +12,8 @@
     "dashjs": "5.2.1",
     "media-chrome": "4.19.2",
     "hls-video-element": "1.5.11",
-    "dash-video-element": "0.3.2"
+    "dash-video-element": "0.3.2",
+    "bitmovin-player": "8.279.0",
+    "theoplayer": "11.13.0"
   }
 }

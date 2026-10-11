@@ -41,12 +41,14 @@ player elements.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">
-  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript only. Mattebox player with the engine's full preset is 74.9 KB, video.js 8 with VHS 199.3 KB, Shaka Player with its UI 322.5 KB, Media Chrome with hls.js and dash.js 448.7 KB, video.js 10 with hls.js and dash.js 463.3 KB, Vidstack with hls.js and dash.js 511.1 KB." src="docs/size-chart-light.svg">
+  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript and styles. Mattebox player with the engine's full preset is 109.4 KB, video.js 8 with VHS 211.6 KB, Shaka Player with its UI 329.9 KB, Media Chrome with hls.js and dash.js 449.3 KB, video.js 10 with hls.js and dash.js 474.1 KB, Vidstack with hls.js and dash.js 524.3 KB, Bitmovin Player 662.6 KB, THEOplayer 721.1 KB." src="docs/size-chart-light.svg">
 </picture>
 
-The chart bundles every stack from its npm packages in the same way,
-JavaScript only. `npm run size-chart` regenerates the chart, and
-`--verbose` lists what each row counts.
+The chart bundles every stack from its npm packages in the same way, and
+counts the stylesheets a page links for it. Bitmovin Player and THEOplayer
+are commercial: their rows are the full bundle each package ships, and both
+vendors also sell a smaller modular build. `npm run size-chart` regenerates
+the chart, and `--verbose` lists what each row counts.
 
 ## Quick start
 

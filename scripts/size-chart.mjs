@@ -2,8 +2,10 @@
 // Renders docs/size-chart-{dark,light}.svg: the player over the engine's full
 // preset against the other player stacks with the same reach (a UI, HLS and
 // DASH). Every stack is bundled the same way, from its npm packages by
-// rolldown, one entry per stack, then min+gzip. JavaScript only; a stack's
-// stylesheet is not counted. The Mattebox row is the workspace build; the
+// rolldown, one entry per stack, then min+gzip. A stack's stylesheets
+// count too, as its package ships them: a page cannot show the player
+// without them. Mattebox and Media Chrome keep their styles inside their
+// JavaScript, so their rows always held them. The Mattebox row is the workspace build; the
 // other stacks are pinned npm versions, installed at run time into
 // scripts/size-chart/, whose lockfile pins their dependencies too. Bump a
 // version here to move its bar; the lockfile follows on the next run.
@@ -31,7 +33,8 @@ const VERBOSE = process.argv.includes('--verbose');
  * does not count against the stack. `version` names the package whose
  * installed version the row shows; the Mattebox row is the working tree
  * and shows `main`. `detail` may be a function of a lookup of installed
- * versions.
+ * versions. `styles` names the stylesheets a page links for the stack,
+ * as paths under its node_modules.
  */
 const STACKS = [
   {
@@ -50,6 +53,7 @@ const STACKS = [
     version: 'video.js',
     install: { 'video.js': '8.24.0' },
     entry: "import 'video.js';",
+    styles: ['video.js/dist/video-js.min.css'],
   },
   {
     // Video.js 10 is custom elements over hls.js and dash.js: the video
@@ -72,6 +76,7 @@ const STACKS = [
     ].join('\n'),
     // One lazy chunk per locale; a page loads at most the browser's.
     skip: /[\\/]@videojs[\\/]core[\\/].*[\\/]i18n[\\/]locales[\\/]/,
+    styles: ['@videojs/html/dist/default/define/video/skin.css'],
   },
   {
     // The ui build carries the engine and the controls in one file. The
@@ -81,6 +86,7 @@ const STACKS = [
     version: 'shaka-player',
     install: { 'shaka-player': '5.2.10' },
     entry: "import 'shaka-player/dist/shaka-player.ui.js';",
+    styles: ['shaka-player/dist/controls.css'],
   },
   {
     // Vidstack loads hls.js and dash.js from a CDN at run time; a bundled
@@ -99,6 +105,10 @@ const STACKS = [
     ].join('\n'),
     // The providers an HLS or DASH page never loads.
     skip: /[\\/]vidstack[\\/].*[\\/]providers[\\/]vidstack-(youtube|vimeo|google-cast|audio)\.js$/,
+    styles: [
+      'vidstack/player/styles/default/theme.css',
+      'vidstack/player/styles/default/layouts/video.css',
+    ],
   },
   {
     // The controls, and the two elements that put hls.js and dash.js
@@ -116,6 +126,32 @@ const STACKS = [
       "import 'hls-video-element';",
       "import 'dash-video-element';",
     ].join('\n'),
+  },
+  {
+    // A commercial player. Its package is one prebuilt file with every
+    // feature, and its interface is a second file and a stylesheet the
+    // player loads beside it. The vendor also sells a modular build; this
+    // row is the one a page gets from the package as published.
+    label: 'bitmovin player',
+    detail: 'the full bundle, with its ui',
+    version: 'bitmovin-player',
+    install: { 'bitmovin-player': '8.279.0' },
+    entry: [
+      "import 'bitmovin-player/bitmovinplayer.js';",
+      "import 'bitmovin-player/bitmovinplayer-ui.js';",
+    ].join('\n'),
+    styles: ['bitmovin-player/bitmovinplayer-ui.css'],
+  },
+  {
+    // A commercial player, now Dolby's. `THEOplayer.js` is the prebuilt
+    // file with the interface inside. The transmuxer it fetches at run
+    // time for MPEG-TS is not counted.
+    label: 'theoplayer',
+    detail: 'the full bundle, with its ui',
+    version: 'theoplayer',
+    install: { theoplayer: '11.13.0' },
+    entry: "import 'theoplayer/THEOplayer.js';",
+    styles: ['theoplayer/ui.css'],
   },
 ];
 
@@ -198,6 +234,14 @@ async function stackBytes(stack) {
         `  ${fmt(size).padStart(10)}  ${name}  (${from.replace(STACKS_DIR, '.').replace(ROOT, '.')})`,
       );
     }
+  }
+  // The stylesheets, gzipped as the package ships them.
+  for (const sheet of stack.styles ?? []) {
+    const size = gzipSync(readFileSync(join(STACKS_DIR, 'node_modules', sheet)), {
+      level: 9,
+    }).length;
+    bytes += size;
+    if (VERBOSE) console.log(`  ${fmt(size).padStart(10)}  ${sheet}`);
   }
   return bytes;
 }
@@ -298,7 +342,7 @@ const chart = {
   rows: [all[0], ...all.slice(1).sort((a, b) => a.bytes - b.bytes)],
   title: 'Video player size, HLS and DASH',
   subtitle:
-    'min+gzip · KB · each stack bundled from npm the same way, JavaScript only (lower is better)',
+    'min+gzip · KB · each stack bundled from npm the same way, with its styles (lower is better)',
   ariaLabel: 'Bundle size of video players with HLS and DASH playback, min+gzip, lower is better',
   tick: 100,
 };
