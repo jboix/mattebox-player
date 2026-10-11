@@ -64,6 +64,13 @@ export interface MenuOptions {
   readonly host: HTMLElement;
   /** The picture, in viewport pixels, which the popup never leaves. */
   readonly picture: () => DOMRect | null;
+  /**
+   * The player, whose whole box a compact player's sheet fills from the
+   * foot. The box can be taller than the picture: a video letterboxed in
+   * its player leaves bars the controls sit over. The menu watches its
+   * size while it is open.
+   */
+  readonly frame: () => Element | null;
   /** The name of the Back item, from the page it leaves: "Back from {page}". */
   readonly back: (page: string) => string;
 }
@@ -122,6 +129,27 @@ export function menu(options: MenuOptions): Menu {
   });
 
   let open = false;
+  /**
+   * While the menu is open it follows its player: a change of tier draws
+   * the page again, as a popup or as a sheet, and a change of size places
+   * it again. A page that resizes with a menu open sees it keep up.
+   */
+  const tiers =
+    typeof MutationObserver === 'undefined'
+      ? null
+      : new MutationObserver(() => {
+          if (!open) return;
+          // The rows are drawn again, so the focus goes back to one of them.
+          const held = popup.contains(focused());
+          render();
+          if (held) (checked() ?? items()[0])?.focus();
+        });
+  const sizes =
+    typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(() => {
+          if (open) fit();
+        });
   /** Whether the page drawn last was drawn for a compact player. */
   let drawnCompact = false;
   let name = '';
@@ -153,17 +181,20 @@ export function menu(options: MenuOptions): Menu {
    * left of its right edge.
    */
   function fit(): void {
-    const picture = options.picture();
     const compact = host.getAttribute('layout') === 'compact';
+    const picture = compact
+      ? (options.frame()?.getBoundingClientRect() ?? null)
+      : options.picture();
     backdrop.hidden = !(open && compact && picture !== null);
     for (const node of [popup, backdrop]) {
       node.style.left = node.style.bottom = node.style.width = '';
     }
     backdrop.style.height = '';
     if (picture === null) return;
-    // A compact player's menu is a sheet from the foot of the picture, as wide
-    // as the picture and never taller. It stays inside the player: a page
-    // around a small player keeps its own space. The dim covers the picture.
+    // A compact player's menu is a sheet from the foot of the player, as wide
+    // as the player and never taller, over the controls. It stays inside the
+    // player: a page around a small player keeps its own space. The dim
+    // covers the rest of the player.
     if (compact) {
       const box = host.getBoundingClientRect();
       for (const node of [popup, backdrop]) {
@@ -307,6 +338,8 @@ export function menu(options: MenuOptions): Menu {
   function close(): void {
     if (!open) return;
     open = false;
+    tiers?.disconnect();
+    sizes?.disconnect();
     popup.hidden = true;
     backdrop.hidden = true;
     button.setAttribute('aria-expanded', 'false');
@@ -327,6 +360,9 @@ export function menu(options: MenuOptions): Menu {
     button.setAttribute('aria-expanded', 'true');
     host.setAttribute('open', '');
     document.addEventListener('pointerdown', outside, true);
+    tiers?.observe(host, { attributes: true, attributeFilter: ['layout'] });
+    const frame = options.frame();
+    if (frame !== null) sizes?.observe(frame);
     fit();
     (checked() ?? items()[0])?.focus();
   }

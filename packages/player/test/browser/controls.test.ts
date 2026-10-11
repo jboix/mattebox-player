@@ -2430,22 +2430,27 @@ describe('a long menu', () => {
 });
 
 describe('a menu on a compact player', () => {
-  it('is a sheet at the foot of the picture, inside the player', async () => {
+  it('is a sheet at the foot of the player, over the controls', async () => {
     const player = await ready(10);
+    // Taller than its picture, so the bar's foot is under the video's.
+    player.style.height = '520px';
     player.setAttribute('layout', 'compact');
     const menu = control(player, 'mbx-speed-menu');
     await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
     inner(menu).click();
     const list = popup(menu);
     await expect.poll(() => list.hidden).toBe(false);
-    const picture = player.video.getBoundingClientRect();
+    const picture = player.getBoundingClientRect();
     const sheet = list.getBoundingClientRect();
     expect(getComputedStyle(list).position).toBe('absolute');
+    // The sheet covers the bar down to its last row.
+    const foot = bar(player)?.getBoundingClientRect().bottom ?? -1;
+    expect(Math.round(sheet.bottom)).toBe(Math.round(foot));
     expect(Math.round(sheet.left)).toBe(Math.round(picture.left));
     expect(Math.round(sheet.width)).toBe(Math.round(picture.width));
     expect(Math.round(sheet.bottom)).toBe(Math.round(picture.bottom));
     expect(sheet.top).toBeGreaterThanOrEqual(picture.top);
-    // The backdrop dims the picture and nothing else, and a press on it closes the menu.
+    // The backdrop dims the player and nothing else, and a press on it closes the menu.
     const backdrop = menu.shadowRoot?.querySelector<HTMLElement>('[part~="backdrop"]');
     expect(backdrop?.hidden).toBe(false);
     const dim = backdrop?.getBoundingClientRect();
@@ -2455,6 +2460,65 @@ describe('a menu on a compact player', () => {
     backdrop?.click();
     expect(list.hidden).toBe(true);
     expect(backdrop?.hidden).toBe(true);
+  });
+
+  it('draws its title, and the way back on a compact player, in the same small capitals', async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    const look = (node: Element | null | undefined) => {
+      const style = getComputedStyle(node as Element);
+      return [style.textTransform, style.fontWeight, style.fontSize, style.color];
+    };
+    const title = look(menu.shadowRoot?.querySelector('[part~="title"]'));
+    expect(title[0]).toBe('uppercase');
+    expect(title[1]).toBe('600');
+    // Smaller than a row, and in the muted colour, not the text's.
+    expect(Number.parseFloat(title[2] as string)).toBeLessThan(
+      Number.parseFloat(getComputedStyle(items(menu)[0] as Element).fontSize),
+    );
+    expect(title[3]).not.toBe(getComputedStyle(items(menu)[0] as Element).color);
+    inner(menu).click();
+
+    player.setAttribute('layout', 'compact');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    const back = look(items(menu)[0]);
+    expect(back.slice(0, 2)).toEqual(['uppercase', '600']);
+    expect(back[3]).toBe(title[3]);
+  });
+
+  it('follows its player while open: a sheet when it turns compact, and placed again on a resize', async () => {
+    const player = await ready(10);
+    const menu = control(player, 'mbx-speed-menu');
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(menu.shadowRoot?.querySelector('[part~="title"]')).not.toBeNull();
+
+    // The tier changes under the open menu: it becomes the sheet, with the way back.
+    player.setAttribute('layout', 'compact');
+    await expect
+      .poll(() => items(menu)[0]?.getAttribute('part')?.split(' ').includes('back-item'))
+      .toBe(true);
+    expect(list.hidden).toBe(false);
+    const wide = () => Math.round(list.getBoundingClientRect().width);
+    expect(wide()).toBe(Math.round(player.getBoundingClientRect().width));
+
+    // The player narrows, and the sheet with it.
+    player.style.width = '360px';
+    await expect.poll(wide).toBe(360);
+    expect(Math.round(list.getBoundingClientRect().bottom)).toBe(
+      Math.round(player.getBoundingClientRect().bottom),
+    );
+
+    // Back to a popup, with its title, when the player is regular again.
+    player.style.width = '';
+    player.setAttribute('layout', 'regular');
+    await expect.poll(() => menu.shadowRoot?.querySelector('[part~="title"]') !== null).toBe(true);
+    expect(list.style.width).toBe('');
   });
 
   it('starts with a way back, which closes the sheet', async () => {

@@ -150,6 +150,22 @@
   transform: rotate(45deg);
   opacity: 0.7;
 }
+/* The menu's name over its first page, and the Back item over the others:
+   one line in small capitals, ruled off from the rows. After the item's
+   own rule, which the Back item also takes, so these win over it. */
+[part~="title"],
+[part~="back-item"] {
+  font-size: 0.8125em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mbx-muted);
+}
+[part~="title"] {
+  margin: -0.5275em -0.5275em 0.5275em;
+  padding: 0.9231em 1.4066em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
 [part~="back-item"] {
   position: relative;
   padding: 0.9231em 1.2308em 0.9231em 2.4615em;

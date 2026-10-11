@@ -23,6 +23,7 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
     this.menu = menu({
       host: this,
       picture: () => this.player?.video.getBoundingClientRect() ?? null,
+      frame: () => this.player,
       back: (page) => fill(this.getAttribute('label-back') ?? 'Back from {page}', { page }),
     });
     this.slots = iconSlots(states, glyphs);
