@@ -14,7 +14,7 @@
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: rgba(16, 17, 20, 0.95);
+  background: rgba(28, 28, 32, 0.95);
   border-radius: var(--mbx-radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   font-size: 0.875em;
@@ -168,7 +168,7 @@
   max-height: 70vh;
   padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
   border-radius: 0.75em 0.75em 0 0;
-  background: rgb(16, 17, 20);
+  background: rgb(28, 28, 32);
   box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.5);
   font-size: 1em;
 }

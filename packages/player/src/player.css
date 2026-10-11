@@ -7,10 +7,10 @@
      "mattebox-player { font-size: 20px }" beats a :host rule, and scales
      the whole interface with it. */
   font-size: 16px;
-  --mbx-surface: #101114;
-  --mbx-text: #f2f3f5;
-  --mbx-muted: #9aa0a6;
-  --mbx-accent: #5b8cff;
+  --mbx-surface: #1c1c20;
+  --mbx-text: #f3ede4;
+  --mbx-muted: #aaa49a;
+  --mbx-accent: #e0543c;
   --mbx-error: #ffb4ab;
   --mbx-live: #ff4d4d;
   --mbx-radius: 0.25em;

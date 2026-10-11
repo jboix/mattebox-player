@@ -58,8 +58,8 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: var(--mbx-text, #f2f3f5);
-  background: rgba(16, 17, 20, 0.95);
+  color: var(--mbx-text, #f3ede4);
+  background: rgba(28, 28, 32, 0.95);
   border-radius: var(--mbx-radius, 4px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
   font: 400 0.75em / 1.5 var(--mbx-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
@@ -90,7 +90,7 @@
 [part~="tab"],
 [part~="chart-tab"] {
   font: inherit;
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
   background: transparent;
   border: 0;
   border-radius: var(--mbx-radius, 4px);
@@ -99,7 +99,7 @@
 }
 [part~="tab"][aria-selected="true"],
 [part~="chart-tab"][aria-selected="true"] {
-  color: var(--mbx-text, #f2f3f5);
+  color: var(--mbx-text, #f3ede4);
   background: rgba(255, 255, 255, 0.12);
 }
 [part~="copy"],
@@ -130,7 +130,7 @@
 [part~="copy"]:focus,
 [part~="close"]:focus,
 [part~="window"]:focus {
-  outline: 2px solid var(--mbx-accent, #5b8cff);
+  outline: 2px solid var(--mbx-accent, #e0543c);
   outline-offset: -2px;
 }
 [part~="tab"]:focus:not(:focus-visible),
@@ -156,7 +156,7 @@
   margin: 0;
 }
 [part~="key"] {
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
   white-space: nowrap;
 }
 [part~="value"] {
@@ -169,14 +169,14 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
 }
 [part~="heading"]:first-child {
   margin-top: 0;
 }
 [part~="note"] {
   margin: 0;
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
 }
 [part~="chart-tabs"] {
   display: flex;
@@ -196,7 +196,7 @@
   display: flex;
   flex-wrap: wrap;
   margin: 0.25em -0.5em -1px;
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
 }
 [part~="legend"] > * {
   margin: 1px 0.5em;
@@ -225,7 +225,7 @@
   font-weight: 400;
 }
 [part~="label"] {
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
 }
 [part~="ok"] {
   color: var(--mbx-chart-2);
@@ -234,7 +234,7 @@
   color: var(--mbx-chart-4);
 }
 [part~="na"] {
-  color: var(--mbx-muted, #9aa0a6);
+  color: var(--mbx-muted, #aaa49a);
 }
 [part~="ok"],
 [part~="bad"],

@@ -22,7 +22,7 @@
   align-items: flex-start;
   padding: 0.5714em;
   border-radius: var(--mbx-radius);
-  background: rgba(16, 17, 20, 0.92);
+  background: rgba(28, 28, 32, 0.92);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 [part~="image"] {
@@ -74,7 +74,7 @@
   border: 0;
   border-radius: var(--mbx-radius);
   background: var(--mbx-accent);
-  color: #fff;
+  color: #1c1c20;
   font: 600 0.9286em / 1 var(--mbx-font);
   cursor: pointer;
 }

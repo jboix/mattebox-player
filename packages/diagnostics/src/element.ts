@@ -444,9 +444,9 @@ export class MbxDiagnostics extends HTMLElement {
     const token = (name: string, fallback: string): string =>
       computed.getPropertyValue(name).trim() || fallback;
     return {
-      ink: token('--mbx-text', '#f2f3f5'),
-      muted: token('--mbx-muted', '#9aa0a6'),
-      accent: token('--mbx-accent', '#5b8cff'),
+      ink: token('--mbx-text', '#f3ede4'),
+      muted: token('--mbx-muted', '#aaa49a'),
+      accent: token('--mbx-accent', '#e0543c'),
       warn: token('--mbx-chart-3', '#d9a83f'),
       series: [1, 2, 3, 4, 5].map((i) => token(`--mbx-chart-${i}`, '#888')),
     };
