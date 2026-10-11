@@ -173,6 +173,10 @@ import abr from 'mattebox/stages/abr';
 MatteboxPlayerElement.define({ stages: [hlsCmaf(), abr()] });
 ```
 
+`define()` also reaches a player that is already in the page's markup, as
+long as it has not loaded a source yet. A player keeps the stages of its
+first load.
+
 `config` tunes the kernel in the same way. It works with a preset from the
 attribute and with a stage list. `traceCapacity` makes the engine keep its
 trace for `engine.error`, and `bufferGoalSeconds` sets the buffer goal.

@@ -516,6 +516,40 @@ describe('the config option', () => {
   });
 });
 
+describe('the options of define()', () => {
+  afterEach(() => {
+    MatteboxPlayerElement.define({});
+  });
+
+  it('reach a player that exists before the call', async () => {
+    // As on a page with the player in its markup: the import registers the
+    // element and the parser's player is constructed, then the page calls
+    // define() with its stages.
+    const player = document.createElement('mattebox-player') as MatteboxPlayerElement;
+    player.setAttribute('muted', '');
+    player.setAttribute('src', new URL('./fixtures/hls/master.m3u8', import.meta.url).href);
+    document.body.append(player);
+    MatteboxPlayerElement.define({ stages: [hlsCmaf()], config: { bufferGoalSeconds: 45 } });
+
+    await expect.poll(() => player.engine, { timeout: 10_000 }).not.toBeNull();
+    expect(player.engine?.stats.snapshot().scheduling.bufferGoal).toBe(45);
+  });
+
+  it('do not replace the options a player was constructed with', async () => {
+    const player = new MatteboxPlayerElement({
+      stages: [hlsCmaf()],
+      config: { bufferGoalSeconds: 45 },
+    });
+    player.setAttribute('muted', '');
+    player.setAttribute('src', new URL('./fixtures/hls/master.m3u8', import.meta.url).href);
+    document.body.append(player);
+    MatteboxPlayerElement.define({ stages: [hlsCmaf()], config: { bufferGoalSeconds: 20 } });
+
+    await expect.poll(() => player.engine, { timeout: 10_000 }).not.toBeNull();
+    expect(player.engine?.stats.snapshot().scheduling.bufferGoal).toBe(45);
+  });
+});
+
 describe('native HLS on Apple WebKit', () => {
   const HLS = new URL('./fixtures/hls/master.m3u8', import.meta.url).href;
   const DASH = new URL('./fixtures/dash/manifest.mpd', import.meta.url).href;

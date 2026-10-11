@@ -210,7 +210,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private list: readonly Source[] | null;
   /** The sources of the last run, as text: what tells a new `<source>` child from the ones already tried. */
   declare private tried: string;
-  declare private readonly options: MatteboxPlayerOptions;
+  /** The options this element was constructed with, or null for the ones `define()` recorded. */
+  declare private readonly own: MatteboxPlayerOptions | null;
   declare private core: Player | null;
   declare private current: Session | null;
   declare private failure: PlayerError | null;
@@ -228,7 +229,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   constructor(options?: MatteboxPlayerOptions) {
     super();
-    this.options = options ?? defaults;
+    this.own = options ?? null;
     this.focusable = false;
     this.track = null;
     this.given = null;
@@ -616,6 +617,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     );
     this.core = core;
     return core;
+  }
+
+  /**
+   * Read at each use, not once in the constructor. Importing the package
+   * registers the element, and the parser's elements are constructed then,
+   * before the page's own `define()` call can run.
+   */
+  private get options(): MatteboxPlayerOptions {
+    return this.own ?? defaults;
   }
 
   private async chain(): Promise<readonly Handler[]> {
