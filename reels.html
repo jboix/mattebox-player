@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mattebox reels demo</title>
+  <link rel="icon" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+  />
+  <script>
+    // Before the first paint, so the page never flashes the other theme.
+    try {
+      const theme = localStorage.getItem('mattebox.demo.theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+  <script type="module" crossorigin src="/mattebox-player/assets/reels-BdaYKQwd.js"></script>
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/defineProperty-BbfpZ9Tg.js">
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/es2015-DgX1Vga-.js">
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/theme-jRLO7jDT.js">
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/srgssr-DFW0BIpV.js">
+  <link rel="modulepreload" crossorigin href="/mattebox-player/assets/src-D9LpXzHZ.js">
+  <link rel="stylesheet" crossorigin href="/mattebox-player/assets/theme-CX9jBavI.css">
+</head>
+<body>
+  <header class="masthead">
+    <img class="logo" alt="">
+    <h1>Mattebox reels</h1>
+    <a class="page-link" href="./">The element</a>
+    <a class="page-link" href="./playlist.html">Playlist</a>
+    <button type="button" id="theme-toggle" class="theme-toggle"></button>
+  </header>
+
+  <main id="app" class="rig reels-rig">
+    <section class="reels-stage" aria-label="Feed">
+      <div id="feed" class="feed"></div>
+      <!-- One player for the whole feed. The page moves it into the reel on screen. -->
+      <mattebox-player id="player" controls="none" autoplay muted hidden></mattebox-player>
+    </section>
+
+    <aside class="flag flag-right" aria-labelledby="options-title">
+      <div class="flag-head">
+        <h2 id="options-title">The feed</h2>
+      </div>
+      <p class="hint">
+        Reels from RTS, one player and one playlist. Scroll to a reel and the playlist plays
+        it. The page measures the time from the scroll to the first <code>playing</code> event.
+      </p>
+
+      <fieldset class="group">
+        <legend>Options</legend>
+        <div class="checks">
+          <label class="check" title="Asks the engine for the next reel's manifest once this reel plays, and again every 25 seconds. Turn it off to compare."><input type="checkbox" id="preload" checked /><span>Preload the next reel</span></label>
+          <label class="check" title="Reels start muted, as browsers require for autoplay."><input type="checkbox" id="sound" /><span>Sound</span></label>
+        </div>
+        <label class="field" title="How much of the next reel the engine fetches ahead. 0 is its manifest alone. From 1, the engine also fetches the playlists, the init segments and that many media segments per track.">
+          <span>Segments to preload</span>
+          <select id="segments">
+            <option value="0">0, the manifest alone</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Start time</legend>
+        <dl class="tally">
+          <div><dt>Manifest preloaded</dt><dd id="median-preloaded">no reel yet</dd></div>
+          <div><dt>Manifest from the network</dt><dd id="median-network">no reel yet</dd></div>
+        </dl>
+        <button type="button" id="reset">Reset</button>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Reels played</legend>
+        <ol id="log" class="log" aria-live="polite"></ol>
+      </fieldset>
+    </aside>
+  </main>
+</body>
+</html>

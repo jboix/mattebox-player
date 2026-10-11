@@ -1,0 +1,1 @@
+import{t as e}from"./define-eTegjU7W.js";var t=e(`kernel`,()=>[]);export{t as default};
