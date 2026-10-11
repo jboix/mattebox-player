@@ -229,10 +229,10 @@ it('the theme toggle switches rooms and remembers the choice', async () => {
   const html = document.documentElement;
   // Headless browsers report a light system, so the button offers the dark room.
   expect(html.hasAttribute('data-theme')).toBe(false);
-  expect(first.$('#theme-toggle').textContent).toMatch(/Dark/);
+  expect(first.$('#theme-toggle').getAttribute('aria-label')).toMatch(/Switch to dark/);
   await userEvent.click(first.$('#theme-toggle'));
   expect(html.getAttribute('data-theme')).toBe('dark');
-  expect(first.$('#theme-toggle').textContent).toMatch(/Light/);
+  expect(first.$('#theme-toggle').getAttribute('aria-label')).toMatch(/Switch to light/);
   const again = await first.remount();
   expect(html.getAttribute('data-theme')).toBe('dark');
   await userEvent.click(again.$('#theme-toggle'));
