@@ -16,7 +16,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -63,6 +63,7 @@ jobs:
       - name: Install browsers
         uses: ./.github/actions/playwright-browsers
       - name: Browser tests
+        timeout-minutes: 5
         run: npm run test:browser
 
   # The demo page in three real browsers, over its sources. Its own job so the
