@@ -15,8 +15,8 @@ it the size of the engine.
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8"></mattebox-player>
 
-<script src="https://cdn.jsdelivr.net/npm/mattebox@0.2.1/dist/cdn/mattebox.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mattebox@0.14.0/dist/cdn/mattebox.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.9.1/dist/cdn/mattebox-player.min.js" defer></script>
 ```
 
 Deferred scripts run in document order, so the player finds the engine.
@@ -39,13 +39,13 @@ A pinned URL can have a subresource integrity hash. A page with a content
 security policy needs one. Compute the hash from the published file.
 
 ```sh
-curl -s https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js \
+curl -s https://cdn.jsdelivr.net/npm/@mattebox/player@0.9.1/dist/cdn/mattebox-player.min.js \
   | openssl dgst -sha384 -binary | openssl base64 -A
 ```
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js"
+  src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.9.1/dist/cdn/mattebox-player.min.js"
   integrity="sha384-<hash>"
   crossorigin="anonymous"
   defer
@@ -67,8 +67,8 @@ A FairPlay stream needs the application certificate. Create the element from
 JavaScript and pass the key system:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/mattebox@0.11.0/dist/cdn/mattebox.hls-drm.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.1.0/dist/cdn/mattebox-player.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/mattebox@0.14.0/dist/cdn/mattebox.hls-drm.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mattebox/player@0.9.1/dist/cdn/mattebox-player.min.js" defer></script>
 <script type="module">
   const player = new matteboxPlayer.MatteboxPlayerElement({
     drm: {
