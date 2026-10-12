@@ -1,0 +1,57 @@
+[
+  {
+    "chapter": 1,
+    "start-time": 0.0,
+    "duration": 120.0,
+    "titles": [
+      {
+        "language": "en",
+        "title": "Opening"
+      }
+    ]
+  },
+  {
+    "chapter": 2,
+    "start-time": 120.0,
+    "duration": 120.0,
+    "titles": [
+      {
+        "language": "en",
+        "title": "The first stretch"
+      }
+    ]
+  },
+  {
+    "chapter": 3,
+    "start-time": 240.0,
+    "duration": 120.0,
+    "titles": [
+      {
+        "language": "en",
+        "title": "Halfway there"
+      }
+    ]
+  },
+  {
+    "chapter": 4,
+    "start-time": 360.0,
+    "duration": 120.0,
+    "titles": [
+      {
+        "language": "en",
+        "title": "The long run"
+      }
+    ]
+  },
+  {
+    "chapter": 5,
+    "start-time": 480.0,
+    "duration": 120.0,
+    "titles": [
+      {
+        "language": "en",
+        "title": "The final minutes"
+      }
+    ]
+  }
+]
