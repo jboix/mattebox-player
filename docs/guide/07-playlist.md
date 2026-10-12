@@ -320,5 +320,5 @@ logs every skipped item.
 </script>
 ```
 
-The demo's [playlist page](https://jboix.github.io/mattebox-player/playlist.html)
+The demo's [playlist page](https://demo.mattebox.ch/playlist.html)
 plays ready-made lists this way, and shows its markup.

@@ -104,7 +104,7 @@ The [guide](docs/guide/README.md) explains the rest, starting with
 
 - [Guide](docs/guide/README.md): how to use the four packages, one chapter per topic.
 - [Architecture](docs/architecture.md): the packages, the rules between them, and the handler chain.
-- [Demo](https://jboix.github.io/mattebox-player/): every kind of source, with the handler that played it.
+- [Demo](https://demo.mattebox.ch/): every kind of source, with the handler that played it.
 
 ## Contributing
 

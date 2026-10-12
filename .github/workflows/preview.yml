@@ -34,10 +34,11 @@ jobs:
         run: npm ci
       - name: Build demo
         if: github.event.action != 'closed'
-        run: npm run demo:build -- --base=/${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}/
+        run: npm run demo:build -- --base=/pr-preview/pr-${{ github.event.number }}/
       - name: Deploy preview
         uses: rossjrw/pr-preview-action@ffa7509e91a3ec8dfc2e5536c4d5c1acdf7a6de9 # v1
         with:
           source-dir: demo/dist
           preview-branch: gh-pages
+          pages-base-url: demo.mattebox.ch
           umbrella-dir: pr-preview
