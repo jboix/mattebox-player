@@ -38,17 +38,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**'],
-      // v8 cannot instrument Firefox or WebKit; coverage measures the node tier.
-      exclude: [
-        'packages/player/src/**',
-        'packages/diagnostics/src/**',
-        'packages/cast/src/**',
-        'packages/spatial-nav/src/**',
-        'packages/playlist/src/**',
-        'packages/core/src/index.ts',
-        'packages/core/src/types.ts',
-      ],
-      // json-summary and json feed the PR coverage comment. No thresholds.
+      // `test:coverage` merges the node tier and the Chromium browser tier,
+      // which covers the element and the UI. v8 instruments Chromium only.
+      exclude: ['packages/core/src/index.ts', 'packages/core/src/types.ts'],
+      // The measured figures on 2026-10-16 minus two points. Raise them
+      // when coverage rises; never lower them to pass.
+      thresholds: { statements: 89, branches: 76, functions: 88, lines: 92 },
+      // json-summary and json feed the PR coverage comment.
       reporter: ['text', 'json-summary', 'json'],
     },
     projects: [

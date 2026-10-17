@@ -104,6 +104,7 @@ The [guide](docs/guide/README.md) explains the rest, starting with
 
 - [Guide](docs/guide/README.md): how to use the four packages, one chapter per topic.
 - [Architecture](docs/architecture.md): the packages, the rules between them, and the handler chain.
+- [Stability](docs/stability.md): what you can rely on before 1.0, and what 1.0 promises.
 - [Demo](https://demo.mattebox.ch/): every kind of source, with the handler that played it.
 
 ## Contributing
@@ -112,6 +113,9 @@ Read the [contributing guide](docs/CONTRIBUTING.md) before opening a pull
 request. The [Code of Conduct](docs/CODE_OF_CONDUCT.md) applies to everyone
 who takes part. Report a vulnerability as [SECURITY.md](docs/SECURITY.md)
 describes.
+
+The node and Chromium test tiers cover 94% of the lines in the packages
+(2026-10-16). CI fails below 92%.
 
 ## License
 
