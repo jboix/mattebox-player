@@ -9,7 +9,7 @@
  * installed once for the file and its state reset between tests.
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
-import type { CastLoadRequest } from '@mattebox/player-cast';
+import type { CastLoadRequest, UnauthorizedDetail } from '@mattebox/player-cast';
 import '@mattebox/player-cast';
 import type { Handler, HandlerSession } from '@mattebox/player-core';
 import { nativeHandler } from '@mattebox/player-core';
@@ -26,6 +26,13 @@ interface FakeSession {
   getCastDevice(): { friendlyName: string };
   getMediaSession(): { media: { contentId: string | undefined } } | null;
   loadMedia(request: CastLoadRequest): Promise<void>;
+  /** The receiver's messages to this sender, by namespace. */
+  readonly listeners: Map<string, Set<(namespace: string, message: string) => void>>;
+  /** What the sender sent the receiver. */
+  readonly sent: Array<{ namespace: string; message: unknown }>;
+  addMessageListener(namespace: string, fn: (namespace: string, message: string) => void): void;
+  removeMessageListener(namespace: string, fn: (namespace: string, message: string) => void): void;
+  sendMessage(namespace: string, message: unknown): Promise<void>;
 }
 
 interface FakeRemote {
@@ -182,6 +189,18 @@ function startSession(name = 'Living room'): FakeSession {
     loadMedia: async (request) => {
       loads.push(request);
       session.contentId = request.media.contentId;
+    },
+    listeners: new Map(),
+    sent: [],
+    addMessageListener(namespace, fn) {
+      const set = session.listeners.get(namespace) ?? new Set();
+      session.listeners.set(namespace, set.add(fn));
+    },
+    removeMessageListener(namespace, fn) {
+      session.listeners.get(namespace)?.delete(fn);
+    },
+    sendMessage: async (namespace, message) => {
+      session.sent.push({ namespace, message });
     },
   };
   ctx.session = session;
@@ -429,6 +448,88 @@ describe('<mbx-cast-button>', () => {
     startSession();
     inner.click();
     expect(ctx.ended).toBe(1);
+  });
+});
+
+describe('DRM on the receiver', () => {
+  const NAMESPACE = 'urn:x-cast:ch.mattebox.license';
+  const eme = typeof navigator.requestMediaKeySystemAccess === 'function';
+
+  /** The receiver says on the license namespace. */
+  function receiverSays(session: FakeSession, message: unknown): void {
+    for (const fn of session.listeners.get(NAMESPACE) ?? []) fn(NAMESPACE, JSON.stringify(message));
+  }
+
+  it.skipIf(!eme)("puts the source's DRM servers into customData.mattebox", async () => {
+    const { player, inner } = await mount([nativeHandler()], null);
+    const loaded = once(player, 'sourcechange');
+    player.sources = [
+      {
+        url: silence(2),
+        type: 'audio/wav',
+        drm: {
+          licenseUrls: { 'com.widevine.alpha': 'https://license.example/wv?sig=abc' },
+          certificateUrl: 'https://license.example/cert',
+        },
+      },
+    ];
+    await loaded;
+    devices(true);
+    inner.click();
+    const session = startSession();
+    expect(session.loads[0]?.customData).toEqual({
+      mattebox: {
+        licenseUrls: { 'com.widevine.alpha': 'https://license.example/wv?sig=abc' },
+        certificateUrl: 'https://license.example/cert',
+      },
+    });
+  });
+
+  it('sends no customData for a source without DRM', async () => {
+    const { inner } = await mount([nativeHandler()]);
+    devices(true);
+    inner.click();
+    expect(startSession().loads[0]?.customData).toBeNull();
+  });
+
+  it("answers the receiver's token request with the page's reply", async () => {
+    const { player, inner } = await mount([nativeHandler()]);
+    devices(true);
+    inner.click();
+    const session = startSession();
+    const asked: Array<{ keySystem: string; status: number }> = [];
+    player.addEventListener('castunauthorized', (event) => {
+      const { detail } = event as CustomEvent<UnauthorizedDetail>;
+      asked.push({ keySystem: detail.keySystem, status: detail.status });
+      detail.reply(Promise.resolve({ licenseHeaders: { Authorization: 'Bearer new' } }));
+    });
+    receiverSays(session, {
+      type: 'unauthorized',
+      id: 7,
+      keySystem: 'com.widevine.alpha',
+      status: 401,
+    });
+    // Not ours: another type, and a message that is not JSON.
+    receiverSays(session, { type: 'other' });
+    for (const fn of session.listeners.get(NAMESPACE) ?? []) fn(NAMESPACE, 'not json');
+    await tick();
+    expect(asked).toEqual([{ keySystem: 'com.widevine.alpha', status: 401 }]);
+    expect(session.sent).toEqual([
+      {
+        namespace: NAMESPACE,
+        message: { type: 'license', id: 7, licenseHeaders: { Authorization: 'Bearer new' } },
+      },
+    ]);
+  });
+
+  it('stops listening when the session ends', async () => {
+    const { inner } = await mount([nativeHandler()]);
+    devices(true);
+    inner.click();
+    const session = startSession();
+    expect(session.listeners.get(NAMESPACE)?.size).toBe(1);
+    endSession();
+    expect(session.listeners.get(NAMESPACE)?.size).toBe(0);
   });
 });
 

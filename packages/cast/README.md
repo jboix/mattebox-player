@@ -43,15 +43,34 @@ the session to the receiver, at the video's current time. When the session
 ends, the engine resumes and the video continues from the time where the
 receiver stopped.
 
-The receiver plays the URL by itself, so DRM and signed URLs are the page's
-to arrange, in the `castload` event. The event carries the load request
-before the button sends it:
+The receiver plays the URL by itself. A signed URL goes as it is, since it
+is the source's URL. The source's DRM servers go in `customData.mattebox`:
+`licenseUrl`, `licenseUrls` and `certificateUrl`. `@mattebox/cast-receiver`
+reads them.
+
+The `castload` event carries the load request before the button sends it.
+Add the license headers there:
 
 ```ts
-button.addEventListener('castload', (event) => {
-  event.detail.customData = { licenseUrl: 'https://drm.example/widevine' };
+player.addEventListener('castload', (event) => {
+  event.detail.customData.mattebox.licenseHeaders = { Authorization: `Bearer ${token}` };
 });
 ```
+
+When the receiver's license server answers 401 or 403, the receiver asks
+for a new token. The player dispatches `castunauthorized`. Reply with new
+headers, or new servers:
+
+```ts
+player.addEventListener('castunauthorized', (event) => {
+  event.detail.reply(fetchToken().then((token) => ({
+    licenseHeaders: { Authorization: `Bearer ${token}` },
+  })));
+});
+```
+
+The messages go on the `urn:x-cast:ch.mattebox.license` namespace
+(`LICENSE_NAMESPACE`). The receiver waits 10 seconds for a reply.
 
 `receiver` on the button names the receiver application. Without it, the
 button uses the Default Media Receiver. With `sdk="none"`, the page loads

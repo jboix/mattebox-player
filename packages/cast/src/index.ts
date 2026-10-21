@@ -9,7 +9,16 @@
 import { MbxCastButton } from './cast-button.js';
 import { MbxCastScreen } from './cast-screen.js';
 
-export type { CastState, LoadRequest as CastLoadRequest, MediaInfo, Track } from './cast.js';
+export type {
+  CastState,
+  LicenseReply,
+  LoadRequest as CastLoadRequest,
+  MatteboxCustomData,
+  MediaInfo,
+  Track,
+  UnauthorizedDetail,
+} from './cast.js';
+export { LICENSE_NAMESPACE } from './cast.js';
 export { MbxCastButton } from './cast-button.js';
 export { MbxCastScreen } from './cast-screen.js';
 

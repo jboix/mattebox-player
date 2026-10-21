@@ -13,10 +13,15 @@
  * plays if the receiver was playing. The cast screen drives the receiver
  * through the SDK's remote player meanwhile.
  *
- * The receiver plays the URL by itself, so DRM and signed URLs are the
- * page's to arrange: the button dispatches `castload` with the request
- * before it goes out, and the page sets `customData` or cancels.
+ * The receiver plays the URL by itself. The request's
+ * `customData.mattebox` carries the source's DRM servers, the convention
+ * `@mattebox/cast-receiver` reads. The button dispatches `castload` with the
+ * request before it goes out, so the page adds license headers there, or
+ * cancels. A receiver that gets a 401 or 403 from the license server asks
+ * the sender for a new token on the `urn:x-cast:ch.mattebox.license`
+ * namespace; the player dispatches `castunauthorized`, and the page replies.
  */
+import type { Source } from '@mattebox/player-core';
 import type { PlayerHost } from './host.js';
 
 /** Whether the session is live: the engine's `live` namespace, once it has an edge. */
@@ -46,6 +51,36 @@ interface SdkSession {
   getCastDevice(): SdkDevice;
   getMediaSession(): SdkMediaSession | null;
   loadMedia(request: LoadRequest): Promise<unknown>;
+  addMessageListener(namespace: string, fn: (namespace: string, message: string) => void): void;
+  removeMessageListener(namespace: string, fn: (namespace: string, message: string) => void): void;
+  sendMessage(namespace: string, message: unknown): Promise<unknown>;
+}
+
+/** The custom namespace a receiver asks the sender for a new license token on. */
+export const LICENSE_NAMESPACE = 'urn:x-cast:ch.mattebox.license';
+
+/** What the page replies to `castunauthorized`: new license headers or servers for the receiver. */
+export interface LicenseReply {
+  readonly licenseHeaders?: Readonly<Record<string, string>>;
+  readonly licenseUrl?: string;
+  readonly licenseUrls?: Readonly<Record<string, string>>;
+}
+
+/** `castunauthorized`'s `detail`: the receiver's license server answered 401 or 403. */
+export interface UnauthorizedDetail {
+  readonly keySystem: string;
+  readonly status: number;
+  /** Sends the new token to the receiver. Call it once, with the reply or a promise of it. */
+  reply(reply: LicenseReply | Promise<LicenseReply>): void;
+}
+
+/** `customData.mattebox`: the source's DRM servers, as `@mattebox/cast-receiver` reads them. */
+export interface MatteboxCustomData {
+  licenseUrl?: string;
+  licenseUrls?: Readonly<Record<string, string>>;
+  certificateUrl?: string;
+  /** Headers for the license requests. The player has none of its own; a `castload` listener adds them. */
+  licenseHeaders?: Record<string, string>;
 }
 
 interface SdkContext {
@@ -277,7 +312,7 @@ function onSession(fw: Framework, ctx: SdkContext, state: string): void {
     const found = [...connected].find((cast) => cast.plays(playing));
     if (found !== undefined && owner === null) {
       owner = found;
-      found.adopt();
+      found.adopt(ctx);
     }
   } else if (state === states.SESSION_ENDED || state === states.SESSION_START_FAILED) {
     const ended = owner;
@@ -301,6 +336,11 @@ class CastOf implements Cast {
   declare pending: boolean;
   declare private casting: boolean;
   declare private handoff: Handoff | null;
+  /** The session this player listens on for license token requests, and its listener. */
+  declare private listening: {
+    readonly session: SdkSession;
+    readonly fn: (namespace: string, message: string) => void;
+  } | null;
 
   constructor(player: PlayerHost) {
     this.player = player;
@@ -310,6 +350,7 @@ class CastOf implements Cast {
     this.pending = false;
     this.casting = false;
     this.handoff = null;
+    this.listening = null;
   }
 
   connect(receiver: string | null, sdk: string | null): void {
@@ -405,6 +446,7 @@ class CastOf implements Cast {
     if (session === null) return;
     const request = this.request(session.source, time, autoplay);
     if (request === null) return;
+    this.listen(ctx.getCurrentSession());
     const event = new CustomEvent<LoadRequest>('castload', {
       detail: request,
       bubbles: true,
@@ -422,8 +464,55 @@ class CastOf implements Cast {
   }
 
   /** A session Chrome rejoined, already playing this player's source. */
-  adopt(): void {
+  adopt(ctx: SdkContext): void {
     this.freeze();
+    this.listen(ctx.getCurrentSession());
+  }
+
+  /**
+   * Answers the receiver's token requests for this session: a
+   * `castunauthorized` event on the player, and the page's reply sent back.
+   */
+  private listen(session: SdkSession | null): void {
+    this.unlisten();
+    if (session === null) return;
+    const fn = (_namespace: string, message: string): void => {
+      let data: { type?: unknown; id?: unknown; keySystem?: unknown; status?: unknown };
+      try {
+        data = JSON.parse(message) as typeof data;
+      } catch {
+        return;
+      }
+      if (data.type !== 'unauthorized') return;
+      const id = data.id;
+      let replied = false;
+      const detail: UnauthorizedDetail = {
+        keySystem: typeof data.keySystem === 'string' ? data.keySystem : '',
+        status: typeof data.status === 'number' ? data.status : 0,
+        reply(reply) {
+          if (replied) return;
+          replied = true;
+          void Promise.resolve(reply)
+            .then((answer) =>
+              session.sendMessage(LICENSE_NAMESPACE, { type: 'license', id, ...answer }),
+            )
+            .catch(() => {
+              // No reply reaches the receiver; it gives up after its own wait.
+            });
+        },
+      };
+      this.player.dispatchEvent(
+        new CustomEvent<UnauthorizedDetail>('castunauthorized', { detail, bubbles: true }),
+      );
+    };
+    session.addMessageListener(LICENSE_NAMESPACE, fn);
+    this.listening = { session, fn };
+  }
+
+  private unlisten(): void {
+    const held = this.listening;
+    this.listening = null;
+    held?.session.removeMessageListener(LICENSE_NAMESPACE, held.fn);
   }
 
   private freeze(): void {
@@ -441,6 +530,7 @@ class CastOf implements Cast {
   /** The session ended: give the video back where the receiver left it. */
   end(cleanly: boolean): void {
     this.pending = false;
+    this.unlisten();
     if (!this.casting) return;
     this.casting = false;
     const handoff = this.handoff;
@@ -457,11 +547,7 @@ class CastOf implements Cast {
   }
 
   /** The load request: the source, the time, the stream type, and the video's own text tracks. */
-  private request(
-    source: { readonly url: string; readonly type?: string },
-    time: number,
-    autoplay: boolean,
-  ): LoadRequest | null {
+  private request(source: Source, time: number, autoplay: boolean): LoadRequest | null {
     const media = globals().chrome?.cast?.media;
     if (media === undefined) return null;
     const engine = this.player.engine;
@@ -493,6 +579,15 @@ class CastOf implements Cast {
     const request = new media.LoadRequest(info);
     request.currentTime = time;
     request.autoplay = autoplay;
+    const drm = source.drm;
+    if (drm !== undefined) {
+      const mattebox: MatteboxCustomData = {
+        ...(drm.licenseUrl === undefined ? {} : { licenseUrl: drm.licenseUrl }),
+        ...(drm.licenseUrls === undefined ? {} : { licenseUrls: drm.licenseUrls }),
+        ...(drm.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
+      };
+      request.customData = { mattebox };
+    }
     return request;
   }
 }
