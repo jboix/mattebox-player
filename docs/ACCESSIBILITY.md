@@ -9,6 +9,7 @@ you add yourself are yours to check.
 
 ## How it is checked
 
+- axe-core checks the controls of every package for WCAG 2.0, 2.1 and 2.2 A and AA, in Chromium, Firefox and WebKit: the player before the first play, while it plays, with the speed and subtitles menus open and on the error screen, the diagnostics panel on each page, the playlist closed and open, and the cast button and screen.
 - Browser tests check that every control has a name and that every glyph is hidden from the accessibility tree, in Chromium, Firefox and WebKit.
 - Browser tests check the keyboard: every control is reachable, and the shortcuts, sliders and menus answer their keys.
 - Biome's accessibility lint rules run on the code.
@@ -22,13 +23,13 @@ you add yourself are yours to check.
 - The bar's fade, the spinner and the animations of the start, live, marker and volume controls follow the system's reduce motion setting.
 - The subtitles menu sets the subtitle size and background.
 - The audio and subtitles menus mark audio description (AD), subtitles for the deaf and hard of hearing (SDH) and closed captions (CC). A screen reader reads each badge's full name.
+- A live region says a play, a pause, a long wait, a fatal error and a track change to a screen reader. `announce="off"` turns it off.
 - Every label is an attribute, so you can translate what a screen reader says.
-- `@mattebox/spatial-nav` moves focus with the arrow keys of a TV remote.
+- `@mattebox/player-spatial-nav` moves focus with the arrow keys of a TV remote.
 
 ## Known limitations
 
-- No automated WCAG check runs yet. axe-core in the browser tests is planned.
-- The player does not announce play, pause, buffering, errors or track changes to a screen reader. A live region for them is planned.
+- axe-core finds part of the WCAG issues, about 57% by its maker Deque's count. The rest needs a review by hand, which has not been done.
 - The default labels are English only.
 - VoiceOver, TalkBack, NVDA and JAWS have not been tested by hand.
 - Windows high contrast mode (forced colours) has not been checked.

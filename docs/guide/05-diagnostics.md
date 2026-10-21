@@ -127,13 +127,13 @@ no attribute. The panel is for an integrator, and a viewer never opens it.
 The icon is the `icon` slot. The element shows its own icon when the slot
 is empty.
 
-| Part                                                                                                            | What it is                                             |
-| --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `button`, `icon`                                                                                                | The button in the bar and its icon                     |
-| `panel`, `head`, `body`, `tab`, `tab-<page>`, `page`, `page-<page>`, `copy`, `close`                            | The panel, its tabs and its pages                      |
-| `heading`, `rows`, `key`, `value`, `note`                                                                       | The sections and the rows of a page                    |
-| `chart`, `chart-tabs`, `chart-tab`, `chart-tab-<chart>`, `window`, `legend`, `legend-item`, `swatch`, `readout` | The charts page                                        |
-| `table`, `cell`, `label`, `ok`, `bad`, `na`, `maybe`                                                            | The tables of the browser page and the state of a cell |
+| Part                                                                                                                             | What it is                                             |
+| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `button`, `icon`                                                                                                                 | The button in the bar and its icon                     |
+| `panel`, `head`, `tabs`, `body`, `tab`, `tab-<page>`, `page`, `page-<page>`, `copy`, `close`                                     | The panel, its tabs and its pages                      |
+| `heading`, `rows`, `key`, `value`, `note`                                                                                        | The sections and the rows of a page                    |
+| `chart`, `chart-tabs`, `chart-tablist`, `chart-tab`, `chart-tab-<chart>`, `window`, `legend`, `legend-item`, `swatch`, `readout` | The charts page                                        |
+| `table`, `cell`, `label`, `ok`, `bad`, `na`, `maybe`                                                                             | The tables of the browser page and the state of a cell |
 
 The panel reads the `--mbx-*` custom properties of the player. It adds
 `--mbx-chart-1` to `--mbx-chart-5` for the series of the charts, with

@@ -15,6 +15,7 @@ import type { Handler, HandlerSession } from '@mattebox/player-core';
 import { nativeHandler } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { violations } from '../../../../test/browser/axe.js';
 import { once, silence } from './helpers.js';
 
 type Listener = (event: { sessionState?: string; castState?: string }) => void;
@@ -268,10 +269,12 @@ function engineHandler(live = false): { handler: Handler; engine: Record<string,
   const engine: Record<string, unknown> = {
     suspend: vi.fn(),
     resume: vi.fn(),
-    // What the core reads of a session's engine: its error watch.
+    // What the core reads of a session's engine: its error watch, and the
+    // active tracks the live region says.
     on: () => () => undefined,
     error: null,
     stats: { snapshot: () => ({ presentation: null }) },
+    tracks: { active: () => null },
     ...(live ? { live: { edge: 10, latency: 2, atEdge: true, seekToEdge: () => {} } } : {}),
   };
   const handler: Handler = {
@@ -567,6 +570,16 @@ describe('<mbx-cast-screen>', () => {
     expect(ctx.ended).toBe(1);
     expect(screen.hidden).toBe(true);
     expect(player.hasAttribute('casting')).toBe(false);
+  });
+
+  it('passes axe-core with the button, and on the screen while casting', async () => {
+    const { player, inner } = await mount([nativeHandler()]);
+    devices(true);
+    expect(await violations(player)).toEqual([]);
+    inner.click();
+    startSession('Kitchen');
+    report({ currentTime: 30, duration: 120, isPaused: false, playerState: 'PLAYING' });
+    expect(await violations(player)).toEqual([]);
   });
 
   it('hides the slider and the time for a live stream, and takes the words the page gives', async () => {

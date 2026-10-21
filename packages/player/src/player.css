@@ -123,6 +123,15 @@
 [part~="value"] {
   color: var(--mbx-accent);
 }
+/* Read by a screen reader, never seen: no box, no layout. */
+[part~="announcer"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 [part~="button"] {
   font: inherit;
   color: inherit;

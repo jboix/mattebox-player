@@ -28,15 +28,18 @@ import {
 } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import type { AttachEmeOptions } from 'mattebox/eme';
+import type { Announcer } from './announcer.js';
+import { announcer } from './announcer.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
+import { languageName } from './controls/track-names.js';
 import type { PlayerHost } from './host.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
 import { STYLE } from './style.js';
 import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
-import { PLAYER } from './tags.js';
+import { ERROR_SCREEN, PLAYER } from './tags.js';
 
 /**
  * `off` keeps HLS on the engine in Safari. Anything else lets Safari play
@@ -115,6 +118,17 @@ const STATE_EVENTS = [
   'stalled',
   'canplay',
 ];
+
+/**
+ * How long the video waits for data before the live region says so. A
+ * seek within the buffer waits for less, and saying it would only be noise.
+ */
+const LOADING_MS = 1000;
+
+/** A track's name for the live region: its name in the stream, else its language's. */
+function trackName(name: string | undefined, lang: string | undefined): string {
+  return name || (lang && (languageName(lang) ?? lang)) || '';
+}
 
 /** The stages that register a key system, which a native session's DRM offers. */
 const KEY_SYSTEMS = ['eme-fairplay', 'eme-cenc'];
@@ -221,6 +235,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
+  declare private readonly voice: Announcer;
+  /** Runs out when the video has waited `LOADING_MS`. */
+  declare private slow: ReturnType<typeof setTimeout> | undefined;
+  /** The audio track the live region last saw, so it says only a change. Undefined before the first play. */
+  declare private heardAudio: string | undefined;
+  /** The subtitle track it last saw: null for off, undefined before the first play. */
+  declare private heardText: string | null | undefined;
+  /** Stops listening to the current engine's track selection. */
+  declare private offTracks: (() => void) | null;
   declare private readonly marks: Markers;
   /** The chapters track element, while the `chapters` attribute names one and the engine takes none. */
   declare private track: HTMLTrackElement | null;
@@ -270,6 +293,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.offs = [];
     this.queue = Promise.resolve();
     this.pending = false;
+    this.slow = undefined;
+    this.heardAudio = undefined;
+    this.heardText = undefined;
+    this.offTracks = null;
 
     this.media = document.createElement('video');
     // Native until the `controls` attribute says otherwise, which arrives
@@ -282,8 +309,17 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.media.setAttribute(PLAYSINLINE, '');
     for (const name of STATE_EVENTS) {
       this.media.addEventListener(name, () => {
+        const was = this.waiting;
         this.note(name);
         this.reflect();
+        this.tell(name, was);
+      });
+    }
+    // A native session's tracks; an engine session's are on `tracks:selected`.
+    const lists = this.media as { audioTracks?: EventTarget; textTracks: EventTarget };
+    for (const list of [lists.audioTracks, lists.textTracks]) {
+      list?.addEventListener('change', () => {
+        this.tracks();
       });
     }
     // An error over a picture that then plays is wrong by definition.
@@ -305,10 +341,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.reload();
     });
 
+    this.voice = announcer(this);
+
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = STYLE;
-    root.append(style, this.stage, this.surface.root);
+    root.append(style, this.stage, this.surface.root, this.voice.root);
   }
 
   /** The media element. Everything the browser already does is here. */
@@ -394,6 +432,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The two states the video does not hold: whether it has played once, and whether it waits for data. */
   private note(event: string): void {
     if (event === 'playing') {
+      // The tracks the video starts playing with are what a change is from.
+      if (!this.started) this.tracks();
       this.started = true;
       this.waiting = false;
     } else if (event === 'waiting' || event === 'stalled') {
@@ -404,6 +444,61 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       // A new source starts over: the title shows again before its first play.
       this.started = false;
       this.waiting = false;
+      this.heardAudio = undefined;
+      this.heardText = undefined;
+    }
+  }
+
+  /** Says a play or a pause, and a wait once it has lasted `LOADING_MS`. */
+  private tell(event: string, was: boolean): void {
+    if (event === 'play') this.voice.say('playing', 'Playing');
+    // The end of the video pauses it too, and that is no pause to say.
+    if (event === 'pause' && !this.media.ended) this.voice.say('paused', 'Paused');
+    if (this.waiting === was) return;
+    clearTimeout(this.slow);
+    if (this.waiting) {
+      this.slow = setTimeout(() => {
+        this.voice.say('loading', 'Loading');
+      }, LOADING_MS);
+    }
+  }
+
+  /**
+   * Says a change of the audio or the subtitle track, once the video has
+   * played: the tracks a load starts with are no change. A forced track
+   * reads as off, as in the subtitles menu.
+   */
+  private tracks(): void {
+    const engine = this.current?.engine ?? null;
+    let audio: string;
+    let text: string | null;
+    if (engine !== null) {
+      const sound = engine.tracks.active('audio');
+      const words = engine.tracks.active('text');
+      audio = sound === null ? '' : trackName(sound.name, sound.lang);
+      text = words === null || words.forced === true ? null : trackName(words.name, words.lang);
+    } else {
+      const video = this.media as {
+        audioTracks?: ArrayLike<{ enabled: boolean; label: string; language: string }>;
+      };
+      const sound = Array.from(video.audioTracks ?? []).find((track) => track.enabled);
+      const words = Array.from(this.media.textTracks).find(
+        (track) =>
+          (track.kind === 'subtitles' || track.kind === 'captions') && track.mode === 'showing',
+      );
+      audio = sound === undefined ? '' : trackName(sound.label, sound.language);
+      text = words === undefined ? null : trackName(words.label, words.language);
+    }
+    const { heardAudio, heardText } = this;
+    this.heardAudio = audio;
+    this.heardText = text;
+    if (!this.started) return;
+    if (heardAudio !== undefined && audio !== heardAudio) {
+      this.voice.say('audio', 'Audio: {track}', audio);
+    }
+    if (heardText !== undefined && text !== heardText) {
+      if (text === null) this.voice.say('subtitles-off', 'Subtitles off');
+      else this.voice.say('subtitles', 'Subtitles: {track}', text);
     }
   }
 
@@ -582,6 +677,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private report(error: PlayerError): void {
     if (error.fatal) {
       this.failure = error;
+      clearTimeout(this.slow);
+      // An error screen in the player is an alert of its own, read already.
+      if (this.querySelector(ERROR_SCREEN) === null) {
+        this.voice.say('error', 'Playback failed');
+      }
       // Under custom controls the error screen element is the surface, and
       // the element's own row under the video stays quiet.
       if (this.getAttribute(CONTROLS) !== 'custom') this.surface.show(error);
@@ -672,6 +772,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         // Before the event goes out, so a control that reads `engine` on
         // `sourcechange` sees the session the event is about.
         this.current = session;
+        this.offTracks?.();
+        this.offTracks = session?.engine?.on('tracks:selected', () => this.tracks()) ?? null;
         if (session !== null && this.isConnected) this.adopt(session);
         this.emit('sourcechange', session);
       }),

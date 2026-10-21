@@ -74,7 +74,9 @@
   border: 0;
   border-radius: var(--mbx-radius);
   background: var(--mbx-accent);
-  color: #1c1c20;
+  /* Black, not the near-black of the panels: on the accent it is the one
+     that reaches 4.5:1 (WCAG 2.2 SC 1.4.3) at this size. */
+  color: #000;
   font: 600 0.9286em / 1 var(--mbx-font);
   cursor: pointer;
 }

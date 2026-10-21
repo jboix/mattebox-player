@@ -113,8 +113,14 @@
   padding: 0.1667em 0.6667em;
   cursor: pointer;
 }
-[part~="head"] > * {
+[part~="head"] > *,
+[part~="tabs"] > * {
   margin: 0 0.1667em;
+}
+[part~="tabs"] {
+  display: flex;
+  align-items: center;
+  margin: 0;
 }
 [part~="head"] > [part~="copy"] {
   margin-left: auto;
@@ -145,6 +151,13 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: 0.6667em;
+}
+[part~="body"]:focus {
+  outline: 2px solid var(--mbx-accent, #e0543c);
+  outline-offset: -2px;
+}
+[part~="body"]:focus:not(:focus-visible) {
+  outline: none;
 }
 [part~="page"][hidden] {
   display: none;
@@ -184,8 +197,14 @@
   align-items: center;
   margin: -0.1667em -0.1667em 0.3333em;
 }
-[part~="chart-tabs"] > * {
+[part~="chart-tabs"] > *,
+[part~="chart-tablist"] > * {
   margin: 0.1667em;
+}
+[part~="chart-tabs"] > [part~="chart-tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
 }
 [part~="chart"] {
   display: block;

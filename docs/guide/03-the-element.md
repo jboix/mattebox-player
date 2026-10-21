@@ -15,6 +15,7 @@ over the picture under `controls="custom"`.
 | `certificate-url`     | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
 | `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
 | `tooltips`            | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
+| `announce`            | `off` silences the live region, for a page that announces changes itself. See [Labels](#labels)                                                                              |
 | `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
 | `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
 | `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
@@ -507,6 +508,24 @@ track functions.
 
 The player draws `AD`, `SDH` and `CC` as a glyph. The label is the glyph's
 tooltip, and the text a screen reader says.
+
+The player says what changes in a live region that a screen reader reads:
+a play, a pause, a wait of over a second, a fatal error and a track change.
+It says a track change only after the first play. It says no error while
+an `mbx-error-screen` is inside, because the screen is an alert itself.
+Its phrases are attributes of the player.
+
+| Attribute             | English              | Said when                                 |
+| --------------------- | -------------------- | ----------------------------------------- |
+| `label-playing`       | `Playing`            | The video plays                           |
+| `label-paused`        | `Paused`             | The video pauses, except at its end       |
+| `label-loading`       | `Loading`            | The video has waited for data for 1 s     |
+| `label-error`         | `Playback failed`    | A fatal error ends the load               |
+| `label-audio`         | `Audio: {track}`     | Another audio track plays                 |
+| `label-subtitles`     | `Subtitles: {track}` | Another subtitle track shows              |
+| `label-subtitles-off` | `Subtitles off`      | No subtitle shows. A forced one reads off |
+
+`{track}` is the track's name in the stream, else its language's name.
 
 The quality menu lists `engine.quality.selectable`, best first: what the
 browser can play, one entry per video stream. A name grows only as far as

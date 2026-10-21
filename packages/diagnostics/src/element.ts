@@ -181,10 +181,15 @@ export class MbxDiagnostics extends HTMLElement {
     });
 
     const head = el('div', 'head');
-    head.setAttribute('role', 'tablist');
+    // A tablist holds tabs alone (WAI-ARIA 1.2), so copy and close sit beside it.
+    const tablist = el('div', 'tabs');
+    tablist.setAttribute('role', 'tablist');
+    head.append(tablist);
     this.tabs = {} as Record<Tab, HTMLButtonElement>;
     this.pages = {} as Record<Tab, HTMLElement>;
     this.body = el('div', 'body');
+    // It scrolls, so a keyboard has to reach it (WCAG 2.2 SC 2.1.1).
+    this.body.tabIndex = 0;
     for (const tab of TABS) {
       const node = button(`tab tab-${tab}`, TAB_NAMES[tab]);
       node.setAttribute('role', 'tab');
@@ -192,7 +197,7 @@ export class MbxDiagnostics extends HTMLElement {
         this.select(tab);
       });
       this.tabs[tab] = node;
-      head.append(node);
+      tablist.append(node);
       const page = el('div', `page page-${tab}`);
       page.setAttribute('role', 'tabpanel');
       page.hidden = true;
@@ -213,7 +218,10 @@ export class MbxDiagnostics extends HTMLElement {
 
     // The charts page: its own tabs, the window, the canvas, the legend and the readout.
     const chartTabs = el('div', 'chart-tabs');
-    chartTabs.setAttribute('role', 'tablist');
+    // The tabs in a tablist of their own, the window select beside it.
+    const chartTablist = el('div', 'chart-tablist');
+    chartTablist.setAttribute('role', 'tablist');
+    chartTabs.append(chartTablist);
     this.chartTabs = {} as Record<ChartTab, HTMLButtonElement>;
     for (const tab of CHART_TABS) {
       const node = button(`chart-tab chart-tab-${tab}`, tab);
@@ -224,7 +232,7 @@ export class MbxDiagnostics extends HTMLElement {
         this.draw();
       });
       this.chartTabs[tab] = node;
-      chartTabs.append(node);
+      chartTablist.append(node);
     }
     this.windowSelect = el('select', 'window');
     this.windowSelect.setAttribute('aria-label', 'Window');

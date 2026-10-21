@@ -8,6 +8,7 @@ import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
 import { createPlaylist, playlistOf } from '@mattebox/player-playlist';
 import hlsCmaf from 'mattebox/protocols/hls-cmaf';
 import { afterEach, describe, expect, it } from 'vitest';
+import { violations } from '../../../../test/browser/axe.js';
 import { once, silence } from './helpers.js';
 
 afterEach(() => {
@@ -86,6 +87,16 @@ describe('the playlist controls', () => {
     ]);
     return player;
   }
+
+  it('pass axe-core with the list closed and open', async () => {
+    const player = await mounted();
+    const opener = player.querySelector('mbx-playlist-button') as HTMLElement;
+    await expect.poll(() => opener.hidden).toBe(false);
+    expect(await violations(player)).toEqual([]);
+    inner(opener).click();
+    await expect.poll(() => inner(opener).getAttribute('aria-expanded')).toBe('true');
+    expect(await violations(player)).toEqual([]);
+  });
 
   it('show next only while there is one, and previous while the list has items', async () => {
     const player = await mounted();

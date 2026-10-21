@@ -1,7 +1,7 @@
 import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler, PlayerError, Source } from '@mattebox/player-core';
 import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
-import type { Stage, TransportConfig } from 'mattebox';
+import type { Mattebox, Stage, TransportConfig } from 'mattebox';
 import { mattebox } from 'mattebox';
 import full from 'mattebox/presets/full';
 import dashCmaf from 'mattebox/protocols/dash-cmaf';
@@ -425,6 +425,18 @@ describe('the menus over an engine session', () => {
   function popup(node: HTMLElement): HTMLElement {
     return node.shadowRoot?.querySelector('[part~="popup"]') as HTMLElement;
   }
+
+  it('says an audio switch in the live region, by the name of the track', async () => {
+    const player = await engineReady('https://cdn.test/hls/alt.m3u8');
+    const engine = player.engine as Mattebox;
+    await expect.poll(() => engine.tracks.active('audio')?.name).toBe('English');
+    // The region speaks once the video has played; this one has no media to play.
+    player.video.dispatchEvent(new Event('playing'));
+    const french = engine.tracks.available.find((track) => track.name === 'French');
+    engine.tracks.select(french?.id as string);
+    const region = player.shadowRoot?.querySelector('[part~="announcer"]');
+    await expect.poll(() => region?.textContent).toBe('Audio: French');
+  });
 
   it('carries the quality menu, and hides the audio and subtitles menus without a choice', async () => {
     const player = await engineReady('https://cdn.test/hls/master.m3u8');

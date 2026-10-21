@@ -12,6 +12,7 @@ import type { MbxDiagnostics } from '@mattebox/player-diagnostics';
 import { DIAGNOSTICS } from '@mattebox/player-diagnostics';
 import type { Mattebox } from 'mattebox';
 import { afterEach, describe, expect, it } from 'vitest';
+import { violations } from '../../../../test/browser/axe.js';
 
 /** A valid WAV, 8-bit mono at 8 kHz, as a blob URL. */
 function silence(seconds = 10): string {
@@ -257,6 +258,18 @@ describe('the element', () => {
     expect(report.trace).toBeNull();
     expect(report.playback.duration).toBeCloseTo(10, 0);
     expect((player as PlayerHost).engine).toBeNull();
+  });
+
+  it('passes axe-core closed, and on every page of the panel', async () => {
+    const { player, element } = await mount([nativeHandler()]);
+    expect(await violations(player)).toEqual([]);
+    inside(element, 'button').click();
+    const tabs = [...(element.shadowRoot?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])];
+    expect(tabs.length).toBeGreaterThan(0);
+    for (const tab of tabs) {
+      tab.click();
+      expect(await violations(player), tab.textContent ?? '').toEqual([]);
+    }
   });
 
   it('opens a panel from the button, carries open for the bar, and closes on Escape and outside', async () => {
