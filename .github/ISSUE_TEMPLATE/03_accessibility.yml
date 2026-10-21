@@ -1,0 +1,33 @@
+name: ♿ Accessibility barrier
+description: Something in the player you cannot see, reach, hear or use
+title: "♿ <TITLE>"
+labels: ["accessibility"]
+body:
+  - type: textarea
+    id: barrier
+    attributes:
+      label: What stopped you?
+      description: What you tried to do, where, and what got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: >
+        The player version, the device with its OS version, the browser or TV, and any assistive technology (screen reader, zoom, keyboard only, switch control, voice control) with its version.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would work for you?
+      description: Optional. How you expected it to work, or what would help.
+  - type: checkboxes
+    id: coc
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/jboix/mattebox-player/blob/main/docs/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow Mattebox's Code of Conduct
+          required: true

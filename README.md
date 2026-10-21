@@ -112,7 +112,8 @@ The [guide](docs/guide/README.md) explains the rest, starting with
 Read the [contributing guide](docs/CONTRIBUTING.md) before opening a pull
 request. The [Code of Conduct](docs/CODE_OF_CONDUCT.md) applies to everyone
 who takes part. Report a vulnerability as [SECURITY.md](docs/SECURITY.md)
-describes.
+describes. Report an accessibility barrier as the
+[accessibility statement](docs/ACCESSIBILITY.md) describes.
 
 The node and Chromium test tiers cover 94% of the lines in the packages
 (2026-10-16). CI fails below 92%.
