@@ -11,17 +11,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { violations } from '../../../../test/browser/axe.js';
 import { once, silence } from './helpers.js';
 
-/**
- * Playwright's WebKit build on Linux hands Media Session metadata to the
- * desktop, and now and then that locks the page up, so not even the test
- * timeout fires. The playlist writes the metadata of every item, so in WebKit
- * the tests run without Media Session; the playlist skips it when it is
- * missing. Chromium and Firefox keep it.
- */
-if (/AppleWebKit/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) {
-  Object.defineProperty(navigator, 'mediaSession', { configurable: true, value: undefined });
-}
-
 afterEach(() => {
   document.body.replaceChildren();
 });

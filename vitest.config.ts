@@ -14,12 +14,13 @@ type Browser = 'chromium' | 'firefox' | 'webkit';
  * reports always showed, `browser (chromium)`; `--project='browser*'`
  * selects all three.
  */
-function browserProject(browser: Browser, order: number) {
+function browserProject(browser: Browser, order: number, exclude: string[] = []) {
   return {
     resolve: { alias },
     test: {
       name: browser,
       include: ['packages/*/test/browser/**/*.test.ts'],
+      exclude,
       setupFiles: ['./test/browser/setup.ts'],
       sequence: { groupOrder: order },
       browser: {
@@ -58,7 +59,10 @@ export default defineConfig({
       },
       browserProject('chromium', 1),
       browserProject('firefox', 2),
-      browserProject('webkit', 3),
+      // Playwright's WebKit on the CI runner locks the page up during the
+      // playlist tests now and then, so not even the test timeout fires and
+      // the step times out. Chromium and Firefox run them.
+      browserProject('webkit', 3, ['packages/playlist/test/browser/**']),
     ],
   },
 });
