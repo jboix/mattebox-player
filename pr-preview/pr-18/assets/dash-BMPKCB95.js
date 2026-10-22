@@ -1,0 +1,1 @@
+import{n as e,t}from"./tiers-sZqyA9D0.js";import{t as n}from"./define-BACHxETE.js";var r=n(`dash`,()=>[...e(),...t()]);export{r as default};
