@@ -338,7 +338,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     });
     this.stage.append(slot);
     this.surface = errorSurface(() => {
-      this.reload();
+      this.retry();
     });
 
     this.voice = announcer(this);
@@ -372,6 +372,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.list = value;
     // Markers belong to a source, as for `src`.
     if (this.marks.list.length > 0) this.marks.set([]);
+    this.reload();
+  }
+
+  /**
+   * Loads the sources again, in the order a load reads them: the `src`
+   * attribute, the `sources` property, then the `<source>` children. The
+   * error screens' Retry calls it.
+   */
+  retry(): void {
     this.reload();
   }
 

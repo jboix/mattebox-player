@@ -1439,6 +1439,30 @@ describe('the error screen', () => {
     await expect.poll(() => errors).toBe(1);
     expect(screen.hidden).toBe(false);
   });
+
+  it('loads <source> children and the sources property again from the retry', async () => {
+    const player = await custom();
+    const screen = control(player, 'mbx-error-screen');
+    const child = document.createElement('source');
+    child.setAttribute('src', failing.src);
+    child.setAttribute('type', failing.type);
+    player.append(child);
+    await expect.poll(() => screen.hidden).toBe(false);
+    const handlers: string[] = [];
+    player.addEventListener('error', () => {
+      handlers.push('error');
+    });
+    const retry = screen.shadowRoot?.querySelector('[part~="retry"]');
+    if (!(retry instanceof HTMLButtonElement)) throw new Error('no retry');
+    retry.click();
+    await expect.poll(() => handlers.length).toBe(1);
+
+    child.remove();
+    player.sources = [{ url: failing.src, type: failing.type }];
+    await expect.poll(() => handlers.length).toBe(2);
+    retry.click();
+    await expect.poll(() => handlers.length).toBe(3);
+  });
 });
 
 /** A live namespace: the window is what the video reports seekable, zero to the duration. */

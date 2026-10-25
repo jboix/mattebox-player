@@ -21,6 +21,8 @@ export interface PlayerHost extends HTMLElement {
   readonly error: PlayerError | null;
   /** The ranges the page named: credits to skip, parts that must not play. */
   readonly markers: Markers;
+  /** Loads the sources again, in the order a load reads them. */
+  retry(): void;
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */

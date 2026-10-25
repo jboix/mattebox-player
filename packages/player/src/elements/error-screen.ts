@@ -6,9 +6,8 @@
  * a picture that then plays is wrong by definition. The title comes from `label-title`, the button's text
  * from `label-retry`.
  *
- * Retry sets the player's `src` to its own value again, which is the one
- * public way to load a source again: the element reloads on every write
- * to `src`, equal or not.
+ * Retry calls the player's `retry()`, which loads the sources again from
+ * the first, whether they came from `src`, `sources` or `<source>` children.
  */
 import type { PlayerError } from '@mattebox/player-core';
 import { el } from '../dom.js';
@@ -39,11 +38,7 @@ export class MbxErrorScreen extends Component {
     this.retry = el('button', 'retry');
     this.retry.type = 'button';
     this.retry.addEventListener('click', () => {
-      const player = this.player;
-      const src = player?.getAttribute('src');
-      if (player !== null && player !== undefined && src !== null && src !== undefined) {
-        player.setAttribute('src', src);
-      }
+      this.player?.retry();
     });
     box.append(this.title_, detail, this.retry);
     root.append(style(STYLE), box);
