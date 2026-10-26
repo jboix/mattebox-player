@@ -44,7 +44,7 @@ it('the chooser opens from the masthead and lists the demo streams', async () =>
   await userEvent.click($('#open-content'));
   expect(visible($('#content-dialog'))).toBe(true);
   const entries = $$('#stream-list li');
-  expect(entries).toHaveLength(26);
+  expect(entries).toHaveLength(27);
   expect(entries.at(-1)?.textContent).toContain('Extensionless URL');
   // Each entry names what it carries.
   const tags = (text: string) =>

@@ -472,7 +472,9 @@ describe('the menus over an engine session', () => {
   it('walks the quality menu with the arrows inside the shadow root', async () => {
     const player = await engineReady('https://cdn.test/hls/master.m3u8');
     const quality = control(player, 'mbx-quality-menu');
-    await expect.poll(() => quality.hidden).toBe(false);
+    // The menu shows from its first rendition, and the engine may list the second later.
+    await expect.poll(() => items(quality).length).toBe(3);
+    expect(quality.hidden).toBe(false);
     button(quality).click();
     const options = items(quality);
     const focused = () => quality.shadowRoot?.activeElement ?? null;
