@@ -1,0 +1,1 @@
+import{t as e}from"./define-DyAs8at5.js";var t=e(`kernel`,()=>[]);export{t as default};
