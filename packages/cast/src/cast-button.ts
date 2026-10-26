@@ -83,8 +83,8 @@ export class MbxCastButton extends Component {
     this.button.setAttribute(
       'aria-label',
       active
-        ? (this.getAttribute('label-stop') ?? 'Stop casting')
-        : (this.getAttribute('label-start') ?? 'Cast'),
+        ? this.word('label-stop', 'castStop', 'Stop casting')
+        : this.word('label-start', 'castStart', 'Cast'),
     );
   }
 }

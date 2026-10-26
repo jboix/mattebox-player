@@ -25,6 +25,7 @@ import emeCore from 'mattebox/stages/eme-core';
 import logoUrl from '../../docs/logo.svg';
 import type { StreamEntry } from './catalogue.js';
 import { STREAMS, tagsOf } from './catalogue.js';
+import { LANGUAGES, registerLanguages, WORD_PACKAGES } from './languages.js';
 import type { BusinessUnit, Composition, IlResource, SearchResult } from './srgssr.js';
 import {
   BUSINESS_UNITS,
@@ -35,7 +36,6 @@ import {
   tokenize,
 } from './srgssr.js';
 import { wireTheme } from './theme.js';
-import { attributesFor, LANGUAGES } from './words.js';
 
 function byId<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -749,19 +749,7 @@ function tag(name: string, attributes: Readonly<Record<string, string | null>>):
   return `<${name}${text}></${name}>`;
 }
 
-/** The words a control takes in the chosen language, none in English: English is the default. */
-function words(tagName: string, name: string): Record<string, string | null> {
-  const chosen = LANGUAGES[language.value];
-  if (chosen === undefined) return {};
-  const out: Record<string, string | null> = { ...attributesFor(tagName, chosen.words) };
-  if (name === 'skip-back') out.label = chosen.words.skipBack;
-  if (name === 'skip-forward') out.label = chosen.words.skipForward;
-  if (name === 'scan-back') out.label = chosen.words.scanBack;
-  if (name === 'scan-forward') out.label = chosen.words.scanForward;
-  return out;
-}
-
-/** A control's markup: its tag, its knobs, and its words. */
+/** A control's markup: its tag and its knobs. Its words come from the player's language. */
 function controlMarkup(name: string, row: Row): string {
   const tagName = TAGS.get(name);
   if (tagName === undefined) return '';
@@ -786,15 +774,12 @@ function controlMarkup(name: string, row: Row): string {
   if (name === 'cast')
     own.receiver = castReceiver.value.trim() === '' ? null : castReceiver.value.trim();
   if (name === 'volume') {
-    // The group's two parts, written out so their words can be set.
-    const inner = [
-      tag('mbx-mute-button', words('mbx-mute-button', 'mute')),
-      tag('mbx-volume-slider', words('mbx-volume-slider', 'volume')),
-    ];
+    // The group's two parts, written out so a page sees where each word goes.
+    const inner = [tag('mbx-mute-button', {}), tag('mbx-volume-slider', {})];
     const open = tag(tagName, own);
     return `${open.slice(0, open.indexOf('></') + 1)}\n    ${inner.join('\n    ')}\n  </${tagName}>`;
   }
-  return tag(tagName, { ...own, ...words(tagName, name) });
+  return tag(tagName, own);
 }
 
 const SCREEN_TAGS: Readonly<Record<string, string>> = {
@@ -821,10 +806,10 @@ function composition(): string {
       tagName === 'mbx-title'
         ? { heading: playing, artwork: poster.value === '' ? null : poster.value }
         : {};
-    lines.push(tag(tagName, { ...own, ...words(tagName, '') }));
+    lines.push(tag(tagName, own));
   }
   // The cast screen comes with the cast button: one package, one toggle.
-  if (enabled.has('cast')) lines.push(tag('mbx-cast-screen', words('mbx-cast-screen', '')));
+  if (enabled.has('cast')) lines.push(tag('mbx-cast-screen', {}));
   const on = (row: Row) => rows[row].filter((name) => enabled.has(name));
   const inner = [
     ...on('seek').map((name) => controlMarkup(name, 'seek')),
@@ -896,6 +881,8 @@ function applyElement(element: MatteboxPlayerElement): void {
     attribute(element, name, look.value === fallback ? null : look.value);
   }
   attribute(element, 'controls', controlsSelect.value === 'native' ? null : controlsSelect.value);
+  // English is the controls' own; any other language comes from the packages.
+  attribute(element, 'language', language.value === 'en' ? null : language.value);
   applyComposition(element);
 }
 
@@ -915,6 +902,7 @@ function markupFor(element: MatteboxPlayerElement): string {
     'poster',
     'subtitle-size',
     'subtitle-background',
+    'language',
   ]) {
     const value = element.getAttribute(name);
     if (value !== null) attributes.push(`${name}="${value}"`);
@@ -979,15 +967,36 @@ function markupFor(element: MatteboxPlayerElement): string {
   const imports = built.keys
     ? "\n  import full from 'mattebox/presets/full';\n  import emeCore from 'mattebox/stages/eme-core';"
     : '';
+  // A language is one import per package on the page that has words, and one registration.
+  const code = element.getAttribute('language');
+  const used = WORD_PACKAGES.filter(
+    (name) =>
+      name === '@mattebox/player' ||
+      (name === '@mattebox/player-cast' && extra.includes(name)) ||
+      (name === '@mattebox/player-diagnostics' && extra.includes(name)),
+  );
+  const words = used.map((name) =>
+    name === '@mattebox/player' ? 'words' : `${name.slice('@mattebox/player-'.length)}Words`,
+  );
+  const locales =
+    code === null
+      ? ''
+      : `${used.map((name, index) => `\n  import ${words[index]} from '${name}/locales/${code}';`).join('')}`;
+  const register =
+    code === null ? '' : `\n  MatteboxPlayerElement.addLocale('${code}', ${words.join(', ')});`;
   const script =
     options.length > 0
       ? `<script type="module">
-  import { MatteboxPlayerElement } from '@mattebox/player';${extra}${imports}
+  import { MatteboxPlayerElement } from '@mattebox/player';${extra}${imports}${locales}
   MatteboxPlayerElement.define({
 ${options.join('\n')}
-  });${edges}${markers}
+  });${register}${edges}${markers}
 </script>`
-      : `<script type="module">
+      : code !== null
+        ? `<script type="module">
+  import { MatteboxPlayerElement } from '@mattebox/player';${extra}${locales}${register}${edges}${markers}
+</script>`
+        : `<script type="module">
   import '@mattebox/player';${extra}${edges}${markers}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
@@ -1202,7 +1211,8 @@ for (const row of ROWS) {
   });
 }
 
-for (const [code, { name }] of Object.entries(LANGUAGES)) {
+registerLanguages();
+for (const [code, name] of Object.entries(LANGUAGES)) {
   const option = document.createElement('option');
   option.value = code;
   option.textContent = name;

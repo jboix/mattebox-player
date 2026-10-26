@@ -60,7 +60,7 @@ export class MbxSpinner extends Component {
   protected override render(): void {
     const player = this.player;
     if (player === null) return;
-    this.setAttribute('aria-label', this.getAttribute('label') ?? 'Loading');
+    this.setAttribute('aria-label', this.word('label', 'loading', 'Loading'));
     // The player reflects the same events, and reads them first: it listens
     // from its constructor, before any control attaches.
     this.toggleAttribute('waiting', player.hasAttribute('waiting'));

@@ -144,14 +144,16 @@ export class MbxCastScreen extends Component {
     show(this.slots, state);
     this.play.setAttribute(
       'aria-label',
-      this.getAttribute(`label-${state}`) ?? (state === 'play' ? 'Play' : 'Pause'),
+      state === 'play'
+        ? this.word('label-play', 'play', 'Play')
+        : this.word('label-pause', 'pause', 'Pause'),
     );
-    this.seek.label(this.getAttribute('label-seek') ?? 'Seek');
-    this.stop.textContent = this.getAttribute('label-stop') ?? 'Stop casting';
+    this.seek.label(this.word('label-seek', 'seek', 'Seek'));
+    this.stop.textContent = this.word('label-stop', 'castStop', 'Stop casting');
     const casting = api.state() === 'casting';
     this.hidden = !casting;
     if (!casting) return;
-    this.title_.textContent = fill(this.getAttribute('label') ?? 'Casting to {device}', {
+    this.title_.textContent = fill(this.word('label', 'castingTo', 'Casting to {device}'), {
       device: api.device() ?? '',
     });
     this.play.disabled = !remote.loaded;

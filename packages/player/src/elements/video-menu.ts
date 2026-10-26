@@ -19,18 +19,19 @@ import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { TrackEntry } from '../controls/track-names.js';
 import { trackNames } from '../controls/track-names.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { onTracks } from './audio-menu.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
-/** The default name of each kind of HTML's `VideoTrack.kind`. */
-const KINDS: Readonly<Record<string, string>> = {
-  main: 'Main',
-  alternative: 'Alternative',
-  sign: 'Sign language',
-  captions: 'Captions',
-  subtitles: 'Subtitles',
-  commentary: 'Commentary',
+/** The id and the English name of each kind of HTML's `VideoTrack.kind`. */
+const KINDS: Readonly<Record<string, readonly [keyof Messages, string]>> = {
+  main: ['videoMain', 'Main'],
+  alternative: ['videoAlternative', 'Alternative'],
+  sign: ['videoSign', 'Sign language'],
+  captions: ['videoCaptions', 'Captions'],
+  subtitles: ['videoSubtitles', 'Subtitles'],
+  commentary: ['videoCommentary', 'Commentary'],
 };
 
 /** The value of a version at its own URL, by its place; the source itself is `source:`. */
@@ -54,8 +55,8 @@ export class MbxVideoMenu extends MenuElement {
     show(this.slots, 'default');
   }
 
-  protected override name(): string {
-    return 'Video';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['video', 'Video'];
   }
 
   protected override attach(player: PlayerHost): void {
@@ -77,7 +78,10 @@ export class MbxVideoMenu extends MenuElement {
   /** The name of `kind`, from its attribute; an empty kind is the main picture. */
   private kindName(kind: string): string | undefined {
     const key = kind === '' ? 'main' : kind;
-    return this.getAttribute(`label-${key}`) ?? KINDS[key];
+    const known = KINDS[key];
+    return known === undefined
+      ? (this.getAttribute(`label-${key}`) ?? undefined)
+      : this.word(`label-${key}`, ...known);
   }
 
   /**
@@ -159,7 +163,11 @@ export class MbxVideoMenu extends MenuElement {
             : [[], null];
     const entries = [...own, ...this.sources(versions)];
     const value = playing !== null ? `${SOURCE}${versions.indexOf(playing)}` : active;
-    const items = trackNames(entries, this.getAttribute('label-track'));
+    const items = trackNames(
+      entries,
+      this.word('label-track', 'track', 'Track'),
+      player.locale || undefined,
+    );
     this.menu.fill([
       {
         name: 'track',

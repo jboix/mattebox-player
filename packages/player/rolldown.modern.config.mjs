@@ -13,6 +13,10 @@ export default defineConfig({
     ...Object.fromEntries(
       globSync('src/entries/*.ts').map((file) => [`entries/${basename(file, '.ts')}`, file]),
     ),
+    // One entry per language, which a page imports or loads on its own.
+    ...Object.fromEntries(
+      globSync('src/locales/*.ts').map((file) => [`locales/${basename(file, '.ts')}`, file]),
+    ),
   },
   external: [/^mattebox(\/|$)/, '@mattebox/player-core'],
   plugins: [inlineCss()],

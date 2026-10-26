@@ -84,7 +84,7 @@ export class MbxErrorScreen extends Component {
   }
 
   protected override render(): void {
-    this.title_.textContent = this.getAttribute('label-title') ?? 'Playback failed';
-    this.retry.textContent = this.getAttribute('label-retry') ?? 'Retry';
+    this.title_.textContent = this.word('label-title', 'playbackFailed', 'Playback failed');
+    this.retry.textContent = this.word('label-retry', 'retry', 'Retry');
   }
 }

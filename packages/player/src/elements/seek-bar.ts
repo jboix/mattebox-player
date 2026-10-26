@@ -292,12 +292,12 @@ export class MbxSeekBar extends Component {
   private say(time: number): string {
     const engine = this.player?.engine ?? null;
     if (!this.isLive()) {
-      const template = this.getAttribute('label-of') ?? '{current} of {duration}';
+      const template = this.word('label-of', 'seekOf', '{current} of {duration}');
       return Number.isFinite(this.range.end) && this.range.end > 0
         ? fill(template, { current: format(time), duration: format(this.range.end) })
         : format(time);
     }
-    const behind = fill(this.getAttribute('label-behind') ?? '{time} behind live', {
+    const behind = fill(this.word('label-behind', 'behindLive', '{time} behind live'), {
       time: format(this.range.end - time),
     });
     const clock = wall(engine, time);
@@ -597,7 +597,7 @@ export class MbxSeekBar extends Component {
     // preview would show them.
     const blocked = this.player?.markers.within(when).find((marker) => marker.kind === 'blocked');
     const title = blocked
-      ? (blocked.label ?? this.getAttribute('label-blocked') ?? 'Not available')
+      ? (blocked.label ?? this.word('label-blocked', 'blocked', 'Not available'))
       : (chapter?.title ?? '');
     this.caption.hidden = title === '';
     this.caption.textContent = title;
@@ -675,7 +675,7 @@ export class MbxSeekBar extends Component {
     const on = api !== undefined;
     this.range = span(video, engine);
     this.list = chapters(video, engine);
-    this.bar.label(this.getAttribute('label') ?? 'Seek');
+    this.bar.label(this.word('label', 'seek', 'Seek'));
     this.bar.range(this.range.start, this.range.end);
     this.paintRanges(this.buffered, spans(video.buffered), 'buffered-range');
     this.paintRanges(this.blocked, this.blockedRanges(), 'blocked-range');

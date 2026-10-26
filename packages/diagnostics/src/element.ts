@@ -21,6 +21,7 @@
  * No class fields: the ES2015 build would lower them into helpers, and the
  * player's emit check bans helpers. State is declared, then assigned.
  */
+import type { Messages } from '@mattebox/player';
 import type { Mattebox } from 'mattebox';
 import type { Charts, ChartTab, Palette } from './charts.js';
 import { CHART_TABS, createCharts } from './charts.js';
@@ -29,6 +30,7 @@ import { bitrate, clock, fixed, ranges, rendition, share } from './format.js';
 import type { PlayerError, PlayerHost } from './host.js';
 import { findPlayer, whenPlayer } from './host.js';
 import { icon } from './icon.js';
+import type {} from './messages.js';
 import type { DiagnosticsReport, QoeFigures } from './report.js';
 import { buildReport } from './report.js';
 import type { Sampler } from './sampler.js';
@@ -112,7 +114,7 @@ function cell(value: Cell): [string, string] {
 
 export class MbxDiagnostics extends HTMLElement {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-copy', 'label-copied', 'window'];
+    return ['label', 'label-copy', 'label-copied', 'label-close', 'window'];
   }
 
   declare private player: PlayerHost | null;
@@ -134,6 +136,7 @@ export class MbxDiagnostics extends HTMLElement {
   declare private readonly tabs: Record<Tab, HTMLButtonElement>;
   declare private readonly pages: Record<Tab, HTMLElement>;
   declare private readonly copy: HTMLButtonElement;
+  declare private readonly closer: HTMLButtonElement;
   declare private readonly canvas: HTMLCanvasElement;
   declare private readonly chartTabs: Record<ChartTab, HTMLButtonElement>;
   declare private readonly windowSelect: HTMLSelectElement;
@@ -208,13 +211,12 @@ export class MbxDiagnostics extends HTMLElement {
     this.copy.addEventListener('click', () => {
       void this.copyReport();
     });
-    const close = button('close', '✕');
-    close.setAttribute('aria-label', 'Close');
-    close.addEventListener('click', () => {
+    this.closer = button('close', '✕');
+    this.closer.addEventListener('click', () => {
       this.hide();
       this.toggle.focus();
     });
-    head.append(this.copy, close);
+    head.append(this.copy, this.closer);
 
     // The charts page: its own tabs, the window, the canvas, the legend and the readout.
     const chartTabs = el('div', 'chart-tabs');
@@ -290,6 +292,7 @@ export class MbxDiagnostics extends HTMLElement {
 
   private attach(player: PlayerHost): void {
     this.player = player;
+    this.renderLabels();
     this.sampler.attach(player.video, player.engine);
     const on = (target: EventTarget, name: string, fn: (event: Event) => void): void => {
       target.addEventListener(name, fn);
@@ -297,6 +300,9 @@ export class MbxDiagnostics extends HTMLElement {
         target.removeEventListener(name, fn);
       });
     };
+    on(player, 'localechange', () => {
+      this.renderLabels();
+    });
     on(player, 'sourcechange', () => {
       this.sampler.attach(player.video, player.engine);
       this.poll();
@@ -414,11 +420,21 @@ export class MbxDiagnostics extends HTMLElement {
     }
   }
 
+  /**
+   * A word of the panel's frame: its `attribute` when the page set one,
+   * else the player's language's `id`, else `english`.
+   */
+  private word(attribute: string, id: keyof Messages, english: string): string {
+    return this.getAttribute(attribute) ?? this.player?.message(id) ?? english;
+  }
+
   private renderLabels(): void {
-    this.toggle.setAttribute('aria-label', this.getAttribute('label') ?? 'Diagnostics');
-    this.panel.setAttribute('aria-label', this.getAttribute('label') ?? 'Diagnostics');
+    const name = this.word('label', 'diagnostics', 'Diagnostics');
+    this.toggle.setAttribute('aria-label', name);
+    this.panel.setAttribute('aria-label', name);
+    this.closer.setAttribute('aria-label', this.word('label-close', 'diagnosticsClose', 'Close'));
     if (this.copied === undefined) {
-      this.copy.textContent = this.getAttribute('label-copy') ?? 'Copy report';
+      this.copy.textContent = this.word('label-copy', 'diagnosticsCopy', 'Copy report');
     }
     const raw = Number(this.getAttribute('window'));
     const seconds = Number.isFinite(raw) && raw > 0 ? raw : WINDOW;
@@ -438,7 +454,7 @@ export class MbxDiagnostics extends HTMLElement {
     } catch {
       return;
     }
-    this.copy.textContent = this.getAttribute('label-copied') ?? 'Copied';
+    this.copy.textContent = this.word('label-copied', 'diagnosticsCopied', 'Copied');
     clearTimeout(this.copied);
     this.copied = setTimeout(() => {
       this.copied = undefined;

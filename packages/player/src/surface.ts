@@ -14,11 +14,12 @@ export interface ErrorSurface {
   clear(): void;
 }
 
-export function errorSurface(retry: () => void): ErrorSurface {
+/** `word` names the retry, in the player's language at the time of the error. */
+export function errorSurface(retry: () => void, word: () => string): ErrorSurface {
   const root = el('div', 'error');
   const category = el('span', 'value error-category');
   const code = el('span', 'value error-code');
-  const button = el('button', 'button error-retry', 'Retry');
+  const button = el('button', 'button error-retry');
   button.type = 'button';
   button.addEventListener('click', retry);
   root.append(category, code, button);
@@ -29,6 +30,7 @@ export function errorSurface(retry: () => void): ErrorSurface {
     show(error: PlayerError): void {
       category.textContent = error.category;
       code.textContent = error.code;
+      button.textContent = word();
       root.hidden = false;
     },
     clear(): void {

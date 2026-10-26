@@ -21,6 +21,7 @@ export type {
 export { LICENSE_NAMESPACE } from './cast.js';
 export { MbxCastButton } from './cast-button.js';
 export { MbxCastScreen } from './cast-screen.js';
+export type { CastMessages } from './messages.js';
 
 export const CAST_BUTTON = 'mbx-cast-button';
 export const CAST_SCREEN = 'mbx-cast-screen';

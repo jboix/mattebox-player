@@ -75,6 +75,13 @@ lists in a native session, and the DRM badge reads `session.eme`. The player ref
 control takes its parameters and its labels as attributes, and its icon
 through a slot.
 
+A label the page did not set comes from the player's language:
+`player.message(id)`, from the words a page registered with
+`MatteboxPlayerElement.addLocale`. The registry is one per page, inside the
+player. Each package ships its own words as `locales/<language>` entries, so
+the extensions need no runtime import of the player. A control renders again
+on `localechange`.
+
 | Control                                                               | What it reads                                                                                               |
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `mbx-quality-menu`                                                    | `engine.quality`                                                                                            |

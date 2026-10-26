@@ -31,6 +31,7 @@ import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { TrackEntry } from '../controls/track-names.js';
 import { trackNames } from '../controls/track-names.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { onTracks, trackItems } from './audio-menu.js';
 import { MenuElement } from './menu-element.js';
 import { show } from './shared.js';
@@ -39,16 +40,19 @@ const OFF = 'off';
 export const SUBTITLE_SIZE = 'subtitle-size';
 export const SUBTITLE_BACKGROUND = 'subtitle-background';
 
-const SIZES: ReadonlyArray<readonly [string, string]> = [
-  ['small', 'Small'],
-  ['medium', 'Medium'],
-  ['large', 'Large'],
-  ['xlarge', 'Extra large'],
+/** A look's value, the id of its word, and its English. */
+type Choice = readonly [string, keyof Messages, string];
+
+const SIZES: readonly Choice[] = [
+  ['small', 'sizeSmall', 'Small'],
+  ['medium', 'sizeMedium', 'Medium'],
+  ['large', 'sizeLarge', 'Large'],
+  ['xlarge', 'sizeExtraLarge', 'Extra large'],
 ];
-const BACKGROUNDS: ReadonlyArray<readonly [string, string]> = [
-  ['none', 'None'],
-  ['dark', 'Dark'],
-  ['solid', 'Solid'],
+const BACKGROUNDS: readonly Choice[] = [
+  ['none', 'backgroundNone', 'None'],
+  ['dark', 'backgroundDark', 'Dark'],
+  ['solid', 'backgroundSolid', 'Solid'],
 ];
 
 type State = 'off' | 'on';
@@ -79,8 +83,8 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     show(this.slots, 'off');
   }
 
-  protected override name(): string {
-    return 'Subtitles';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['subtitles', 'Subtitles'];
   }
 
   /**
@@ -92,16 +96,17 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
     player: PlayerHost,
     attribute: string,
     name: string,
+    id: keyof Messages,
     fallback: string,
-    choices: ReadonlyArray<readonly [string, string]>,
+    choices: readonly Choice[],
     initial: string,
     glyph: IconName,
   ): MenuPage {
     const set = player.getAttribute(attribute);
     const value = set !== null && choices.some(([id]) => id === set) ? set : initial;
-    const label = this.getAttribute(`label-${name}`) ?? fallback;
+    const label = this.word(`label-${name}`, id, fallback);
     const items = choices.map(
-      ([id, text]) => [id, this.getAttribute(`label-${id}`) ?? text] as const,
+      ([value, word, english]) => [value, this.word(`label-${value}`, word, english)] as const,
     );
     return {
       name,
@@ -139,7 +144,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
 
   /** The native session's subtitle tracks as entries, and the showing one's. */
   private native(tracks: readonly TextTrack[]): [TrackEntry[], string | null] {
-    const sdh = this.getAttribute('label-sdh') ?? 'SDH';
+    const sdh = this.word('label-sdh', 'sdh', 'SDH');
     const entries = tracks.map(
       (track, index): TrackEntry => [
         String(index),
@@ -168,6 +173,8 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       this.hidden = true;
       return;
     }
+    const cc = this.word('label-cc', 'closedCaptions', 'CC');
+    const sdh = this.word('label-sdh', 'sdh', 'SDH');
     const [tracks, active] =
       listed !== undefined
         ? this.native(listed)
@@ -176,27 +183,27 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
             'text',
             (track) => [
               // A manifest names in-band captions by their channel (guide chapter 06).
-              ...(track.instreamId !== undefined ? [this.getAttribute('label-cc') ?? 'CC'] : []),
-              ...(isSdh(track) ? [this.getAttribute('label-sdh') ?? 'SDH'] : []),
+              ...(track.instreamId !== undefined ? [cc] : []),
+              ...(isSdh(track) ? [sdh] : []),
             ],
             (track) => track.forced !== true,
           );
-    const word = this.getAttribute('label-track');
+    const word = this.word('label-track', 'track', 'Track');
     const items: MenuGroup['items'] = [
-      [OFF, this.getAttribute('label-off') ?? 'Off'],
-      ...trackNames(tracks, word),
+      [OFF, this.word('label-off', 'subtitlesOff', 'Off')],
+      ...trackNames(tracks, word, player.locale || undefined),
     ];
     this.menu.fill([
       {
         name: 'track',
-        label: word ?? 'Track',
+        label: word,
         // The menu's title says what the list is.
         hideLabel: true,
         items,
         // The badges are glyphs, named by `label-cc` and `label-sdh`.
         badgeGlyphs: {
-          [this.getAttribute('label-cc') ?? 'CC']: () => icon('closed-captions'),
-          [this.getAttribute('label-sdh') ?? 'SDH']: () => icon('sdh'),
+          [cc]: () => icon('closed-captions'),
+          [sdh]: () => icon('sdh'),
         },
         value: active ?? OFF,
         onSelect: (value) => {
@@ -212,13 +219,23 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       },
       {
         name: 'settings',
-        label: this.getAttribute('label-settings') ?? 'Settings',
+        label: this.word('label-settings', 'subtitleSettings', 'Settings'),
         entries: [
-          this.looks(player, SUBTITLE_SIZE, 'size', 'Size', SIZES, 'medium', 'text-size'),
+          this.looks(
+            player,
+            SUBTITLE_SIZE,
+            'size',
+            'subtitleSize',
+            'Size',
+            SIZES,
+            'medium',
+            'text-size',
+          ),
           this.looks(
             player,
             SUBTITLE_BACKGROUND,
             'background',
+            'subtitleBackground',
             'Background',
             BACKGROUNDS,
             'dark',

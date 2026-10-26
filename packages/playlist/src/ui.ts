@@ -7,7 +7,8 @@
  * No class fields: the ES2015 build would lower them into helpers. State is
  * declared, then assigned in the constructor.
  */
-import type { PlayerHost } from '@mattebox/player';
+import type { Messages, PlayerHost } from '@mattebox/player';
+import type {} from './messages.js';
 import type { Playlist } from './playlist.js';
 import { playlistOf } from './playlist.js';
 
@@ -117,8 +118,10 @@ export abstract class PlaylistControl extends HTMLElement {
         else this.setAttribute('layout', layout);
       };
       player.addEventListener('layoutchange', tier);
+      player.addEventListener('localechange', render);
       this.offs.push(() => {
         player.removeEventListener('layoutchange', tier);
+        player.removeEventListener('localechange', render);
       });
       tier();
       this.attach(player);
@@ -134,6 +137,14 @@ export abstract class PlaylistControl extends HTMLElement {
 
   attributeChangedCallback(_name?: string): void {
     if (this.player !== null) this.render();
+  }
+
+  /**
+   * A word the element shows: its `attribute` when the page set one, else
+   * the player's language's `id`, else `english`.
+   */
+  protected word(attribute: string, id: keyof Messages, english: string): string {
+    return this.getAttribute(attribute) ?? this.player?.message(id) ?? english;
   }
 
   /** Keeps `off` to run on disconnect. */

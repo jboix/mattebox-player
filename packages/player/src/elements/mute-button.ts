@@ -63,8 +63,8 @@ export class MbxMuteButton extends Component {
     this.button.setAttribute(
       'aria-label',
       silent
-        ? (this.getAttribute('label-unmute') ?? 'Unmute')
-        : (this.getAttribute('label-mute') ?? 'Mute'),
+        ? this.word('label-unmute', 'unmute', 'Unmute')
+        : this.word('label-mute', 'mute', 'Mute'),
     );
     this.button.setAttribute('aria-pressed', String(video.muted));
   }

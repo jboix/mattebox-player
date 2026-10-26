@@ -16,6 +16,7 @@ over the picture under `controls="custom"`.
 | `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
 | `tooltips`            | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
 | `announce`            | `off` silences the live region, for a page that announces changes itself. See [Labels](#labels)                                                                              |
+| `language`            | Names the language of the words, over the nearest `lang`. See [Languages](#languages). Changing it never reloads                                                             |
 | `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
 | `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
 | `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
@@ -140,6 +141,8 @@ player.sources = [
 | `markers`      | The ranges the page named in this source: see [Markers](#markers)                                       |
 | `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)   |
 | `videoSource`  | The version that plays, or null for the source itself                                                   |
+| `language`     | The `language` attribute, or empty. Setting it changes the words at once                                |
+| `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either         |
 
 `selectVideoSource(version)` plays a version of `videoSources`, or the
 source itself for null. It fires `videosourcechange`, whose `detail` is the
@@ -154,6 +157,11 @@ load replaces it.
 ```ts
 player.switchSource({ url: 'vod/manifest.mpd', type: 'application/dash+xml' });
 ```
+
+`message(id)` answers the word of `id` in the player's language, or
+undefined where the control's English applies.
+`MatteboxPlayerElement.addLocale(language, ...sources)` registers words for
+every player. See [Languages](#languages).
 
 `retry()` loads the sources again, in the order a load reads them: the
 `src` attribute, the `sources` property, then the `<source>` children. On
@@ -175,6 +183,10 @@ player.addEventListener('error', (event) => {
 
 `layoutchange` fires when the size tier changes. Its `detail` is the new
 tier.
+
+`localechange` fires when the words change: a new `language` or `lang`, a
+language that finished loading, or an `addLocale` call. Its `detail` is the
+language tag, empty for English.
 
 `castload` comes from the button of `@mattebox/player-cast`. It fires
 before the request goes to the receiver. It bubbles, it is composed, and it
@@ -526,17 +538,63 @@ button.addEventListener('castload', (event) => {
 });
 ```
 
+### Languages
+
+Each package ships its words in 11 languages besides English: `ar`, `ca`,
+`de`, `es`, `fr`, `hi`, `it`, `ja`, `ko`, `pt` (European) and `zh`
+(Simplified). Each language is an entry of its own, so a page downloads only
+the languages it imports. You register a language once for every player on
+the page:
+
+```ts
+import { MatteboxPlayerElement } from '@mattebox/player';
+import words from '@mattebox/player/locales/de';
+import playlistWords from '@mattebox/player-playlist/locales/de';
+
+MatteboxPlayerElement.addLocale('de', words, playlistWords);
+```
+
+A source can also be a function that loads the words. It runs only when a
+player shows that language, so a page registers every language it offers
+and downloads one:
+
+```ts
+MatteboxPlayerElement.addLocale('fr', () => import('@mattebox/player/locales/fr'));
+```
+
+A player shows, from the first that applies:
+
+1. A control's `label-*` attribute. See [Labels](#labels).
+2. The words of its `language` attribute, such as `language="fr"`.
+3. The words of the nearest `lang` attribute: on the player, an ancestor,
+   or `<html>`.
+4. English, which the controls carry themselves.
+
+- A tag with a region falls back to its language: `de-CH` takes `de`.
+- A word a language lacks stays English.
+- Changing `language`, or `lang` on `<html>` or on the player, changes
+  every word at once, without a reload. A change of `lang` on another
+  ancestor is read at the next connect; set `language` instead.
+- A later `addLocale` for a language goes over the earlier one, so you
+  change one word with `addLocale('de', { play: 'Abspielen' })`.
+- The ids and their English are in the `PlayerMessages` type, and in
+  `PlaylistMessages`, `CastMessages` and `DiagnosticsMessages` for the
+  packages. A word set that misses an id fails to compile with
+  `satisfies PlayerMessages`.
+- A control of your own reads a word with `player.message(id)`, and
+  renders again on `localechange`.
+
+The shipped words are machine drafts that no native speaker has reviewed
+yet.
+
 ### Labels
 
 Every text a control shows, and every name it gives itself, is an attribute
-of that control. English is the value when the attribute is absent. Each
-state has its own attribute: `label-play`, `label-pause`, `label-replay`.
+of that control. The attribute wins over the player's language. Each state
+has its own attribute: `label-play`, `label-pause`, `label-replay`.
 
 A label can contain a value in braces: `label="Enrere {seconds} segons"`. A
 name in braces the control does not know stays as written.
-
-Translation is the page's, with whatever it uses for its strings. The
-player ships no locales.
 
 ```html
 <mbx-play-button label-play="Reproduir" label-pause="Pausa" label-replay="Torna a reproduir"></mbx-play-button>
@@ -548,15 +606,17 @@ The audio and subtitles menus name a track by the first of these it has:
 
 1. The name in the manifest (HLS `NAME`, DASH `Label`), or the label of a
    native track.
-2. The language's name in the page's language (`lang` on `<html>`, else
-   the browser's). This needs `Intl.DisplayNames`, which Chromium 76 and
-   79 do not have.
+2. The language's name in the player's language (see
+   [Languages](#languages)), else the page's (`lang` on `<html>`), else the
+   browser's. This needs `Intl.DisplayNames`, which Chromium 76 and 79 do
+   not have.
 3. The language code.
 4. "Track" (`label-track`) and the track's place in the list.
 
 The role `main` is not shown. Two tracks that read the same take a hint in
 parentheses: the audio channel layout ("Stereo", "5.1") when the engine
-gives one, then the role, then the place in the list.
+gives one, then the role, then the place in the list. "Mono" and "Stereo"
+come from `label-mono` and `label-stereo` on the audio menu.
 
 A badge after the name marks a standard characteristic, from the engine's
 track functions.
@@ -575,7 +635,7 @@ The player says what changes in a live region that a screen reader reads:
 a play, a pause, a wait of over a second, a fatal error and a track change.
 It says a track change only after the first play. It says no error while
 an `mbx-error-screen` is inside, because the screen is an alert itself.
-Its phrases are attributes of the player.
+Its phrases are attributes of the player, over its language.
 
 | Attribute             | English              | Said when                                 |
 | --------------------- | -------------------- | ----------------------------------------- |

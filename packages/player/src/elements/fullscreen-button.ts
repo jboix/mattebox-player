@@ -65,8 +65,8 @@ export class MbxFullscreenButton extends Component {
     this.button.setAttribute(
       'aria-label',
       active
-        ? (this.getAttribute('label-exit') ?? 'Exit fullscreen')
-        : (this.getAttribute('label-enter') ?? 'Enter fullscreen'),
+        ? this.word('label-exit', 'exitFullscreen', 'Exit fullscreen')
+        : this.word('label-enter', 'enterFullscreen', 'Enter fullscreen'),
     );
     player.toggleAttribute('fullscreen', active);
   }

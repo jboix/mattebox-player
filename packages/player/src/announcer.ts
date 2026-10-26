@@ -8,16 +8,18 @@
  * Every phrase is an attribute on the player, `label-playing`,
  * `label-paused`, `label-loading`, `label-error`, `label-audio`,
  * `label-subtitles` and `label-subtitles-off`; `{track}` in the last
- * three's text is the track's name. `announce="off"` keeps it quiet, for
- * a page that announces on its own.
+ * three's text is the track's name. Without the attribute, the phrase
+ * comes from the player's language, else English. `announce="off"` keeps
+ * it quiet, for a page that announces on its own.
  */
 import { el } from './dom.js';
 import { fill } from './labels.js';
+import type { Messages } from './messages.js';
 
 export interface Announcer {
   readonly root: HTMLElement;
-  /** Says the phrase of `label-<name>`, else `fallback`. */
-  say(name: string, fallback: string, track?: string): void;
+  /** Says the phrase of `label-<name>`, else the language's `id`, else `fallback`. */
+  say(name: string, id: keyof Messages, fallback: string, track?: string): void;
 }
 
 /**
@@ -27,7 +29,10 @@ export interface Announcer {
  */
 const REFILL_MS = 100;
 
-export function announcer(host: HTMLElement): Announcer {
+export function announcer(
+  host: HTMLElement,
+  word: (id: keyof Messages) => string | undefined,
+): Announcer {
   const root = el('div', 'announcer');
   root.setAttribute('role', 'status');
   // role="status" implies it; some older screen readers read only the attribute.
@@ -35,9 +40,9 @@ export function announcer(host: HTMLElement): Announcer {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return {
     root,
-    say(name, fallback, track = '') {
+    say(name, id, fallback, track = '') {
       if (host.getAttribute('announce') === 'off') return;
-      const text = fill(host.getAttribute(`label-${name}`) ?? fallback, { track });
+      const text = fill(host.getAttribute(`label-${name}`) ?? word(id) ?? fallback, { track });
       root.textContent = '';
       clearTimeout(timer);
       timer = setTimeout(() => {

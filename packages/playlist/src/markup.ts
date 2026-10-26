@@ -15,6 +15,7 @@
  *   `[{"start":640,"end":734,"kind":"closing-credits"}]`.
  * - Without children, the list is a script's, and the element shows it.
  */
+import type { Messages } from '@mattebox/player';
 import BUTTON_STYLE from './button.css?inline';
 import type { IconName } from './icons.js';
 import { icon } from './icons.js';
@@ -215,22 +216,22 @@ export class MbxPlaylist extends PlaylistControl {
   }
 
   protected render(): void {
-    const word = (name: string, fallback: string): string =>
-      this.getAttribute(`label-${name}`) ?? fallback;
-    this.heading.textContent = this.getAttribute('label') ?? 'Playlist';
-    this.close.setAttribute('aria-label', word('close', 'Close'));
-    this.shuffle.setAttribute('aria-label', word('shuffle', 'Shuffle'));
-    this.previous.setAttribute('aria-label', word('previous', 'Previous'));
-    this.next.setAttribute('aria-label', word('next', 'Next'));
+    const word = (name: string, id: keyof Messages, fallback: string): string =>
+      this.word(`label-${name}`, id, fallback);
+    this.heading.textContent = this.word('label', 'playlist', 'Playlist');
+    this.close.setAttribute('aria-label', word('close', 'playlistClose', 'Close'));
+    this.shuffle.setAttribute('aria-label', word('shuffle', 'playlistShuffle', 'Shuffle'));
+    this.previous.setAttribute('aria-label', word('previous', 'playlistPrevious', 'Previous'));
+    this.next.setAttribute('aria-label', word('next', 'playlistNext', 'Next'));
     const playlist = this.playlist;
     const mode = playlist?.repeat ?? 'none';
     this.repeat.setAttribute(
       'aria-label',
       mode === 'all'
-        ? word('repeat-all', 'Repeat all')
+        ? word('repeat-all', 'playlistRepeatAll', 'Repeat all')
         : mode === 'one'
-          ? word('repeat-one', 'Repeat one')
-          : word('repeat-off', 'Repeat off'),
+          ? word('repeat-one', 'playlistRepeatOne', 'Repeat one')
+          : word('repeat-off', 'playlistRepeatOff', 'Repeat off'),
     );
     this.repeat.setAttribute('aria-pressed', String(mode !== 'none'));
     this.badge.hidden = mode !== 'one';

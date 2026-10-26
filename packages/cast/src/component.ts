@@ -15,9 +15,12 @@
  * emit check bans helpers. State is declared, then assigned in the
  * constructor.
  */
+
+import type { Messages } from '@mattebox/player';
 import type { Mattebox } from 'mattebox';
 import type { PlayerHost } from './host.js';
 import { findPlayer, PLAYER } from './host.js';
+import type {} from './messages.js';
 
 export abstract class Component extends HTMLElement {
   declare protected player: PlayerHost | null;
@@ -43,6 +46,9 @@ export abstract class Component extends HTMLElement {
       customElements.upgrade(found);
       if (!('video' in found)) return;
       this.player = found as PlayerHost;
+      this.listen(found, ['localechange'], () => {
+        this.render();
+      });
       this.attach(this.player);
     };
     if ('video' in found) attach();
@@ -61,6 +67,14 @@ export abstract class Component extends HTMLElement {
 
   attributeChangedCallback(): void {
     if (this.player !== null) this.render();
+  }
+
+  /**
+   * A word the element shows: its `attribute` when the page set one, else
+   * the player's language's `id`, else `english`.
+   */
+  protected word(attribute: string, id: keyof Messages, english: string): string {
+    return this.getAttribute(attribute) ?? this.player?.message(id) ?? english;
   }
 
   /** Adds `fn` for every name on `target`, to be removed on detach. */

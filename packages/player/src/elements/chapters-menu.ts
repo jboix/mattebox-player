@@ -11,6 +11,7 @@
 import { chapterAt, chapters, followChapters } from '../controls/chapters.js';
 import { format } from '../controls/time.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
@@ -28,8 +29,8 @@ export class MbxChaptersMenu extends MenuElement {
     show(this.slots, 'default');
   }
 
-  protected override name(): string {
-    return 'Chapters';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['chapters', 'Chapters'];
   }
 
   protected override attach(player: PlayerHost): void {

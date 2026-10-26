@@ -6,6 +6,7 @@
  * from `label`, the word for one from `label-normal`.
  */
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
@@ -21,8 +22,8 @@ export class MbxSpeedMenu extends MenuElement {
     show(this.slots, 'default');
   }
 
-  protected override name(): string {
-    return 'Playback speed';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['speed', 'Playback speed'];
   }
 
   private rates(): number[] {
@@ -46,7 +47,7 @@ export class MbxSpeedMenu extends MenuElement {
     super.render();
     const video = this.player?.video;
     if (video === undefined) return;
-    const normal = this.getAttribute('label-normal') ?? 'Normal';
+    const normal = this.word('label-normal', 'speedNormal', 'Normal');
     const items: Array<readonly [string, string]> = this.rates().map((rate) => [
       String(rate),
       rate === 1 ? normal : `${rate}×`,

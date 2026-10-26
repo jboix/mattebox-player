@@ -11,13 +11,15 @@
  */
 import type { Marker } from '../controls/markers.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { Component } from './component.js';
 import STYLE_CSS from './marker-button.css?inline';
 import { BUTTON_STYLE, style } from './shared.js';
 
-const WORDS: Readonly<Record<string, string>> = {
-  'opening-credits': 'Skip intro',
-  'closing-credits': 'Skip credits',
+/** The id and the English of the button over each kind of range. */
+const WORDS: Readonly<Record<string, readonly [keyof Messages, string]>> = {
+  'opening-credits': ['skipIntro', 'Skip intro'],
+  'closing-credits': ['skipCredits', 'Skip credits'],
 };
 
 export class MbxMarkerButton extends Component {
@@ -113,10 +115,12 @@ export class MbxMarkerButton extends Component {
     this.hidden = this.marker === null;
     if (this.marker === null) return;
     const kind = this.marker.kind;
-    const skip = this.getAttribute('label-skip') ?? 'Skip';
+    const skip = this.word('label-skip', 'skip', 'Skip');
+    const known = WORDS[kind];
     this.button.textContent =
-      this.getAttribute(`label-${kind}`) ??
-      WORDS[kind] ??
-      (this.marker.label === undefined ? skip : `${skip} ${this.marker.label}`);
+      known !== undefined
+        ? this.word(`label-${kind}`, ...known)
+        : (this.getAttribute(`label-${kind}`) ??
+          (this.marker.label === undefined ? skip : `${skip} ${this.marker.label}`));
   }
 }

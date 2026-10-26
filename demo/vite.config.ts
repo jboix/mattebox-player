@@ -8,26 +8,60 @@ import { signedUrl } from './signed-url.js';
 export default defineConfig({
   plugins: [signedUrl()],
   resolve: {
-    alias: {
-      '@mattebox/player-core': fileURLToPath(
-        new URL('../packages/core/src/index.ts', import.meta.url),
-      ),
-      '@mattebox/player-diagnostics': fileURLToPath(
-        new URL('../packages/diagnostics/src/index.ts', import.meta.url),
-      ),
-      '@mattebox/player-cast': fileURLToPath(
-        new URL('../packages/cast/src/index.ts', import.meta.url),
-      ),
-      '@mattebox/player-spatial-nav': fileURLToPath(
-        new URL('../packages/spatial-nav/src/index.ts', import.meta.url),
-      ),
-      '@mattebox/player-playlist': fileURLToPath(
-        new URL('../packages/playlist/src/index.ts', import.meta.url),
-      ),
-      '@mattebox/player': fileURLToPath(
-        new URL('../packages/player/src/index.ts', import.meta.url),
-      ),
-    },
+    // Each package's languages first: the package names below would match
+    // their subpaths too.
+    alias: [
+      {
+        find: /^@mattebox\/player-diagnostics\/locales\/(.+)$/,
+        replacement: fileURLToPath(
+          new URL('../packages/diagnostics/src/locales/$1.ts', import.meta.url),
+        ),
+      },
+      {
+        find: /^@mattebox\/player-cast\/locales\/(.+)$/,
+        replacement: fileURLToPath(new URL('../packages/cast/src/locales/$1.ts', import.meta.url)),
+      },
+      {
+        find: /^@mattebox\/player-playlist\/locales\/(.+)$/,
+        replacement: fileURLToPath(
+          new URL('../packages/playlist/src/locales/$1.ts', import.meta.url),
+        ),
+      },
+      {
+        find: /^@mattebox\/player\/locales\/(.+)$/,
+        replacement: fileURLToPath(
+          new URL('../packages/player/src/locales/$1.ts', import.meta.url),
+        ),
+      },
+      {
+        find: '@mattebox/player-core',
+        replacement: fileURLToPath(new URL('../packages/core/src/index.ts', import.meta.url)),
+      },
+      {
+        find: '@mattebox/player-diagnostics',
+        replacement: fileURLToPath(
+          new URL('../packages/diagnostics/src/index.ts', import.meta.url),
+        ),
+      },
+      {
+        find: '@mattebox/player-cast',
+        replacement: fileURLToPath(new URL('../packages/cast/src/index.ts', import.meta.url)),
+      },
+      {
+        find: '@mattebox/player-spatial-nav',
+        replacement: fileURLToPath(
+          new URL('../packages/spatial-nav/src/index.ts', import.meta.url),
+        ),
+      },
+      {
+        find: '@mattebox/player-playlist',
+        replacement: fileURLToPath(new URL('../packages/playlist/src/index.ts', import.meta.url)),
+      },
+      {
+        find: '@mattebox/player',
+        replacement: fileURLToPath(new URL('../packages/player/src/index.ts', import.meta.url)),
+      },
+    ],
   },
   // The logo is imported from docs/, outside the demo root.
   server: {

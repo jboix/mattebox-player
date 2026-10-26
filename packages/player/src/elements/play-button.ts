@@ -66,6 +66,6 @@ export class MbxPlayButton extends Component {
     if (player === null) return;
     const state: State = player.video.ended ? 'replay' : shownPaused(player) ? 'play' : 'pause';
     show(this.slots, state);
-    this.button.setAttribute('aria-label', this.getAttribute(`label-${state}`) ?? LABELS[state]);
+    this.button.setAttribute('aria-label', this.word(`label-${state}`, state, LABELS[state]));
   }
 }

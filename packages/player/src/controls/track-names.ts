@@ -42,10 +42,17 @@ const LAYOUTS: Readonly<Record<string, string>> = { 1: 'Mono', 2: 'Stereo', 6: '
 /**
  * The audio layout of an HLS CHANNELS value (RFC 8216bis §4.4.6.1): "2"
  * reads Stereo, "6" reads 5.1, a "/JOC" suffix reads Dolby Atmos. Any
- * other count reads as written.
+ * other count reads as written. `words` names a count in the player's
+ * language, such as `{ 2: 'Stéréo' }`.
  */
-export function layout(channels: string | undefined): string | undefined {
-  return channels && (/\/JOC$/.test(channels) ? 'Dolby Atmos' : LAYOUTS[channels] || channels);
+export function layout(
+  channels: string | undefined,
+  words: Readonly<Record<string, string>> = {},
+): string | undefined {
+  return (
+    channels &&
+    (/\/JOC$/.test(channels) ? 'Dolby Atmos' : words[channels] || LAYOUTS[channels] || channels)
+  );
 }
 
 /**

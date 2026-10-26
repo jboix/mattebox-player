@@ -118,18 +118,22 @@ it('the layout lists, the knobs and the language shape the bar and the markup', 
   await setChecked($('[data-screen="start"]'), false);
   expect($$('mattebox-player > mbx-start-button')).toHaveLength(0);
 
-  // A language re-renders the composition, so the play button is queried anew each time.
+  // A language is the player's `language`; the words load and the controls follow.
   const play = () => $('mbx-play-button', bar());
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'ca');
-  expect(play().getAttribute('label-play')).toBe('Reproduir');
-  expect(accessibleName(play())).toBe('Reproduir');
-  expect($$('mbx-skip-button', bar())[0]?.getAttribute('label')).toBe('Enrere {seconds} segons');
-  expect($('#markup').textContent).toContain('label-play="Reproduir"');
+  expect($('mattebox-player').getAttribute('language')).toBe('ca');
+  await expect.poll(() => accessibleName(play())).toBe('Reproduir');
+  expect(play().hasAttribute('label-play')).toBe(false);
+  expect(accessibleName($$('mbx-skip-button', bar())[0] as HTMLElement)).toBe('Enrere 10 segons');
+  expect($('#markup').textContent).toContain('language="ca"');
+  expect($('#markup').textContent).toContain("import words from '@mattebox/player/locales/ca';");
+  expect($('#markup').textContent).toContain("MatteboxPlayerElement.addLocale('ca', words);");
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'ja');
-  expect(play().getAttribute('label-play')).toBe('再生');
+  await expect.poll(() => accessibleName(play())).toBe('再生');
   expect($$('#language option')).toHaveLength(12);
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'en');
-  expect(play().hasAttribute('label-play')).toBe(false);
+  await expect.poll(() => accessibleName(play())).toBe('Play');
+  expect($('mattebox-player').hasAttribute('language')).toBe(false);
 });
 
 it('the chapters menu is in the bar, and the seek bar knob writes chapters="none"', async () => {
@@ -142,7 +146,7 @@ it('the chapters menu is in the bar, and the seek bar knob writes chapters="none
   expect($('mbx-seek-bar', bar()).getAttribute('chapters')).toBe('none');
   expect($('#markup').textContent).toContain('chapters="none"');
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'ca');
-  expect($('mbx-chapters-menu', bar()).getAttribute('label')).toBe('Capítols');
+  await expect.poll(() => accessibleName($('mbx-chapters-menu', bar()))).toBe('Capítols');
 });
 
 it('the diagnostics control is off by default, and its import comes with it', async () => {
@@ -155,7 +159,10 @@ it('the diagnostics control is off by default, and its import comes with it', as
   // A page's control, upgraded: the button carries its name.
   expect(accessibleName($('mbx-diagnostics', bar()))).toBe('Diagnostics');
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'ca');
-  expect($('mbx-diagnostics', bar()).getAttribute('label')).toBe('Diagnòstic');
+  await expect.poll(() => accessibleName($('mbx-diagnostics', bar()))).toBe('Diagnòstic');
+  expect($('#markup').textContent).toContain(
+    "import diagnosticsWords from '@mattebox/player-diagnostics/locales/ca';",
+  );
 });
 
 it('a chapters track in the chooser reaches the element', async () => {

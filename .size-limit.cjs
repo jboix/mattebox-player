@@ -27,7 +27,9 @@ module.exports = [
     // page's engine, never into this download.
     ignore: ['mattebox'],
     brotli: true,
-    limit: '30 kB',
+    // 31 kB since the languages: the registry, the language the player
+    // resolves and watches, and an id at every word took 0.68 kB.
+    limit: '31 kB',
   },
   {
     name: '@mattebox/player-diagnostics',

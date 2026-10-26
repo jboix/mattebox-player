@@ -53,7 +53,7 @@ export class MbxVolumeSlider extends Component {
   protected override render(): void {
     const video = this.player?.video;
     if (video === undefined) return;
-    this.bar.label(this.getAttribute('label') ?? 'Volume');
+    this.bar.label(this.word('label', 'volume', 'Volume'));
     const level = video.muted ? 0 : video.volume;
     this.bar.set(level, `${Math.round(level * 100)}%`);
   }

@@ -15,6 +15,7 @@
 import type { Mattebox } from 'mattebox';
 import type { PlayerHost } from '../host.js';
 import { findPlayer } from '../host.js';
+import type { Messages } from '../messages.js';
 import { PLAYER } from '../tags.js';
 
 export abstract class Component extends HTMLElement {
@@ -53,6 +54,9 @@ export abstract class Component extends HTMLElement {
         tier();
         this.render();
       });
+      this.listen(found, ['localechange'], () => {
+        this.render();
+      });
       tier();
       this.attach(this.player);
     };
@@ -84,6 +88,14 @@ export abstract class Component extends HTMLElement {
     this.offs.push(() => {
       for (const name of names) target.removeEventListener(name, fn);
     });
+  }
+
+  /**
+   * A word the control shows: its `attribute` when the page set one, else
+   * the player's language's `id`, else `english`.
+   */
+  protected word(attribute: string, id: keyof Messages, english: string): string {
+    return this.getAttribute(attribute) ?? this.player?.message(id) ?? english;
   }
 
   /** Keeps `off` to run on detach. */

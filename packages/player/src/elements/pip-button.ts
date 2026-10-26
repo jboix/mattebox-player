@@ -65,8 +65,8 @@ export class MbxPipButton extends Component {
     this.button.setAttribute(
       'aria-label',
       active
-        ? (this.getAttribute('label-exit') ?? 'Leave picture in picture')
-        : (this.getAttribute('label-enter') ?? 'Picture in picture'),
+        ? this.word('label-exit', 'exitPip', 'Leave picture in picture')
+        : this.word('label-enter', 'enterPip', 'Picture in picture'),
     );
     player.toggleAttribute('pip', active);
   }

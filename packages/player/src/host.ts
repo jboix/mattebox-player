@@ -11,6 +11,7 @@
 import type { Player, PlayerError, Source, SourceVideoTrack } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import type { Markers } from './controls/markers.js';
+import type { Messages } from './messages.js';
 import { PLAYER } from './tags.js';
 
 export interface PlayerHost extends HTMLElement {
@@ -30,6 +31,14 @@ export interface PlayerHost extends HTMLElement {
   selectVideoSource(track: SourceVideoTrack | null): void;
   /** Loads another source of the same programme in place, holding the frame and the controls. */
   switchSource(source: Source): void;
+  /** The language tag the words come from, or empty for English. */
+  readonly locale: string;
+  /**
+   * The word of `id` in the player's language, or undefined, where the
+   * control's own English applies. The player fires `localechange` when
+   * the words change.
+   */
+  message(id: keyof Messages): string | undefined;
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */

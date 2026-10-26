@@ -144,16 +144,18 @@ export class MbxUpNext extends PlaylistControl {
     if (picture !== undefined && this.picture.getAttribute('src') !== picture) {
       this.picture.src = picture;
     }
-    this.heading.textContent = this.getAttribute('label') ?? 'Up next';
+    this.heading.textContent = this.word('label', 'upNext', 'Up next');
     this.itemTitle.textContent = next.heading ?? next.src;
-    this.play.textContent = this.getAttribute('label-play') ?? 'Next episode';
-    this.dismiss.setAttribute('aria-label', this.getAttribute('label-dismiss') ?? 'Close');
+    this.play.textContent = this.word('label-play', 'upNextPlay', 'Next episode');
+    this.dismiss.setAttribute('aria-label', this.word('label-dismiss', 'upNextDismiss', 'Close'));
     // The countdown says when auto-advance moves on by itself.
     const counting = ending && playlist?.autoadvance === true;
     this.countdown.hidden = !counting;
     if (counting) {
-      this.countdown.textContent = (
-        this.getAttribute('label-countdown') ?? 'in {seconds} s'
+      this.countdown.textContent = this.word(
+        'label-countdown',
+        'upNextCountdown',
+        'in {seconds} s',
       ).replace('{seconds}', String(Math.max(0, Math.ceil(left))));
     }
   }

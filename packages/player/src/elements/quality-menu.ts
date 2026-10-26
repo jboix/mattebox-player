@@ -8,6 +8,7 @@
 import type { Mattebox } from 'mattebox';
 import { qualityLabels, qualityNames } from '../controls/quality-names.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
@@ -29,8 +30,8 @@ export class MbxQualityMenu extends MenuElement {
     show(this.slots, 'default');
   }
 
-  protected override name(): string {
-    return 'Quality';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['quality', 'Quality'];
   }
 
   protected override attach(player: PlayerHost): void {
@@ -69,7 +70,7 @@ export class MbxQualityMenu extends MenuElement {
     const quality = engine.quality;
     this.playing = this.playingName();
     const items: Array<readonly [string, string, (string | undefined)?]> = [
-      [AUTO, this.getAttribute('label-auto') ?? 'Auto', this.playing],
+      [AUTO, this.word('label-auto', 'qualityAuto', 'Auto'), this.playing],
       ...qualityNames(quality.selectable),
     ];
     this.menu.fill([

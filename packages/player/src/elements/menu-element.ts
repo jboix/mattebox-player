@@ -10,6 +10,7 @@ import { icon } from '../controls/icons.js';
 import type { Menu } from '../controls/menu.js';
 import { menu } from '../controls/menu.js';
 import { fill } from '../labels.js';
+import type { Messages } from '../messages.js';
 import { Component } from './component.js';
 import { iconSlots, MENU_STYLE, style } from './shared.js';
 
@@ -24,22 +25,22 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
       host: this,
       picture: () => this.player?.video.getBoundingClientRect() ?? null,
       frame: () => this.player,
-      back: (page) => fill(this.getAttribute('label-back') ?? 'Back from {page}', { page }),
+      back: (page) => fill(this.word('label-back', 'menuBack', 'Back from {page}'), { page }),
     });
     this.slots = iconSlots(states, glyphs);
     for (const state of states) this.menu.button.append(this.slots[state]);
     root.append(style(MENU_STYLE), this.menu.button, this.menu.backdrop, this.menu.popup);
   }
 
-  /** The default name of the button. */
-  protected abstract name(): string;
+  /** The id and the English of the button's default name. */
+  protected abstract name(): readonly [keyof Messages, string];
 
   protected override detach(): void {
     this.menu.close();
   }
 
   protected override render(): void {
-    this.menu.label(this.getAttribute('label') ?? this.name());
+    this.menu.label(this.word('label', ...this.name()));
   }
 }
 

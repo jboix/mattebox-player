@@ -251,6 +251,12 @@ of your own listens for `playlist` on the player, then reads
 
 `{seconds}` in `label-countdown` becomes the seconds left.
 
+The package ships these words in the player's languages, as
+`@mattebox/player-playlist/locales/<language>`. You register them with the
+player's words: `MatteboxPlayerElement.addLocale('de', words, playlistWords)`.
+The ids are in the `PlaylistMessages` type. See the player guide, chapter
+03, "Languages".
+
 The icon of a bar button is its `icon` slot. The button shows its own icon
 when the slot is empty.
 

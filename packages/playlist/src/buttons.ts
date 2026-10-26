@@ -9,6 +9,7 @@
  *
  * The name of each comes from `label`; the glyph from the `icon` slot.
  */
+import type { Messages } from '@mattebox/player';
 import BUTTON_STYLE from './button.css?inline';
 import type { IconName } from './icons.js';
 import { icon } from './icons.js';
@@ -35,8 +36,8 @@ abstract class PlaylistButton extends PlaylistControl {
     root.append(style(BUTTON_STYLE), this.button);
   }
 
-  /** The name it has without a `label`. */
-  protected abstract word(): string;
+  /** The id and the English of the name it has without a `label`. */
+  protected abstract name(): readonly [keyof Messages, string];
 
   protected abstract press(): void;
 
@@ -44,7 +45,7 @@ abstract class PlaylistButton extends PlaylistControl {
   protected abstract shown(): boolean;
 
   protected render(): void {
-    this.button.setAttribute('aria-label', this.getAttribute('label') ?? this.word());
+    this.button.setAttribute('aria-label', this.word('label', ...this.name()));
     this.hidden = !this.shown();
   }
 }
@@ -72,8 +73,8 @@ export class MbxPlaylistButton extends PlaylistButton {
     });
   }
 
-  protected word(): string {
-    return 'Playlist';
+  protected name(): readonly [keyof Messages, string] {
+    return ['playlist', 'Playlist'];
   }
 
   protected press(): void {
@@ -93,8 +94,8 @@ export class MbxPreviousButton extends PlaylistButton {
     super('previous');
   }
 
-  protected word(): string {
-    return 'Previous';
+  protected name(): readonly [keyof Messages, string] {
+    return ['playlistPrevious', 'Previous'];
   }
 
   protected press(): void {
@@ -111,8 +112,8 @@ export class MbxNextButton extends PlaylistButton {
     super('next');
   }
 
-  protected word(): string {
-    return 'Next';
+  protected name(): readonly [keyof Messages, string] {
+    return ['playlistNext', 'Next'];
   }
 
   protected press(): void {

@@ -119,10 +119,16 @@ player.addEventListener('report', (event) => {
 | `label`        | Sets the name of the button and of the panel. The default is "Diagnostics"            |
 | `label-copy`   | Sets the text of the copy button. The default is "Copy report"                        |
 | `label-copied` | Sets the text of the copy button after a copy. The default is "Copied"                |
+| `label-close`  | Sets the name of the close button. The default is "Close"                             |
 | `window`       | Sets the window of the charts in seconds: 30, 60, 120, 300 or 600. The default is 120 |
 
 The keys on the pages and the names of the tabs are technical English, with
 no attribute. The panel is for an integrator, and a viewer never opens it.
+
+The four attributes above also come in the player's languages, as
+`@mattebox/player-diagnostics/locales/<language>`, which you register with
+the player's words. The ids are in the `DiagnosticsMessages` type. See the
+player guide, chapter 03, "Languages".
 
 The icon is the `icon` slot. The element shows its own icon when the slot
 is empty.

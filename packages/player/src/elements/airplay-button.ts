@@ -73,8 +73,8 @@ export class MbxAirplayButton extends Component {
     this.button.setAttribute(
       'aria-label',
       active
-        ? (this.getAttribute('label-active') ?? 'Stop AirPlay')
-        : (this.getAttribute('label') ?? 'AirPlay'),
+        ? this.word('label-active', 'stopAirplay', 'Stop AirPlay')
+        : this.word('label', 'airplay', 'AirPlay'),
     );
     player.toggleAttribute('airplay', active);
   }

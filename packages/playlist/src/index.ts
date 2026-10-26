@@ -13,6 +13,7 @@ import { MbxUpNext } from './up-next.js';
 
 export { MbxNextButton, MbxPlaylistButton, MbxPreviousButton } from './buttons.js';
 export { MbxPlaylist, MbxPlaylistItem } from './markup.js';
+export type { PlaylistMessages } from './messages.js';
 export type { RepeatMode } from './order.js';
 export type { Playlist, PlaylistChange, PlaylistItem, PlaylistOptions } from './playlist.js';
 export { createPlaylist, playlistOf } from './playlist.js';

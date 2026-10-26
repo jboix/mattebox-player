@@ -121,7 +121,9 @@ export class MbxScanButton extends Component {
     this.badge.hidden = !on;
     this.badge.textContent = on ? `${Math.abs(rate)}×` : '';
     setChildren(this.glyph, icon(backward ? 'fast-backward' : 'fast-forward'));
-    const name = this.getAttribute('label') ?? (backward ? 'Rewind' : 'Fast forward');
+    const name = backward
+      ? this.word('label', 'rewind', 'Rewind')
+      : this.word('label', 'fastForward', 'Fast forward');
     this.button.setAttribute('aria-label', name);
   }
 }

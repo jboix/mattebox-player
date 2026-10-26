@@ -44,6 +44,11 @@
       "modern": "./dist/entries/*.js",
       "default": "./dist/es2015/entries/*.js"
     },
+    "./locales/*": {
+      "types": "./dist/locales/*.d.ts",
+      "modern": "./dist/locales/*.js",
+      "default": "./dist/es2015/locales/*.js"
+    },
     "./package.json": "./package.json"
   },
   "typesVersions": {
@@ -53,6 +58,9 @@
       ],
       "elements/*": [
         "./dist/entries/*.d.ts"
+      ],
+      "locales/*": [
+        "./dist/locales/*.d.ts"
       ]
     }
   },

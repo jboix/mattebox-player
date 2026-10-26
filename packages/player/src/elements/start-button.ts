@@ -138,7 +138,9 @@ export class MbxStartButton extends Component {
     show(this.slots, state);
     this.button.setAttribute(
       'aria-label',
-      this.getAttribute(`label-${state}`) ?? (state === 'play' ? 'Play' : 'Replay'),
+      state === 'play'
+        ? this.word('label-play', 'play', 'Play')
+        : this.word('label-replay', 'replay', 'Replay'),
     );
     // The player reflects `waiting` first: it listens from its constructor.
     const player = this.player;

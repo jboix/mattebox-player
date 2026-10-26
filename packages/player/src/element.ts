@@ -41,6 +41,9 @@ import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { languageName } from './controls/track-names.js';
 import type { PlayerHost } from './host.js';
+import type { LocaleSource } from './locales.js';
+import { addLocale, load, onLocales, registered, wordsNow } from './locales.js';
+import type { Messages, Words } from './messages.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
 import { STYLE } from './style.js';
@@ -69,6 +72,9 @@ const NATIVE_HLS = 'native-hls';
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
 const LICENSE_URL = 'license-url';
+
+/** The language the page chose, over the nearest `lang`. */
+const LANGUAGE = 'language';
 
 /** Carried through a switch: the play state from before it, `playing` or `paused`. */
 const SWITCHING = 'switching';
@@ -159,9 +165,9 @@ const STATE_EVENTS = [
  */
 const LOADING_MS = 1000;
 
-/** A track's name for the live region: its name in the stream, else its language's. */
-function trackName(name: string | undefined, lang: string | undefined): string {
-  return name || (lang && (languageName(lang) ?? lang)) || '';
+/** A track's name for the live region: its name in the stream, else its language's in `locale`. */
+function trackName(name: string | undefined, lang: string | undefined, locale: string): string {
+  return name || (lang && (languageName(lang, locale || undefined) ?? lang)) || '';
 }
 
 /** The stages that register a key system, which a native session's DRM offers. */
@@ -247,7 +253,18 @@ let defaults: MatteboxPlayerOptions = {};
 // biome-ignore lint/suspicious/noUnsafeDeclarationMerging: method overloads only, no properties
 export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   static get observedAttributes(): readonly string[] {
-    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS, PLAYSINLINE, LAYOUT];
+    return [...FORWARDED, ...OWN, CONTROLS, CHAPTERS, PLAYSINLINE, LAYOUT, LANGUAGE, 'lang'];
+  }
+
+  /**
+   * Registers the words of a language for every player on the page. Each
+   * source is a set of words or a function that loads one, which runs only
+   * when a player shows that language. Later sources go over earlier ones,
+   * so a page changes a shipped word by registering its own after it.
+   * Players that show the language take the new words at once.
+   */
+  static addLocale(language: string, ...sources: readonly LocaleSource[]): void {
+    addLocale(language, sources);
   }
 
   /**
@@ -270,6 +287,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private focusable: boolean;
   declare private readonly surface: ErrorSurface;
   declare private readonly voice: Announcer;
+  /** The words of the language shown, empty for English. */
+  declare private words: Words;
+  /** The language tag the player resolved, or empty without one. */
+  declare private shown: string;
+  /** Bumped on every resolution, so a slow loader does not win over a later choice. */
+  declare private wordsEpoch: number;
+  /** Ends the watch on registrations and on the page's `lang`. */
+  declare private unwatch: (() => void) | null;
   /** Runs out when the video has waited `LOADING_MS`. */
   declare private slow: ReturnType<typeof setTimeout> | undefined;
   /** The audio track the live region last saw, so it says only a change. Undefined before the first play. */
@@ -342,6 +367,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.switching = false;
     this.switched = null;
     this.held = null;
+    this.words = {};
+    this.shown = '';
+    this.wordsEpoch = 0;
+    this.unwatch = null;
     this.slow = undefined;
     this.heardAudio = undefined;
     this.heardText = undefined;
@@ -386,11 +415,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       if (this.current === null && JSON.stringify(this.wanted()) !== this.tried) this.reload();
     });
     this.stage.append(slot);
-    this.surface = errorSurface(() => {
-      this.retry();
-    });
+    this.surface = errorSurface(
+      () => {
+        this.retry();
+      },
+      () => this.words.retry ?? 'Retry',
+    );
 
-    this.voice = announcer(this);
+    this.voice = announcer(this, (id) => this.words[id]);
 
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
@@ -422,6 +454,73 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Markers belong to a source, as for `src`.
     if (this.marks.list.length > 0) this.marks.set([]);
     this.reload();
+  }
+
+  /**
+   * The language the page chose for this player, which wins over the
+   * nearest `lang` attribute. Empty follows `lang`. Setting it changes the
+   * words of every control at once.
+   */
+  get language(): string {
+    return this.getAttribute(LANGUAGE) ?? '';
+  }
+
+  set language(value: string) {
+    if (value === '') this.removeAttribute(LANGUAGE);
+    else this.setAttribute(LANGUAGE, value);
+  }
+
+  /** The language tag the words come from: `language`, else the nearest `lang`. Empty without either. */
+  get locale(): string {
+    return this.shown;
+  }
+
+  /** The word of `id` in the player's language, or undefined, where the control's English applies. */
+  message(id: keyof Messages): string | undefined {
+    return this.words[id];
+  }
+
+  /** Follows registrations and the document's `lang` until disconnect. */
+  private watchLanguage(): void {
+    const off = onLocales(() => {
+      this.relocale();
+    });
+    // The page's language usually sits on <html>; a lang on another
+    // ancestor is read at connect, and `language` covers a change there.
+    const watch = new MutationObserver(() => {
+      this.relocale();
+    });
+    watch.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+    this.unwatch = () => {
+      off();
+      watch.disconnect();
+    };
+    this.relocale();
+  }
+
+  /** Resolves the language, takes its words, and tells the controls with `localechange`. */
+  private relocale(): void {
+    const tag = this.getAttribute(LANGUAGE) ?? this.closest('[lang]')?.getAttribute('lang') ?? '';
+    const epoch = ++this.wordsEpoch;
+    const take = (words: Words): void => {
+      if (epoch !== this.wordsEpoch) return;
+      this.shown = tag;
+      this.words = words;
+      this.emit('localechange', tag);
+    };
+    const key = registered(tag);
+    if (key === null) {
+      take({});
+      return;
+    }
+    const now = wordsNow(key);
+    if (now !== null) {
+      take(now);
+      return;
+    }
+    // The words on screen stay until the language arrives; a loader that
+    // fails leaves them.
+    load(key).then(take, () => undefined);
   }
 
   /**
@@ -574,6 +673,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.sizes.observe(this);
     }
     this.measure();
+    this.watchLanguage();
     this.reload();
   }
 
@@ -621,16 +721,16 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Says a play or a pause, and a wait once it has lasted `LOADING_MS`. */
   private tell(event: string, was: boolean): void {
     // The load of a switch pauses and plays the video, and the viewer did neither.
-    if (event === 'play' && this.held === null) this.voice.say('playing', 'Playing');
+    if (event === 'play' && this.held === null) this.voice.say('playing', 'saidPlaying', 'Playing');
     // The end of the video pauses it too, and that is no pause to say.
     if (event === 'pause' && !this.media.ended && this.held === null) {
-      this.voice.say('paused', 'Paused');
+      this.voice.say('paused', 'saidPaused', 'Paused');
     }
     if (this.waiting === was) return;
     clearTimeout(this.slow);
     if (this.waiting) {
       this.slow = setTimeout(() => {
-        this.voice.say('loading', 'Loading');
+        this.voice.say('loading', 'loading', 'Loading');
       }, LOADING_MS);
     }
   }
@@ -647,8 +747,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (engine !== null) {
       const sound = engine.tracks.active('audio');
       const words = engine.tracks.active('text');
-      audio = sound === null ? '' : trackName(sound.name, sound.lang);
-      text = words === null || words.forced === true ? null : trackName(words.name, words.lang);
+      audio = sound === null ? '' : trackName(sound.name, sound.lang, this.locale);
+      text =
+        words === null || words.forced === true
+          ? null
+          : trackName(words.name, words.lang, this.locale);
     } else {
       const video = this.media as {
         audioTracks?: ArrayLike<{ enabled: boolean; label: string; language: string }>;
@@ -658,19 +761,19 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         (track) =>
           (track.kind === 'subtitles' || track.kind === 'captions') && track.mode === 'showing',
       );
-      audio = sound === undefined ? '' : trackName(sound.label, sound.language);
-      text = words === undefined ? null : trackName(words.label, words.language);
+      audio = sound === undefined ? '' : trackName(sound.label, sound.language, this.locale);
+      text = words === undefined ? null : trackName(words.label, words.language, this.locale);
     }
     const { heardAudio, heardText } = this;
     this.heardAudio = audio;
     this.heardText = text;
     if (!this.started) return;
     if (heardAudio !== undefined && audio !== heardAudio) {
-      this.voice.say('audio', 'Audio: {track}', audio);
+      this.voice.say('audio', 'saidAudio', 'Audio: {track}', audio);
     }
     if (heardText !== undefined && text !== heardText) {
-      if (text === null) this.voice.say('subtitles-off', 'Subtitles off');
-      else this.voice.say('subtitles', 'Subtitles: {track}', text);
+      if (text === null) this.voice.say('subtitles-off', 'saidSubtitlesOff', 'Subtitles off');
+      else this.voice.say('subtitles', 'saidSubtitles', 'Subtitles: {track}', text);
     }
   }
 
@@ -714,12 +817,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   disconnectedCallback(): void {
     this.sizes?.disconnect();
     this.sizes = null;
+    this.unwatch?.();
+    this.unwatch = null;
     // A single-page app must not leave a pipeline attached to a video it
     // navigated away from. Reconnecting loads the `src` again.
     this.enqueue(() => this.teardown());
   }
 
   attributeChangedCallback(name: string): void {
+    if (name === LANGUAGE || name === 'lang') {
+      this.relocale();
+      return;
+    }
     if (FORWARDED.includes(name)) {
       if (!this.reflecting) this.forward(name);
       return;
@@ -855,7 +964,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       clearTimeout(this.slow);
       // An error screen in the player is an alert of its own, read already.
       if (this.querySelector(ERROR_SCREEN) === null) {
-        this.voice.say('error', 'Playback failed');
+        this.voice.say('error', 'playbackFailed', 'Playback failed');
       }
       // Under custom controls the error screen element is the surface, and
       // the element's own row under the video stays quiet.

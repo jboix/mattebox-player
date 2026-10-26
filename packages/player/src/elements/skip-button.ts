@@ -72,8 +72,9 @@ export class MbxSkipButton extends Component {
     const back = seconds < 0;
     const amount = Math.abs(seconds);
     setChildren(this.glyph, icon(glyphFor(back, amount)));
-    const template =
-      this.getAttribute('label') ?? (back ? 'Back {seconds} seconds' : 'Forward {seconds} seconds');
+    const template = back
+      ? this.word('label', 'skipBack', 'Back {seconds} seconds')
+      : this.word('label', 'skipForward', 'Forward {seconds} seconds');
     this.button.setAttribute('aria-label', fill(template, { seconds: amount }));
   }
 }

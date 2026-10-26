@@ -17,15 +17,16 @@ import { nativeTracks, onNativeTracks } from '../controls/native-tracks.js';
 import type { TrackEntry } from '../controls/track-names.js';
 import { layout, trackNames } from '../controls/track-names.js';
 import type { PlayerHost } from '../host.js';
+import type { Messages } from '../messages.js';
 import { MenuElement, single } from './menu-element.js';
 import { show } from './shared.js';
 
 /** A track's channel layout, from its first rendition: `audioObjects` `JOC` is Dolby Atmos. */
-function channels(track: Track): string | undefined {
+function channels(track: Track, words: Readonly<Record<string, string>>): string | undefined {
   const first = track.renditions[0];
   return first?.channels === undefined
     ? undefined
-    : layout(`${first.channels}${first.audioObjects ? `/${first.audioObjects}` : ''}`);
+    : layout(`${first.channels}${first.audioObjects ? `/${first.audioObjects}` : ''}`, words);
 }
 
 /**
@@ -39,6 +40,7 @@ export function trackItems(
   contentType: ContentType,
   badges: (track: Track) => readonly string[] = () => [],
   listed: (track: Track) => boolean = () => true,
+  words: Readonly<Record<string, string>> = {},
 ): [TrackEntry[], string | null] {
   const tracks = engine.tracks;
   const available = tracks.available.filter(
@@ -51,7 +53,7 @@ export function trackItems(
       track.lang,
       badges(track),
       // The role "main" tells nothing apart: every stream has one.
-      [channels(track), track.role === 'main' ? undefined : track.role],
+      [channels(track, words), track.role === 'main' ? undefined : track.role],
     ],
   );
   const active = tracks.active(contentType)?.id;
@@ -73,7 +75,15 @@ export function onTracks(engine: Mattebox, tick: () => void): () => void {
 
 export class MbxAudioMenu extends MenuElement {
   static get observedAttributes(): readonly string[] {
-    return ['label', 'label-back', 'label-ad', 'label-original', 'label-track'];
+    return [
+      'label',
+      'label-back',
+      'label-ad',
+      'label-original',
+      'label-track',
+      'label-mono',
+      'label-stereo',
+    ];
   }
 
   declare private engine: Mattebox | null;
@@ -84,8 +94,8 @@ export class MbxAudioMenu extends MenuElement {
     show(this.slots, 'default');
   }
 
-  protected override name(): string {
-    return 'Audio';
+  protected override name(): readonly [keyof Messages, string] {
+    return ['audio', 'Audio'];
   }
 
   protected override attach(player: PlayerHost): void {
@@ -103,7 +113,7 @@ export class MbxAudioMenu extends MenuElement {
 
   /** The native session's audio tracks as entries, and the enabled one's. */
   private native(tracks: readonly NativeAudioTrack[]): [TrackEntry[], string | null] {
-    const ad = this.getAttribute('label-ad') ?? 'AD';
+    const ad = this.word('label-ad', 'audioDescription', 'AD');
     const entries = tracks.map(
       (track, index): TrackEntry => [
         String(index),
@@ -130,20 +140,35 @@ export class MbxAudioMenu extends MenuElement {
       this.hidden = true;
       return;
     }
+    const ad = this.word('label-ad', 'audioDescription', 'AD');
+    const original = this.word('label-original', 'original', 'Original');
     const [entries, active] =
       tracks !== undefined
         ? this.native(tracks)
-        : trackItems(engine as Mattebox, 'audio', (track) => [
-            ...(isAudioDescription(track) ? [this.getAttribute('label-ad') ?? 'AD'] : []),
-            ...(isOriginal(track) ? [this.getAttribute('label-original') ?? 'Original'] : []),
-          ]);
-    const items = trackNames(entries, this.getAttribute('label-track'));
+        : trackItems(
+            engine as Mattebox,
+            'audio',
+            (track) => [
+              ...(isAudioDescription(track) ? [ad] : []),
+              ...(isOriginal(track) ? [original] : []),
+            ],
+            undefined,
+            {
+              1: this.word('label-mono', 'mono', 'Mono'),
+              2: this.word('label-stereo', 'stereo', 'Stereo'),
+            },
+          );
+    const items = trackNames(
+      entries,
+      this.word('label-track', 'track', 'Track'),
+      this.player?.locale || undefined,
+    );
     this.menu.fill([
       {
         name: 'track',
         items,
         // The audio description badge is the AD mark, named by `label-ad`.
-        badgeGlyphs: { [this.getAttribute('label-ad') ?? 'AD']: () => icon('audio-description') },
+        badgeGlyphs: { [ad]: () => icon('audio-description') },
         value: active ?? '',
         onSelect: (value) => {
           // One audio track plays at a time, so the others are turned off.

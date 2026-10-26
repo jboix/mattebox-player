@@ -9,6 +9,7 @@
 import { MbxDiagnostics } from './element.js';
 
 export { MbxDiagnostics } from './element.js';
+export type { DiagnosticsMessages } from './messages.js';
 export type { DiagnosticsReport, EngineReport, PlaybackReport, QoeFigures } from './report.js';
 export type { Counters, Mark, Sample } from './sampler.js';
 export type { CodecRow, DrmRow, PlatformRow, Support } from './support.js';

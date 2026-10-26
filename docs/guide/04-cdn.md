@@ -30,6 +30,17 @@ release, and the code can change under a published page.
 | -------------------------------------- | ---------------------------------- |
 | `matteboxPlayer.MatteboxPlayerElement` | The element class, already defined |
 
+A language is a plain module with no imports, so the browser loads it from
+the CDN as it is:
+
+```html
+<script>
+  matteboxPlayer.MatteboxPlayerElement.addLocale('de', () =>
+    import('https://cdn.jsdelivr.net/npm/@mattebox/player@0.12.0/dist/es2015/locales/de.js'),
+  );
+</script>
+```
+
 The `preset` attribute names a preset the engine bundle contains. A CDN
 engine bundle contains one preset, `mattebox.preset`.
 

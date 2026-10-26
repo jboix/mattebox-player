@@ -59,7 +59,7 @@ export class MbxLiveButton extends Component {
     if (player === null) return;
     const api = live(player.engine);
     this.hidden = api === undefined;
-    this.text.textContent = this.getAttribute('text') ?? 'LIVE';
+    this.text.textContent = this.word('text', 'live', 'LIVE');
     if (api === undefined) return;
     // The seek bar decides seekability; while the player says live and not
     // seekable there is no bar to come back from.
@@ -70,8 +70,8 @@ export class MbxLiveButton extends Component {
     this.button.setAttribute(
       'aria-label',
       atEdge
-        ? (this.getAttribute('label-at-edge') ?? 'At the live edge')
-        : (this.getAttribute('label-live') ?? 'Go to the live edge'),
+        ? this.word('label-at-edge', 'atLiveEdge', 'At the live edge')
+        : this.word('label-live', 'goLive', 'Go to the live edge'),
     );
   }
 }

@@ -76,7 +76,7 @@ export class MbxDrmBadge extends Component {
 
   /** "3 keys: usable ×2, expired", or "no key yet". */
   private sessionsText(sessions: ReadonlyArray<{ readonly status: string }>): string {
-    if (sessions.length === 0) return this.getAttribute('label-no-key') ?? 'no key yet';
+    if (sessions.length === 0) return this.word('label-no-key', 'drmNoKey', 'no key yet');
     const counts = new Map<string, number>();
     for (const session of sessions) {
       counts.set(session.status, (counts.get(session.status) ?? 0) + 1);
@@ -85,8 +85,8 @@ export class MbxDrmBadge extends Component {
     for (const [status, count] of counts) parts.push(count > 1 ? `${status} ×${count}` : status);
     const template =
       sessions.length === 1
-        ? (this.getAttribute('label-key') ?? '{count} key: {statuses}')
-        : (this.getAttribute('label-keys') ?? '{count} keys: {statuses}');
+        ? this.word('label-key', 'drmKey', '{count} key: {statuses}')
+        : this.word('label-keys', 'drmKeys', '{count} keys: {statuses}');
     return fill(template, { count: sessions.length, statuses: parts.join(', ') });
   }
 
@@ -126,7 +126,7 @@ export class MbxDrmBadge extends Component {
     this.keys.textContent = keys;
     this.setAttribute(
       'aria-label',
-      fill(this.getAttribute('label') ?? 'Protected by {system}, {keys}', { system, keys }),
+      fill(this.word('label', 'drmProtected', 'Protected by {system}, {keys}'), { system, keys }),
     );
   }
 }
