@@ -30,6 +30,7 @@ import type { MbxSpinner } from './entries/spinner.js';
 import type { MbxStartButton } from './entries/start-button.js';
 import type { MbxSubtitlesMenu } from './entries/subtitles-menu.js';
 import type { MbxTitle } from './entries/title.js';
+import type { MbxVideoMenu } from './entries/video-menu.js';
 import type { MbxVolume } from './entries/volume.js';
 import type { MbxVolumeSlider } from './entries/volume-slider.js';
 
@@ -61,6 +62,7 @@ export { MbxSpinner } from './entries/spinner.js';
 export { MbxStartButton } from './entries/start-button.js';
 export { MbxSubtitlesMenu } from './entries/subtitles-menu.js';
 export { MbxTitle } from './entries/title.js';
+export { MbxVideoMenu } from './entries/video-menu.js';
 export { MbxVolume } from './entries/volume.js';
 export { MbxVolumeSlider } from './entries/volume-slider.js';
 export type { PlayerHost } from './host.js';
@@ -92,6 +94,7 @@ declare global {
     'mbx-quality-menu': MbxQualityMenu;
     'mbx-airplay-button': MbxAirplayButton;
     'mbx-audio-menu': MbxAudioMenu;
+    'mbx-video-menu': MbxVideoMenu;
     'mbx-subtitles-menu': MbxSubtitlesMenu;
     'mbx-drm-badge': MbxDrmBadge;
     'mbx-chapters-menu': MbxChaptersMenu;

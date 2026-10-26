@@ -6,6 +6,7 @@
  *
  * Nothing carries `!important`: a page's `::part()` rule must win.
  */
+import type { PlayerHost } from '../host.js';
 import BUTTON_STYLE_CSS from './button.css?inline';
 import MENU_STYLE_CSS from './menu.css?inline';
 import SLIDER_STYLE_CSS from './slider.css?inline';
@@ -60,4 +61,21 @@ export function iconSlots<S extends string>(
 
 export function show<S extends string>(slots: Record<S, HTMLSlotElement>, state: S): void {
   for (const key of Object.keys(slots) as S[]) slots[key].hidden = key !== state;
+}
+
+/**
+ * The attributes the player carries while it holds the video in another
+ * state than the one shown: `scrubbing` through a drag, `switching` through
+ * the load of `switchSource` or a version. Each holds the state from
+ * before, `playing` or `paused`.
+ */
+export const HELD = ['scrubbing', 'switching'] as const;
+
+/** Whether the controls show the video as paused: the held state, if one of `names` holds it. */
+export function shownPaused(player: PlayerHost, names: readonly string[] = HELD): boolean {
+  for (const name of names) {
+    const held = player.getAttribute(name);
+    if (held !== null) return held === 'paused';
+  }
+  return player.video.paused;
 }

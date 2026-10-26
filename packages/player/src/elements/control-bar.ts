@@ -58,12 +58,13 @@ import {
   SPACER,
   SPEED_MENU,
   SUBTITLES_MENU,
+  VIDEO_MENU,
   VOLUME,
   VOLUME_SLIDER,
 } from '../tags.js';
 import { Component } from './component.js';
 import STYLE from './control-bar.css?inline';
-import { number, style } from './shared.js';
+import { number, shownPaused, style } from './shared.js';
 
 const IDLE_MS = 3000;
 const SEEK_STEP = 5;
@@ -73,8 +74,9 @@ const SEEK_STEP = 5;
  * suit a TV remote more than a small screen; then the slider, which takes
  * the most room for the least; then the diagnostics, the lock and the
  * menus a viewer rarely opens; then the menus for the picture and the
- * sound; then the skips; then the mute and the subtitles. The subtitles
- * menu goes last of the menus because it is the one a viewer may need.
+ * sound; then the skips; then the mute, the subtitles and the video
+ * menu. The subtitles and video menus go last of the menus because a
+ * viewer may need them: the video menu holds the sign-language version.
  * The diagnostics is another package's, named here as a string. A
  * `priority` attribute on the control replaces its default.
  */
@@ -91,6 +93,7 @@ const PRIORITY: Readonly<Record<string, number>> = {
   [AIRPLAY_BUTTON]: 2,
   [SKIP_BUTTON]: 2,
   [SUBTITLES_MENU]: 1,
+  [VIDEO_MENU]: 1,
   [VOLUME]: 1,
   [MUTE_BUTTON]: 1,
 };
@@ -241,7 +244,7 @@ export class MbxControlBar extends Component {
   }
 
   private held(player: PlayerHost): boolean {
-    if (player.video.paused) return true;
+    if (shownPaused(player, ['switching'])) return true;
     if (this.querySelector('[open]') !== null) return true;
     if (!this.keyboard) return false;
     const active = (this.getRootNode() as Document | ShadowRoot).activeElement;
@@ -375,7 +378,8 @@ export class MbxControlBar extends Component {
       player.removeEventListener('click', click);
     });
     this.listen(video, ['play', 'pause', 'ended'], () => {
-      this.wake(player);
+      // The load of a switch pauses and plays the video, and the viewer did neither.
+      if (!player.hasAttribute('switching')) this.wake(player);
     });
     this.wake(player);
     this.cues.lifted(true);

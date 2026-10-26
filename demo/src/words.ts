@@ -28,6 +28,11 @@ export interface Words {
   readonly quality: string;
   readonly auto: string;
   readonly audio: string;
+  readonly video: string;
+  /** The names of the versions of the picture in the video menu. */
+  readonly main: string;
+  readonly sign: string;
+  readonly alternative: string;
   readonly subtitles: string;
   readonly off: string;
   readonly track: string;
@@ -101,6 +106,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Qualitat',
       auto: 'Automàtica',
       audio: 'Àudio',
+      video: 'Vídeo',
+      main: 'Principal',
+      sign: 'Llengua de signes',
+      alternative: 'Alternativa',
       subtitles: 'Subtítols',
       off: 'Cap',
       track: 'Pista',
@@ -164,6 +173,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Calidad',
       auto: 'Automática',
       audio: 'Audio',
+      video: 'Vídeo',
+      main: 'Principal',
+      sign: 'Lengua de signos',
+      alternative: 'Alternativa',
       subtitles: 'Subtítulos',
       off: 'Desactivados',
       track: 'Pista',
@@ -227,6 +240,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Qualité',
       auto: 'Automatique',
       audio: 'Audio',
+      video: 'Vidéo',
+      main: 'Principale',
+      sign: 'Langue des signes',
+      alternative: 'Alternative',
       subtitles: 'Sous-titres',
       off: 'Désactivés',
       track: 'Piste',
@@ -290,6 +307,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Qualität',
       auto: 'Automatisch',
       audio: 'Audio',
+      video: 'Video',
+      main: 'Hauptversion',
+      sign: 'Gebärdensprache',
+      alternative: 'Alternative',
       subtitles: 'Untertitel',
       off: 'Aus',
       track: 'Spur',
@@ -353,6 +374,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Qualità',
       auto: 'Automatica',
       audio: 'Audio',
+      video: 'Video',
+      main: 'Principale',
+      sign: 'Lingua dei segni',
+      alternative: 'Alternativa',
       subtitles: 'Sottotitoli',
       off: 'Disattivati',
       track: 'Traccia',
@@ -416,6 +441,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'Qualidade',
       auto: 'Automática',
       audio: 'Áudio',
+      video: 'Vídeo',
+      main: 'Principal',
+      sign: 'Língua gestual',
+      alternative: 'Alternativa',
       subtitles: 'Legendas',
       off: 'Desligadas',
       track: 'Faixa',
@@ -479,6 +508,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: '画质',
       auto: '自动',
       audio: '音轨',
+      video: '视频',
+      main: '主画面',
+      sign: '手语',
+      alternative: '其他版本',
       subtitles: '字幕',
       off: '关闭',
       track: '字幕轨',
@@ -542,6 +575,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: '画質',
       auto: '自動',
       audio: '音声',
+      video: '映像',
+      main: 'メイン',
+      sign: '手話',
+      alternative: '別バージョン',
       subtitles: '字幕',
       off: 'オフ',
       track: 'トラック',
@@ -605,6 +642,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: '화질',
       auto: '자동',
       audio: '오디오',
+      video: '비디오',
+      main: '기본',
+      sign: '수어',
+      alternative: '다른 버전',
       subtitles: '자막',
       off: '끄기',
       track: '트랙',
@@ -668,6 +709,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'गुणवत्ता',
       auto: 'स्वचालित',
       audio: 'ऑडियो',
+      video: 'वीडियो',
+      main: 'मुख्य',
+      sign: 'सांकेतिक भाषा',
+      alternative: 'वैकल्पिक',
       subtitles: 'उपशीर्षक',
       off: 'बंद',
       track: 'ट्रैक',
@@ -731,6 +776,10 @@ export const LANGUAGES: Readonly<Record<string, Language>> = {
       quality: 'الجودة',
       auto: 'تلقائية',
       audio: 'الصوت',
+      video: 'الفيديو',
+      main: 'الرئيسي',
+      sign: 'لغة الإشارة',
+      alternative: 'بديل',
       subtitles: 'الترجمة',
       off: 'إيقاف',
       track: 'المسار',
@@ -806,6 +855,15 @@ export function attributesFor(tag: string, words: Words): Readonly<Record<string
       return { label: words.quality, 'label-auto': words.auto, 'label-back': words.back };
     case 'mbx-audio-menu':
       return { label: words.audio, 'label-back': words.back };
+    case 'mbx-video-menu':
+      return {
+        label: words.video,
+        'label-back': words.back,
+        'label-track': words.track,
+        'label-main': words.main,
+        'label-sign': words.sign,
+        'label-alternative': words.alternative,
+      };
     case 'mbx-subtitles-menu':
       return {
         label: words.subtitles,

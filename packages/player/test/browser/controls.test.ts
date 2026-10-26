@@ -888,6 +888,7 @@ describe('the default composition', () => {
       'mbx-chapters-menu',
       'mbx-subtitles-menu',
       'mbx-audio-menu',
+      'mbx-video-menu',
       'mbx-quality-menu',
       'mbx-airplay-button',
       'mbx-pip-button',
@@ -2950,6 +2951,151 @@ describe('the subtitles menu over a stubbed session', () => {
     expect(control(player, 'mbx-audio-menu').hidden).toBe(true);
     expect(control(player, 'mbx-quality-menu').hidden).toBe(true);
     expect(control(player, 'mbx-speed-menu').hidden).toBe(false);
+  });
+});
+
+describe('the video menu', () => {
+  it('lists one entry per version, named from the kind, apart from the quality', async () => {
+    const engine = tracksEngine([
+      { id: 'a-de', contentType: 'audio', lang: 'de' },
+      // The same picture in two codecs is one version.
+      { id: 'v-avc', contentType: 'video', role: 'main' },
+      { id: 'v-hevc', contentType: 'video', role: 'main' },
+      { id: 'v-sign', contentType: 'video', role: 'sign', roles: ['sign'], lang: 'sgg' },
+      { id: 'v-trick', contentType: 'video', role: 'trick' },
+      { id: 'v-av1', contentType: 'video', name: 'Angle', role: 'alternate', playable: false },
+    ]);
+    engine.active = 'v-hevc';
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-video-menu');
+    expect(menu.hidden).toBe(false);
+    expect(items(menu).map((item) => [item.value, item.textContent])).toEqual([
+      ['v-hevc', 'Main'],
+      ['v-sign', 'Sign language'],
+    ]);
+    expect(items(menu)[0]?.getAttribute('aria-checked')).toBe('true');
+    menu.setAttribute('label-sign', 'Gebärdensprache');
+    expect(items(menu)[1]?.textContent).toBe('Gebärdensprache');
+    inner(menu).click();
+    items(menu)[1]?.click();
+    expect(engine.chosen).toEqual(['v-sign']);
+  });
+
+  it('hides with one version of the picture', async () => {
+    const engine = tracksEngine([
+      { id: 'v-avc', contentType: 'video', role: 'main' },
+      { id: 'v-hevc', contentType: 'video', role: 'main' },
+    ]);
+    const player = await over([fakeHandler(engine)]);
+    expect(control(player, 'mbx-video-menu').hidden).toBe(true);
+  });
+
+  it('plays a version at its own URL from the same position, and goes back', async () => {
+    const loads: string[] = [];
+    const handler: Handler = {
+      name: 'fake',
+      canHandle: () => 'probably',
+      handle: (source) => {
+        loads.push(source.url);
+        return Promise.resolve({
+          handler: 'fake',
+          engine: tracksEngine([{ id: 'v', contentType: 'video' }]),
+          dispose: () => Promise.resolve(),
+        });
+      },
+    };
+    const player = build([handler], { controls: 'custom', src: SOURCE });
+    const version = document.createElement('mbx-video-track');
+    version.setAttribute('src', 'https://cdn.test/sign');
+    version.setAttribute('kind', 'sign');
+    version.setAttribute('srclang', 'sgg');
+    player.append(version, ...compose());
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    const fake = media(player.video);
+    await fake.metadata(60);
+    player.video.currentTime = 20;
+    const menu = control(player, 'mbx-video-menu');
+    expect(items(menu).map((item) => [item.value, item.textContent])).toEqual([
+      ['v', 'Main'],
+      ['source:0', 'Sign language'],
+    ]);
+
+    inner(menu).click();
+    items(menu)[1]?.click();
+    expect(player.videoSource?.url).toBe('https://cdn.test/sign');
+    await expect.poll(() => loads).toEqual([SOURCE, 'https://cdn.test/sign']);
+    await fake.metadata(60);
+    expect(player.video.currentTime).toBe(20);
+    // On the version, the menu offers the way back instead of its tracks.
+    expect(items(menu).map((item) => item.value)).toEqual(['source:', 'source:0']);
+    expect(items(menu)[1]?.getAttribute('aria-checked')).toBe('true');
+    // A retry on the version loads the version again, not the source.
+    player.retry();
+    await expect.poll(() => loads.length).toBe(3);
+    expect(loads[2]).toBe('https://cdn.test/sign');
+    expect(player.videoSource?.url).toBe('https://cdn.test/sign');
+
+    inner(menu).click();
+    items(menu)[0]?.click();
+    expect(player.videoSource).toBeNull();
+    await expect.poll(() => loads.length).toBe(4);
+    expect(loads[3]).toBe(SOURCE);
+    // A new source is a programme of its own, without the versions.
+    player.setAttribute('src', 'https://cdn.test/other');
+    player.querySelector('mbx-video-track')?.remove();
+    await expect.poll(() => loads.length).toBe(5);
+    expect(player.videoSources).toEqual([]);
+  });
+});
+
+describe('switchSource', () => {
+  it('loads another source in place, holding the controls in the state from before', async () => {
+    const loads: string[] = [];
+    const handler: Handler = {
+      name: 'fake',
+      canHandle: () => 'probably',
+      handle: (source) => {
+        loads.push(source.url);
+        return Promise.resolve({
+          handler: 'fake',
+          engine: tracksEngine([{ id: 'v', contentType: 'video' }]),
+          dispose: () => Promise.resolve(),
+        });
+      },
+    };
+    const player = build([handler], { controls: 'custom', src: SOURCE });
+    player.append(...compose());
+    await settled();
+    await expect.poll(() => player.engine).not.toBeNull();
+    const fake = media(player.video);
+    await fake.metadata(60);
+    player.video.currentTime = 20;
+    await player.video.play();
+    const play = inner(control(player, 'mbx-play-button'));
+    expect(play.getAttribute('aria-label')).toBe('Pause');
+
+    player.switchSource({ url: 'https://cdn.test/hls', type: 'application/vnd.apple.mpegurl' });
+    expect(player.getAttribute('switching')).toBe('playing');
+    // The new load empties and pauses the video, as a real one does.
+    player.video.dispatchEvent(new Event('emptied'));
+    player.video.pause();
+    await settled();
+    expect(play.getAttribute('aria-label')).toBe('Pause');
+    expect(player.hasAttribute('playing')).toBe(true);
+    expect(player.hasAttribute('started')).toBe(true);
+    expect(control(player, 'mbx-title').hasAttribute('playing')).toBe(true);
+    expect(control(player, 'mbx-start-button').hidden).toBe(true);
+
+    await expect.poll(() => loads).toEqual([SOURCE, 'https://cdn.test/hls']);
+    await fake.metadata(60);
+    await expect.poll(() => player.hasAttribute('switching')).toBe(false);
+    expect(player.video.currentTime).toBe(20);
+    expect(player.video.paused).toBe(false);
+    // A retry loads the switched source again, not the src attribute.
+    player.retry();
+    await expect.poll(() => loads.length).toBe(3);
+    expect(loads[2]).toBe('https://cdn.test/hls');
   });
 });
 

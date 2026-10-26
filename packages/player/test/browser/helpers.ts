@@ -213,7 +213,7 @@ export function compose(): HTMLElement[] {
     skip(10),
     document.createElement('mbx-scan-button'),
     ...each('mbx-volume', 'mbx-spacer', 'mbx-speed-menu', 'mbx-chapters-menu'),
-    ...each('mbx-subtitles-menu', 'mbx-audio-menu', 'mbx-quality-menu'),
+    ...each('mbx-subtitles-menu', 'mbx-audio-menu', 'mbx-video-menu', 'mbx-quality-menu'),
     ...each('mbx-airplay-button', 'mbx-pip-button', 'mbx-fullscreen-button'),
   );
   return [

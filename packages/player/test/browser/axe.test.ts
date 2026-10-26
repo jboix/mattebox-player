@@ -14,6 +14,7 @@ const MENUS = [
   'mbx-chapters-menu',
   'mbx-subtitles-menu',
   'mbx-audio-menu',
+  'mbx-video-menu',
   'mbx-quality-menu',
 ];
 

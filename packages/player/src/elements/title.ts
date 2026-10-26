@@ -23,7 +23,7 @@
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
-import { style } from './shared.js';
+import { shownPaused, style } from './shared.js';
 import STYLE from './title.css?inline';
 
 export class MbxTitle extends Component {
@@ -55,6 +55,9 @@ export class MbxTitle extends Component {
     this.listen(player.video, ['play', 'pause', 'ended', 'emptied'], () => {
       this.state(player);
     });
+    this.observe(player, ['switching'], () => {
+      this.state(player);
+    });
     if (typeof ResizeObserver !== 'undefined') {
       this.resizer = new ResizeObserver(() => {
         this.fit(player);
@@ -79,7 +82,8 @@ export class MbxTitle extends Component {
 
   /** `playing` on the element, for its own stylesheet and the page's. */
   private state(player: PlayerHost): void {
-    this.toggleAttribute('playing', !player.video.paused);
+    // A switch to another source of the same programme is no pause.
+    this.toggleAttribute('playing', !shownPaused(player, ['switching']));
   }
 
   /** The height of the bar's rows: its box less the padding above them, which is its fade. Zero without a bar. */

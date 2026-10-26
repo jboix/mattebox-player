@@ -72,6 +72,6 @@
     "@mattebox/player-core": "^0.6.1"
   },
   "peerDependencies": {
-    "mattebox": "^0.15.0"
+    "mattebox": "^0.16.0"
   }
 }

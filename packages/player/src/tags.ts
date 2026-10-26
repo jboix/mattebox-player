@@ -23,6 +23,7 @@ export const LIVE_BUTTON = 'mbx-live-button';
 export const SPEED_MENU = 'mbx-speed-menu';
 export const QUALITY_MENU = 'mbx-quality-menu';
 export const AUDIO_MENU = 'mbx-audio-menu';
+export const VIDEO_MENU = 'mbx-video-menu';
 export const SUBTITLES_MENU = 'mbx-subtitles-menu';
 export const DRM_BADGE = 'mbx-drm-badge';
 export const VOLUME = 'mbx-volume';

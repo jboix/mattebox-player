@@ -18,7 +18,14 @@
  * getters and instance state is declared, then assigned in the constructor.
  */
 
-import type { Handler, Player, PlayerError, Session, Source } from '@mattebox/player-core';
+import type {
+  Handler,
+  Player,
+  PlayerError,
+  Session,
+  Source,
+  SourceVideoTrack,
+} from '@mattebox/player-core';
 import {
   createPlayer,
   inferType,
@@ -40,6 +47,16 @@ import { STYLE } from './style.js';
 import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
 import { ERROR_SCREEN, PLAYER } from './tags.js';
+import type { Chosen } from './video-sources.js';
+import {
+  chosen,
+  holdFrame,
+  markupVideoTracks,
+  onNextFrame,
+  restore,
+  resume,
+  versionSource,
+} from './video-sources.js';
 
 /**
  * `off` keeps HLS on the engine in Safari. Anything else lets Safari play
@@ -52,6 +69,23 @@ const NATIVE_HLS = 'native-hls';
 const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
 
 const LICENSE_URL = 'license-url';
+
+/** Carried through a switch: the play state from before it, `playing` or `paused`. */
+const SWITCHING = 'switching';
+
+/** Whether the browser has EME, so a source may bring DRM. */
+function emeAvailable(): boolean {
+  return drmGuard().without === undefined;
+}
+
+/** `source` without its DRM, for a browser without EME. */
+function withoutDrm({ url, type, videoTracks }: Source): Source {
+  return {
+    url,
+    ...(type === undefined ? {} : { type }),
+    ...(videoTracks === undefined ? {} : { videoTracks }),
+  };
+}
 const CERTIFICATE_URL = 'certificate-url';
 
 /** Everything else the element watches. Changing any of them reloads. */
@@ -273,6 +307,16 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private queue: Promise<void>;
   /** Whether a run is queued and not yet started, so a burst of changes loads once. */
   declare private pending: boolean;
+  /** The source the versions of `videoSources` belong to: the one that played before a switch. */
+  declare private programme: Source | null;
+  /** The version that plays, or null for the programme itself. */
+  declare private version: SourceVideoTrack | null;
+  /** True while a version loads, so its `sourcechange` keeps the programme. */
+  declare private switching: boolean;
+  /** The source `switchSource` loaded, which a retry loads again, or null. */
+  declare private switched: Source | null;
+  /** Ends the hold of a switch: the poster and `switching` go back. Null without one. */
+  declare private held: (() => void) | null;
 
   constructor(options?: MatteboxPlayerOptions) {
     super();
@@ -293,6 +337,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.offs = [];
     this.queue = Promise.resolve();
     this.pending = false;
+    this.programme = null;
+    this.version = null;
+    this.switching = false;
+    this.switched = null;
+    this.held = null;
     this.slow = undefined;
     this.heardAudio = undefined;
     this.heardText = undefined;
@@ -378,10 +427,120 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /**
    * Loads the sources again, in the order a load reads them: the `src`
    * attribute, the `sources` property, then the `<source>` children. The
-   * error screens' Retry calls it.
+   * error screens' Retry calls it. On a version of `videoSources`, it
+   * loads that version again.
    */
   retry(): void {
-    this.reload();
+    const again =
+      this.version === null ? this.switched : versionSource(this.version, emeAvailable());
+    if (again === null) this.reload();
+    else this.swap(again, null, false, null, false);
+  }
+
+  /**
+   * Loads `source` in place of the one that plays, from the same position
+   * and in the same play state, with the same audio and subtitle choice.
+   * Use it for the same programme at another URL, such as its HLS and
+   * DASH manifests. The last frame and the controls hold until the new
+   * load shows a frame there. The markers stay, and the versions are the
+   * ones `source` names. A new `src`, `sources` or `<source>` load
+   * replaces it.
+   */
+  switchSource(source: Source): void {
+    const media = this.media;
+    const at = Number.isFinite(media.duration) ? media.currentTime : null;
+    const playing = !media.paused;
+    const had = chosen(this.current?.engine ?? null);
+    const clean = emeAvailable() ? source : withoutDrm(source);
+    const was = this.version;
+    this.programme = clean;
+    this.switched = clean;
+    this.version = null;
+    if (was !== null) this.emit('videosourcechange', null);
+    this.swap(clean, at, playing, had, true);
+  }
+
+  /** The other versions of the picture the source names at their own URLs, for the video menu. */
+  get videoSources(): readonly SourceVideoTrack[] {
+    return this.programme?.videoTracks ?? [];
+  }
+
+  /** The version of `videoSources` that plays, or null for the source itself. */
+  get videoSource(): SourceVideoTrack | null {
+    return this.version;
+  }
+
+  /**
+   * Plays a version of `videoSources`, or the source itself for null, from
+   * the same position and in the same play state, with the same audio and
+   * subtitle choice. A live source joins the version at its live edge.
+   * Fires `videosourcechange`.
+   */
+  selectVideoSource(track: SourceVideoTrack | null): void {
+    const programme = this.programme;
+    if (programme === null || track === this.version) return;
+    if (track !== null && programme.videoTracks?.includes(track) !== true) return;
+    const media = this.media;
+    const at = Number.isFinite(media.duration) ? media.currentTime : null;
+    const playing = !media.paused;
+    const had = chosen(this.current?.engine ?? null);
+    this.version = track;
+    this.emit('videosourcechange', track);
+    this.swap(
+      track === null ? programme : versionSource(track, emeAvailable()),
+      at,
+      playing,
+      had,
+      true,
+    );
+  }
+
+  /**
+   * Loads `source` under the programme that plays, and puts the position,
+   * play state and tracks back. With `hold`, the last frame stays as the
+   * poster and the player carries `switching`, the play state from
+   * before, so the controls show that state through the load.
+   */
+  private swap(
+    source: Source,
+    at: number | null,
+    playing: boolean,
+    had: Chosen | null,
+    hold: boolean,
+  ): void {
+    const media = this.media;
+    this.held?.();
+    let release: (() => void) | null = null;
+    if (hold) {
+      // Taken now, while the frame of the source that played is still on screen.
+      const frame = holdFrame(media);
+      const done = (): void => {
+        frame?.();
+        if (this.held !== done) return;
+        this.held = null;
+        this.removeAttribute(SWITCHING);
+        this.reflect();
+      };
+      this.held = done;
+      this.setAttribute(SWITCHING, playing ? 'playing' : 'paused');
+      release = done;
+    }
+    this.enqueue(async () => {
+      const core = await this.ensure();
+      this.switching = true;
+      try {
+        await core.load([source]);
+      } catch {
+        // Reported on the error event, as for any load.
+        release?.();
+        return;
+      } finally {
+        this.switching = false;
+      }
+      resume(media, at, playing);
+      if (release !== null) onNextFrame(media, at, release);
+      restore(this.current?.engine ?? null, had);
+    });
   }
 
   /** The core, or null until the first source has been set up: resolving a preset is asynchronous. */
@@ -451,7 +610,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.waiting = false;
     } else if (event === 'emptied') {
       // A new source starts over: the title shows again before its first play.
-      this.started = false;
+      // A switch is the same programme, so it keeps its start.
+      if (this.held === null) this.started = false;
       this.waiting = false;
       this.heardAudio = undefined;
       this.heardText = undefined;
@@ -460,9 +620,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   /** Says a play or a pause, and a wait once it has lasted `LOADING_MS`. */
   private tell(event: string, was: boolean): void {
-    if (event === 'play') this.voice.say('playing', 'Playing');
+    // The load of a switch pauses and plays the video, and the viewer did neither.
+    if (event === 'play' && this.held === null) this.voice.say('playing', 'Playing');
     // The end of the video pauses it too, and that is no pause to say.
-    if (event === 'pause' && !this.media.ended) this.voice.say('paused', 'Paused');
+    if (event === 'pause' && !this.media.ended && this.held === null) {
+      this.voice.say('paused', 'Paused');
+    }
     if (this.waiting === was) return;
     clearTimeout(this.slow);
     if (this.waiting) {
@@ -515,8 +678,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private reflect(): void {
     const video = this.media;
     this.reflecting = true;
-    this.toggleAttribute('paused', video.paused);
-    this.toggleAttribute('playing', !video.paused);
+    // Through a switch, the play state from before it.
+    const held = this.getAttribute(SWITCHING);
+    const paused = held === null ? video.paused : held === 'paused';
+    this.toggleAttribute('paused', paused);
+    this.toggleAttribute('playing', !paused);
     this.toggleAttribute('ended', video.ended);
     // `muted` is also forwarded: the page's attribute sets the video, and
     // the video's state sets the attribute. Reflection never forwards, so
@@ -725,17 +891,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * A child carries its own `license-url` and `certificate-url`.
    */
   private wanted(): readonly Source[] {
+    // The `<mbx-video-track>` children are versions of the `src` or `<source>` picture.
+    const versions = markupVideoTracks(this);
+    const withVersions = versions.length === 0 ? {} : { videoTracks: versions };
     const url = this.getAttribute('src');
     if (url !== null) {
       const type = this.getAttribute('type');
-      return [type === null ? { url } : { url, type }];
+      return [{ url, ...(type === null ? {} : { type }), ...withVersions }];
     }
     // A browser without EME gets no DRM stage, and a source must not bring DRM back.
-    const eme = drmGuard().without === undefined;
+    const eme = emeAvailable();
     if (this.list !== null) {
-      return eme
-        ? this.list
-        : this.list.map(({ url, type }) => (type === undefined ? { url } : { url, type }));
+      return eme ? this.list : this.list.map(withoutDrm);
     }
     const found: Source[] = [];
     for (const child of Array.from(this.children)) {
@@ -747,6 +914,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       found.push({
         url: src,
         ...(type === null ? {} : { type }),
+        ...withVersions,
         ...(!eme || (license === null && certificate === null)
           ? {}
           : {
@@ -781,6 +949,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         // Before the event goes out, so a control that reads `engine` on
         // `sourcechange` sees the session the event is about.
         this.current = session;
+        // A version loads under the programme it belongs to; any other load is a programme of its own.
+        if (!this.switching) {
+          const was = this.version;
+          this.programme = session?.source ?? null;
+          this.switched = null;
+          this.version = null;
+          this.held?.();
+          if (was !== null) this.emit('videosourcechange', null);
+        }
         this.offTracks?.();
         this.offTracks = session?.engine?.on('tracks:selected', () => this.tracks()) ?? null;
         if (session !== null && this.isConnected) this.adopt(session);

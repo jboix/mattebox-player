@@ -16,6 +16,7 @@ export type IconName =
   | 'fullscreen-exit'
   | 'quality'
   | 'audio'
+  | 'video'
   | 'subtitles'
   | 'subtitles-on'
   | 'lock-closed'
@@ -66,6 +67,8 @@ const PATHS: Readonly<Record<IconName, string>> = {
     'M5 22L10 18.1L10 27L5 27zM13.5 15.4L18.5 11.6L18.5 27L13.5 27zM22 8.9L27 5L27 27L22 27z',
   audio:
     'M4.75 13h2.5v6h-2.5zM9.75 9h2.5v14h-2.5zM14.75 5h2.5v22h-2.5zM19.75 10.5h2.5v11h-2.5zM24.75 13.5h2.5v5h-2.5z',
+  // A camera: the body as a frame, the lens solid.
+  video: 'M4 9h16v14H4zM6.5 11.5h11v9h-11zM21 14l7-4v12l-7-4z',
   subtitles:
     'M4 6h20l4 4v16H4zM6.5 8.5H22.96L25.5 11.04V23.5H6.5zM9 14h8v2.5h-8zM19 14h4v2.5h-4zM9 18.5h4v2.5h-4zM15 18.5h8v2.5h-8z',
   'subtitles-on':

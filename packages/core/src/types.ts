@@ -11,6 +11,25 @@ export interface Source {
   readonly type?: string;
   /** The DRM servers of this source. The handlers apply them, over their own options. */
   readonly drm?: SourceDrm;
+  /**
+   * Other versions of this picture at their own URLs, such as a
+   * sign-language version. The player's video menu lists them with the
+   * video tracks of the manifest, and plays one from the same position.
+   */
+  readonly videoTracks?: readonly SourceVideoTrack[];
+}
+
+/** A version of a source's picture at its own URL. */
+export interface SourceVideoTrack {
+  readonly url: string;
+  readonly type?: string;
+  readonly drm?: SourceDrm;
+  /** The version, in the names of HTML's `VideoTrack.kind`: `sign`, `captions`, `alternative`. */
+  readonly kind: string;
+  /** The name a menu shows. Without it, the menu names the kind. */
+  readonly label?: string;
+  /** The language tag, such as `sgg` for Swiss German Sign Language. */
+  readonly language?: string;
 }
 
 /** Where one source gets its licenses and its FairPlay certificate. */

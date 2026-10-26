@@ -79,6 +79,7 @@ through a slot.
 | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `mbx-quality-menu`                                                    | `engine.quality`                                                                                            |
 | `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`, or `video.audioTracks` and `video.textTracks` in a native session                          |
+| `mbx-video-menu`                                                      | `engine.tracks`, or `video.videoTracks` in a native session, and the player's `videoSources`                |
 | `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt`                                                                                 |
 | `mbx-drm-badge`                                                       | `engine.drm`, or `session.eme.drm` in a native session                                                      |
 | `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                         |

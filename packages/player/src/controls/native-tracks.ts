@@ -1,13 +1,14 @@
 /**
- * The element's own track lists, for the audio and subtitles menus of a
- * native session. Safari lists the renditions of an HLS stream it plays
- * itself in `audioTracks` and `textTracks`. No engine-shaped object goes
- * over them: the menus read the lists and write `enabled` and `mode`.
+ * The element's own track lists, for the audio, subtitles and video menus
+ * of a native session. Safari lists the renditions of an HLS stream it
+ * plays itself in `audioTracks`, `textTracks` and `videoTracks`. No
+ * engine-shaped object goes over them: the menus read the lists and write
+ * `enabled`, `mode` and `selected`.
  * Each list is feature-tested, so a browser without it keeps the menu hidden.
  */
 import type { PlayerHost } from '../host.js';
 
-/** What the menus read of an `AudioTrack` or a `TextTrack`. */
+/** What the menus read of an `AudioTrack`, a `TextTrack` or a `VideoTrack`. */
 export interface NativeTrack {
   readonly kind: string;
   readonly label: string;
@@ -27,7 +28,7 @@ export interface NativeTrackList<T extends NativeTrack> extends EventTarget {
  */
 export function nativeTracks<T extends NativeTrack>(
   player: PlayerHost,
-  name: 'audioTracks' | 'textTracks',
+  name: 'audioTracks' | 'textTracks' | 'videoTracks',
 ): T[] | undefined {
   const session = player.player?.session;
   if (session == null || session.engine !== null) return undefined;
@@ -38,7 +39,7 @@ export function nativeTracks<T extends NativeTrack>(
 /** Calls `tick` when the video's list of `name` changes, and answers the unsubscribe. */
 export function onNativeTracks(
   video: HTMLVideoElement,
-  name: 'audioTracks' | 'textTracks',
+  name: 'audioTracks' | 'textTracks' | 'videoTracks',
   tick: () => void,
 ): (() => void) | undefined {
   const list = (video as unknown as Record<string, EventTarget | undefined>)[name];

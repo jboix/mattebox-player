@@ -47,6 +47,7 @@ the video plays.
 | `live`                       | The seek bar                  | The stream has an availability window                                                                                                                         |
 | `seekable`                   | The seek bar                  | The viewer can seek: VOD, or a live window that is wide enough                                                                                                |
 | `scrubbing`                  | The seek bar                  | A pointer holds the seek bar and the video is paused for the drag. The value is the state before the drag, `playing` or `paused`, which the play buttons show |
+| `switching`                  | The player                    | `switchSource` or a version loads, and the controls show the state from before it, `playing` or `paused`, until the new load has a frame                      |
 
 `audio` comes from the type of the source until the metadata arrives: the
 `type` attribute, or the URL's extension. After that it comes from the size
@@ -89,19 +90,75 @@ tries them in their order, as a video does.
 
 [Chapter 02](02-handlers.md#several-sources) has the rules of the list.
 
+## Versions of the picture
+
+A source can name other versions of its picture at their own URLs, such as
+a sign-language version. `<mbx-video-menu>` lists them after the video
+tracks of the manifest. You declare them as `<mbx-video-track>` children,
+which apply to the `src` attribute and the `<source>` children:
+
+```html
+<mattebox-player controls="custom" src="vod/master.m3u8">
+  <mbx-video-track src="vod/sign.m3u8" kind="sign" srclang="sgg"></mbx-video-track>
+</mattebox-player>
+```
+
+| Attribute of `<mbx-video-track>` | What it does                                                                            |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| `src`                            | Sets the URL of the version                                                             |
+| `kind`                           | Sets the kind, as HTML's `VideoTrack.kind`: `sign`, `captions`, `alternative` (default) |
+| `label`                          | Sets the name the menu shows. Without it, the menu names the kind                       |
+| `srclang`                        | Sets the language tag                                                                   |
+| `type`                           | Sets its MIME type                                                                      |
+
+From script, a source of the `sources` property carries the same fields in
+`videoTracks`, with `url`, `language` and an optional `drm`:
+
+```ts
+player.sources = [
+  { url: 'vod/master.m3u8', videoTracks: [{ url: 'vod/sign.m3u8', kind: 'sign', language: 'sgg' }] },
+];
+```
+
+- A version is a new load, not a track switch. The picture stops for as long as the version takes to start.
+- The last frame stays on screen as the poster until the version shows its own. A video from another origin needs CORS for this; without it, the poster shows.
+- The controls show the play state from before until then, and the player carries `switching`.
+- The version starts at the same position and in the same play state. A live source joins it at its live edge.
+- The audio and subtitle tracks with the same language, audio description and SDH are selected on the version.
+- On a version, the menu offers the source back instead of the version's own tracks.
+- A new `src`, `sources` or `<source>` load is a new source, and drops the versions of the old one.
+
 ## Properties
 
-| Property  | What it is                                                                                              |
-| --------- | ------------------------------------------------------------------------------------------------------- |
-| `player`  | The `Player` of the core                                                                                |
-| `sources` | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children |
-| `engine`  | The engine of the current session, or null                                                              |
-| `video`   | The `<video>` inside, in light DOM                                                                      |
-| `error`   | The fatal error of the current load. Null after a load starts and after playback resumes                |
-| `markers` | The ranges the page named in this source: see [Markers](#markers)                                       |
+| Property       | What it is                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------------- |
+| `player`       | The `Player` of the core                                                                                |
+| `sources`      | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children |
+| `engine`       | The engine of the current session, or null                                                              |
+| `video`        | The `<video>` inside, in light DOM                                                                      |
+| `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                |
+| `markers`      | The ranges the page named in this source: see [Markers](#markers)                                       |
+| `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)   |
+| `videoSource`  | The version that plays, or null for the source itself                                                   |
+
+`selectVideoSource(version)` plays a version of `videoSources`, or the
+source itself for null. It fires `videosourcechange`, whose `detail` is the
+version or null.
+
+`switchSource(source)` loads another source of the same programme in
+place, such as its DASH manifest in place of its HLS one. It works as a
+version does: the same position, play state and tracks, with the frame and
+the controls held. The markers stay. A new `src`, `sources` or `<source>`
+load replaces it.
+
+```ts
+player.switchSource({ url: 'vod/manifest.mpd', type: 'application/dash+xml' });
+```
 
 `retry()` loads the sources again, in the order a load reads them: the
-`src` attribute, the `sources` property, then the `<source>` children.
+`src` attribute, the `sources` property, then the `<source>` children. On
+a version of the picture, or after `switchSource`, it loads that source
+again.
 
 ## Events
 
@@ -222,6 +279,7 @@ read the video instead:
 | Control                 | In a native session                                                                     |
 | ----------------------- | --------------------------------------------------------------------------------------- |
 | `mbx-audio-menu`        | Lists `video.audioTracks`. A choice sets `enabled`                                      |
+| `mbx-video-menu`        | Lists `video.videoTracks`. A choice sets `selected`                                     |
 | `mbx-subtitles-menu`    | Lists the `subtitles` and `captions` tracks of `video.textTracks`. A choice sets `mode` |
 | `mbx-drm-badge`         | Reads `session.eme.drm` when the session attached DRM                                   |
 | `mbx-chapters-menu`     | Reads the chapters track of the video, as for any session                               |
@@ -377,6 +435,7 @@ subtitles menus read the video's own track lists. See
 | `mbx-chapters-menu`     |                                                                              | `label`, `label-back`                                                                                                                                                                                                                   | `icon`                                   | Lists the chapters with their start times, and checks the current one. Each item shows the chapter's picture when every chapter has one. A choice seeks. Hidden without chapters. Works for every session                                                                                                                                                                                                                                                                                                                                                     |
 | `mbx-quality-menu`      |                                                                              | `label`, `label-auto`, `label-back`                                                                                                                                                                                                     | `icon`                                   | Pins a rendition through `engine.quality`. Auto means no pin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `mbx-audio-menu`        |                                                                              | `label`, `label-back`, `label-ad`, `label-original`, `label-track`                                                                                                                                                                      | `icon`                                   | Selects the audio track through `engine.tracks`, or `video.audioTracks` in a native session. Lists only tracks the engine can play. Shown when there is more than one. Marks an audio description track and the original language with a badge                                                                                                                                                                                                                                                                                                                |
+| `mbx-video-menu`        |                                                                              | `label`, `label-back`, `label-track`, `label-main`, `label-alternative`, `label-sign`, `label-captions`, `label-subtitles`, `label-commentary`                                                                                          | `icon`                                   | Selects the version of the picture: a video track through `engine.tracks`, or `video.videoTracks` in a native session, or a version at its own URL through `selectVideoSource`. One entry per version: the same picture in another codec is one entry. Not the quality menu: each version has its own bitrates. Shown when there is more than one                                                                                                                                                                                                             |
 | `mbx-subtitles-menu`    |                                                                              | `label`, `label-back`, `label-off`, `label-track`, `label-settings`, `label-size`, `label-background`, `label-small`, `label-medium`, `label-large`, `label-xlarge`, `label-none`, `label-dark`, `label-solid`, `label-sdh`, `label-cc` | `icon`, `icon-on`                        | Selects the text track, or off, through `engine.tracks`, or `video.textTracks` in a native session. Lists only tracks the engine can play, in-band captions included. Forced tracks are not listed, and the menu reads off while one shows. Marks SDH subtitles with a badge. Its Settings page sets the size and the background, and writes `subtitle-size` and `subtitle-background` on the player                                                                                                                                                          |
 | `mbx-drm-badge`         |                                                                              | `label` with `{system}` and `{keys}`, `label-key` and `label-keys` with `{count}` and `{statuses}`, `label-no-key`                                                                                                                      | `icon`                                   | Shows a lock for `engine.drm`, or `session.eme.drm` in a native session, with a tooltip on hover and on focus                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `mbx-airplay-button`    |                                                                              | `label`, `label-active`                                                                                                                                                                                                                 | `icon`, `icon-active`                    | Opens Safari's AirPlay picker. Hidden without AirPlay and while the video offers no target. Sets `airplay` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                      |
@@ -605,7 +664,7 @@ Each child has a `priority`, and the bar hides the highest number first:
 | 4        | The diagnostics, the DRM lock, the speed and chapters menus            |
 | 3        | The audio and quality menus, picture in picture                        |
 | 2        | The skips                                                              |
-| 1        | The subtitles menu, the mute button and the volume group               |
+| 1        | The subtitles and video menus, the mute button and the volume group    |
 | 0        | Everything else. Never hidden: play and fullscreen stay at every width |
 
 A `priority` attribute on a control replaces its default. A page's own

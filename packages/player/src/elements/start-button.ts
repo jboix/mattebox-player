@@ -2,7 +2,8 @@
  * <mbx-start-button>: the large play in the middle of the picture, shown
  * while the video is paused, a replay once it has ended, gone while it
  * plays, while a fatal error is on screen, and while the seek bar holds
- * the video paused for a drag (the player carries `scrubbing`). It sits in the player
+ * the video paused for a drag (the player carries `scrubbing`). Through a
+ * switch to another source it keeps the state from before. It sits in the player
  * beside the video, not in the bar, so it is over the poster and inside
  * fullscreen, and gone while the player waits for data, where the spinner
  * takes the centre. The glyph is `icon-play` or `icon-replay`, the name
@@ -12,7 +13,7 @@ import type { PlayerError } from '@mattebox/player-core';
 import { icon } from '../controls/icons.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
-import { BUTTON_STYLE, iconSlots, show, style } from './shared.js';
+import { BUTTON_STYLE, HELD, iconSlots, show, shownPaused, style } from './shared.js';
 import STYLE_CSS from './start-button.css?inline';
 
 type State = 'play' | 'replay';
@@ -61,7 +62,7 @@ export class MbxStartButton extends Component {
       this.failed = false;
       this.render();
     });
-    this.observe(player, ['scrubbing'], () => {
+    this.observe(player, HELD, () => {
       this.render();
     });
     const failure = (event: Event): void => {
@@ -143,7 +144,7 @@ export class MbxStartButton extends Component {
     const player = this.player;
     this.hidden =
       this.failed ||
-      !video.paused ||
+      (player !== null && !shownPaused(player, ['switching'])) ||
       player?.hasAttribute('waiting') === true ||
       player?.hasAttribute('scrubbing') === true;
   }

@@ -9,6 +9,7 @@
  * ClearKey: keys are not an attribute, so that entry swaps in an element
  * built from JavaScript with a stage list.
  */
+import type { SourceVideoTrack } from '@mattebox/player-core';
 import { inferType } from '@mattebox/player-core';
 import '@mattebox/player';
 import type { Marker } from '@mattebox/player';
@@ -144,6 +145,8 @@ interface Choice {
   readonly appChapters?: readonly ChapterInput[];
   /** Credits and blocked parts a content API gave, for `element.markers`. */
   readonly markers?: readonly Marker[];
+  /** Other versions of the picture, written as `<mbx-video-track>` children. */
+  readonly videoTracks?: readonly SourceVideoTrack[];
   readonly clearKeys?: Readonly<Record<string, string>>;
 }
 
@@ -181,10 +184,24 @@ function load(choice: Choice): void {
   // A source that brings a poster fills the field; one that does not clears it.
   poster.value = choice.poster ?? '';
   attribute(element, 'poster', choice.poster ?? null);
+  // Before the source, so its first load already lists them.
+  for (const child of element.querySelectorAll(':scope > mbx-video-track')) child.remove();
+  for (const track of choice.videoTracks ?? []) element.append(videoTrackElement(track));
   element.setAttribute('src', choice.url);
   // After the source: a new one clears the markers of the last.
   if (choice.markers !== undefined) element.markers.set(choice.markers);
   render();
+}
+
+/** The `<mbx-video-track>` child that declares `track`. */
+function videoTrackElement(track: SourceVideoTrack): HTMLElement {
+  const child = document.createElement('mbx-video-track');
+  child.setAttribute('src', track.url);
+  child.setAttribute('kind', track.kind);
+  if (track.label !== undefined) child.setAttribute('label', track.label);
+  if (track.language !== undefined) child.setAttribute('srclang', track.language);
+  if (track.type !== undefined) child.setAttribute('type', track.type);
+  return child;
 }
 
 // ---- static content ----------------------------------------------------------
@@ -563,6 +580,7 @@ const CONTROLS: ReadonlyArray<readonly [string, string, string]> = [
   ['chapters', 'Chapters', 'mbx-chapters-menu'],
   ['subtitles', 'Subtitles', 'mbx-subtitles-menu'],
   ['audio', 'Audio', 'mbx-audio-menu'],
+  ['video', 'Video', 'mbx-video-menu'],
   ['quality', 'Quality', 'mbx-quality-menu'],
   ['drm', 'DRM lock', 'mbx-drm-badge'],
   ['airplay', 'AirPlay', 'mbx-airplay-button'],
@@ -581,6 +599,7 @@ const DEFAULT_ROWS: Readonly<Record<Row, readonly string[]>> = {
     'chapters',
     'subtitles',
     'audio',
+    'video',
     'quality',
     'drm',
     'airplay',
@@ -666,6 +685,7 @@ const SETUPS: Readonly<Record<string, () => void>> = {
       'chapters',
       'subtitles',
       'audio',
+      'video',
       'quality',
     ]) {
       enabled.add(name);
@@ -846,7 +866,10 @@ function applyComposition(element: MatteboxPlayerElement): void {
   const wanted = childrenFor();
   if (applied.get(element) === wanted) return;
   applied.set(element, wanted);
-  for (const child of [...element.children]) if (child.localName !== 'video') child.remove();
+  // The video and the versions belong to the source, not to the controls.
+  for (const child of [...element.children]) {
+    if (child.localName !== 'video' && child.localName !== 'mbx-video-track') child.remove();
+  }
   if (wanted !== '') element.insertAdjacentHTML('beforeend', wanted);
   if (wanted.includes('<mbx-cast-button')) castConnected = true;
 }
@@ -899,7 +922,10 @@ function markupFor(element: MatteboxPlayerElement): string {
   for (const flag of flags) if (flag.checked) attributes.push(flag.dataset.flag as string);
   if (controlsSelect.value !== 'native') attributes.push(`controls="${controlsSelect.value}"`);
   const inner = attributes.map((a) => `\n  ${a}`).join('');
-  const composed = childrenFor();
+  const versions = [...element.querySelectorAll(':scope > mbx-video-track')]
+    .map((child) => child.outerHTML)
+    .join('\n');
+  const composed = [versions, childrenFor()].filter((part) => part !== '').join('\n');
   const children =
     composed === ''
       ? ''

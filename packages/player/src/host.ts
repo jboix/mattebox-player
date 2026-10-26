@@ -8,7 +8,7 @@
  * This is the whole surface a control gets. A control that needs more
  * has found a gap in the player's public API, and the gap is the bug.
  */
-import type { Player, PlayerError } from '@mattebox/player-core';
+import type { Player, PlayerError, Source, SourceVideoTrack } from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import type { Markers } from './controls/markers.js';
 import { PLAYER } from './tags.js';
@@ -23,6 +23,13 @@ export interface PlayerHost extends HTMLElement {
   readonly markers: Markers;
   /** Loads the sources again, in the order a load reads them. */
   retry(): void;
+  /** The other versions of the picture the source names at their own URLs. */
+  readonly videoSources: readonly SourceVideoTrack[];
+  /** The version of `videoSources` that plays, or null for the source itself. */
+  readonly videoSource: SourceVideoTrack | null;
+  selectVideoSource(track: SourceVideoTrack | null): void;
+  /** Loads another source of the same programme in place, holding the frame and the controls. */
+  switchSource(source: Source): void;
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */

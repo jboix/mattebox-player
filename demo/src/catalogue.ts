@@ -4,6 +4,7 @@
  * demo serves itself or which take the native route.
  */
 import type { Marker } from '@mattebox/player';
+import type { SourceVideoTrack } from '@mattebox/player-core';
 
 export interface StreamEntry {
   readonly label: string;
@@ -20,6 +21,8 @@ export interface StreamEntry {
   readonly clearKeys?: Readonly<Record<string, string>>;
   /** Credits and blocked parts, as a content API would give them, for `element.markers`. */
   readonly markers?: readonly Marker[];
+  /** Other versions of the picture at their own URLs, as `<mbx-video-track>` children. */
+  readonly videoTracks?: readonly SourceVideoTrack[];
   /** What the stream carries, beyond the tags `tagsOf` derives from the fields above. */
   readonly tags?: readonly string[];
   readonly note?: string;
@@ -31,6 +34,7 @@ export function tagsOf(entry: StreamEntry): string[] {
   if (entry.chapters !== undefined) out.push('chapters');
   if (entry.thumbnails !== undefined) out.push('thumbnails');
   if (entry.markers !== undefined) out.push('markers');
+  if (entry.videoTracks !== undefined) out.push('versions');
   if (entry.licenseUrl !== undefined || entry.clearKeys !== undefined) out.push('DRM');
   return [...out, ...(entry.tags ?? [])];
 }
@@ -142,6 +146,20 @@ export const STREAMS: readonly StreamEntry[] = [
   {
     label: 'SRG SSR · RTS (fr)',
     url: 'https://rts-vod-amd.akamaized.net/ww/14683290/5bb14625-55e0-328c-bb9d-d5be774abd88/master.m3u8',
+  },
+  {
+    label: 'SRG SSR · RTS 19h30, with its sign-language version',
+    url: 'https://rts-vod-amd.akamaized.net/ww/139ca45e-af4f-3fc7-8590-a3882913080b/d0eacda1-1eae-3827-bec6-bcddc3cef188/master.m3u8',
+    // The 25 October 2026 edition and its "19h30 signé", in Swiss-French Sign Language.
+    videoTracks: [
+      {
+        url: 'https://rts-vod-amd.akamaized.net/ww/96eae620-b201-3903-ae09-f21361d05e9e/6776b38c-e973-3e62-a725-193916e86827/master.m3u8',
+        kind: 'sign',
+        label: '19h30 signé',
+        language: 'ssr',
+      },
+    ],
+    note: 'the video menu switches to the signed version at the same time',
   },
   {
     label: 'DASH-IF · live (livesim2)',
