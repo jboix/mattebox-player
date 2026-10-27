@@ -4,6 +4,9 @@
 # each package's semantic-release prepare step, before @semantic-release/npm,
 # because `npm version` re-resolves the workspace tree: a range that no longer
 # matches the bumped sibling sends npm to the registry and the install fails.
+# It then refreshes the lock and stages every manifest and the lock. The git
+# plugin only sees files under the releasing package, but its commit takes the
+# whole index, so the sibling ranges and the lock land in the release commit.
 #
 # Usage: sync-workspace-deps.sh <package-dir> <next-version>
 set -eu
@@ -26,9 +29,13 @@ npm pkg set "dependencies.@mattebox/player-core=^$core" -w packages/player
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/diagnostics
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/cast
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/spatial-nav
+npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/playlist
 
 player=$(node -p "require('./packages/player/package.json').version")
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/diagnostics
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/cast
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/spatial-nav
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/playlist
+
+npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+git add package-lock.json packages/*/package.json

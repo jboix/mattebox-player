@@ -57,6 +57,6 @@
     "@mattebox/player": ">=0.10.0"
   },
   "devDependencies": {
-    "@mattebox/player-core": "^0.6.0"
+    "@mattebox/player-core": "^0.7.0"
   }
 }
