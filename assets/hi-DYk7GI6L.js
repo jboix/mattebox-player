@@ -1,0 +1,1 @@
+var e={playlist:`प्लेलिस्ट`,playlistPrevious:`पिछला`,playlistNext:`अगला`,playlistClose:`बंद करें`,playlistShuffle:`शफ़ल`,playlistRepeatAll:`सभी दोहराएँ`,playlistRepeatOne:`एक दोहराएँ`,playlistRepeatOff:`दोहराना बंद`,upNext:`आगे`,upNextPlay:`अगला एपिसोड`,upNextDismiss:`बंद करें`,upNextCountdown:`{seconds} सेकंड में`};export{e as default};

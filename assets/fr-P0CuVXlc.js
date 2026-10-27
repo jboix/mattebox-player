@@ -1,0 +1,1 @@
+var e={castStart:`Diffuser sur la télé`,castStop:`Arrêter la diffusion`,castingTo:`Diffusion sur {device}`};export{e as default};

@@ -1,0 +1,1 @@
+var e={diagnostics:`診断`,diagnosticsCopy:`レポートをコピー`,diagnosticsCopied:`コピーしました`,diagnosticsClose:`閉じる`};export{e as default};

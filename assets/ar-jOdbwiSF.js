@@ -1,0 +1,1 @@
+var e={castStart:`إرسال إلى التلفاز`,castStop:`إيقاف الإرسال`,castingTo:`الإرسال إلى {device}`};export{e as default};
