@@ -325,8 +325,7 @@ body {
 }
 
 .flag h2,
-.flag legend,
-.composition-title {
+.flag legend {
   margin: 0;
   padding: 0;
   font-family: var(--condensed);
@@ -649,33 +648,36 @@ button:hover {
   border-radius: 2px;
 }
 
-#composition {
+#connector-data {
   margin-top: var(--step);
 }
 
-.resources {
+/* A connector's data, to read and edit before it plays. */
+.data {
+  display: block;
+  box-sizing: border-box;
   width: 100%;
-  margin-top: 0.5rem;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+  min-height: 14rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: var(--code);
+  color: var(--code-ink);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  border: 1px solid var(--rule);
+  resize: vertical;
 }
 
-.resources th,
-.resources td {
-  padding: 0.45rem 0.5rem;
-  border-bottom: 1px solid var(--rule);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.resources th {
-  color: var(--ink-soft);
-  font-family: var(--condensed);
-  font-weight: 600;
-}
-
-.resources button {
-  padding: 0.2rem 0.6rem;
+/* The log tracker's lines, newest last, scrolled inside. */
+.log {
+  margin: 0;
+  padding: var(--step) calc(var(--step) * 1.5) var(--step) calc(var(--step) * 3.5);
+  max-height: 12rem;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.55;
 }
 
 /* The route switch in the chooser. After the plainer button rules, so its combinators rank last. */

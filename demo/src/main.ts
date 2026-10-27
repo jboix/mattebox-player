@@ -25,17 +25,14 @@ import emeCore from 'mattebox/stages/eme-core';
 import logoUrl from '../../docs/logo.svg';
 import type { StreamEntry } from './catalogue.js';
 import { STREAMS, tagsOf } from './catalogue.js';
+import type { DemoConnector, Example } from './connectors/index.js';
+import { CONNECTORS, DEMO_CONNECTORS } from './connectors/index.js';
 import { LANGUAGES, registerLanguages, WORD_PACKAGES } from './languages.js';
-import type { BusinessUnit, Composition, IlResource, SearchResult } from './srgssr.js';
-import {
-  BUSINESS_UNITS,
-  drmFor,
-  fetchComposition,
-  fmtDuration,
-  searchMedia,
-  tokenize,
-} from './srgssr.js';
+import { logTracker } from './log-tracker.js';
 import { wireTheme } from './theme.js';
+
+// Before the first load reads the options: every player on the page gets the connectors.
+MatteboxPlayerElement.define({ connectors: CONNECTORS });
 
 function byId<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -115,6 +112,7 @@ function elementFor(
     !keys && goal === null
       ? (document.createElement('mattebox-player') as MatteboxPlayerElement)
       : new MatteboxPlayerElement({
+          connectors: CONNECTORS,
           // Merged by name: `full` already composes eme-core, so this
           // replaces that instance rather than appending a second one.
           ...(clearKeys === undefined
@@ -123,6 +121,8 @@ function elementFor(
           ...(goal === null ? {} : { config: { bufferGoalSeconds: goal } }),
         });
   next.id = 'player';
+  // The tracker leaves the old player first, so it stops there before it starts here.
+  if (player.trackers.delete(tracker)) next.trackers.add(tracker);
   player.replaceWith(next);
   player = next;
   built = { keys, goal };
@@ -156,9 +156,13 @@ let appChapters: readonly ChapterInput[] = [];
 /** The source on screen, loaded again when the buffer goal changes. */
 let current: Choice | null = null;
 
+/** The connector type and input of the programme on screen, or null for a URL. A programme names itself. */
+let programme: { readonly type: string; readonly injected: boolean } | null = null;
+
 /** One door for every way of choosing a source. Whatever is not given is cleared, and the chooser closes. */
 function load(choice: Choice): void {
   current = choice;
+  programme = null;
   playing = choice.label ?? choice.url;
   say(`loading ${playing}…`);
   contentDialog.close();
@@ -289,24 +293,67 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
   });
 });
 
-// ---- SRG SSR: search, resolve, pick a resource --------------------------------
+// ---- broadcasters: a programme id, or its data, through a connector ----------
+
+/** Loads a programme through its connector: by id through the attributes, or by data through `sources`. */
+function loadProgramme(
+  type: string,
+  input: { readonly id: string } | { readonly data: unknown },
+  label: string,
+): void {
+  current = null;
+  programme = { type, injected: !('id' in input) };
+  playing = label;
+  say(`loading ${label}…`);
+  contentDialog.close();
+  const element = elementFor(undefined);
+  appChapters = [];
+  for (const name of [
+    'src',
+    'license-url',
+    'certificate-url',
+    'thumbnails',
+    'chapters',
+    'poster',
+  ]) {
+    element.removeAttribute(name);
+  }
+  thumbnails.value = '';
+  chapters.value = '';
+  // The programme's own poster shows: the connector gives it.
+  poster.value = '';
+  for (const child of element.querySelectorAll(':scope > mbx-video-track')) child.remove();
+  if ('id' in input) {
+    element.setAttribute('type', type);
+    element.setAttribute('src', input.id);
+  } else {
+    // The type goes with the data in `sources`; the attributes stay empty.
+    element.removeAttribute('type');
+    element.sources = [{ type, data: input.data }];
+  }
+  render();
+}
 
 {
-  const form = byId<HTMLFormElement>('search-form');
-  const bu = byId<HTMLSelectElement>('search-bu');
-  const query = byId<HTMLInputElement>('search-query');
-  const state = byId<HTMLElement>('search-state');
-  const results = byId<HTMLOListElement>('search-results');
-  const composition = byId<HTMLElement>('composition');
-  for (const unit of BUSINESS_UNITS) {
+  const picker = byId<HTMLSelectElement>('connector');
+  const unit = byId<HTMLSelectElement>('connector-unit');
+  const query = byId<HTMLInputElement>('connector-query');
+  const form = byId<HTMLFormElement>('connector-form');
+  const id = byId<HTMLInputElement>('connector-id');
+  const state = byId<HTMLElement>('connector-state');
+  const examples = byId<HTMLOListElement>('connector-examples');
+  const panel = byId<HTMLElement>('connector-data');
+  const text = byId<HTMLTextAreaElement>('connector-json');
+  for (const [index, entry] of DEMO_CONNECTORS.entries()) {
     const option = document.createElement('option');
-    option.value = unit;
-    option.textContent = unit.toUpperCase();
-    option.selected = unit === 'rts';
-    bu.append(option);
+    option.value = String(index);
+    option.textContent = entry.name;
+    picker.append(option);
   }
   let inflight: AbortController | null = null;
   let debounce = 0;
+
+  const chosen = (): DemoConnector => DEMO_CONNECTORS[Number(picker.value)] as DemoConnector;
 
   function next(): AbortSignal {
     inflight?.abort();
@@ -314,214 +361,134 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
     return inflight.signal;
   }
 
-  function tell(text: string, bad = false): void {
-    state.textContent = text;
+  function tell(words: string, bad = false): void {
+    state.textContent = words;
     state.classList.toggle('bad', bad);
   }
 
-  function renderResults(list: SearchResult[]): void {
-    results.replaceChildren();
-    results.hidden = list.length === 0;
-    for (const result of list) {
+  function renderExamples(list: readonly Example[]): void {
+    examples.replaceChildren();
+    for (const example of list) {
       const item = document.createElement('li');
       const button = document.createElement('button');
       button.type = 'button';
       const title = document.createElement('span');
       title.className = 'result-title';
-      title.textContent = result.title;
+      title.textContent = example.title;
       const meta = document.createElement('span');
       meta.className = 'result-meta';
-      const bits = [result.mediaType.toLowerCase()];
-      if (result.duration) bits.push(fmtDuration(result.duration));
-      if (result.date) bits.push(new Date(result.date).toLocaleDateString());
-      meta.textContent = bits.join(' · ');
+      meta.textContent = [example.id, example.note].filter((bit) => bit).join(' · ');
       button.append(title, meta);
       button.addEventListener('click', () => {
-        void resolve(result.urn);
+        id.value = example.id;
+        loadProgramme(chosen().connector.type, { id: example.id }, example.title);
       });
       item.append(button);
-      results.append(item);
+      examples.append(item);
     }
   }
 
-  function describeResource(r: IlResource): string {
-    const parts = [r.streaming, r.quality, r.presentation];
-    if (r.mediaContainer) parts.push(r.mediaContainer);
-    if (r.live) parts.push(r.dvr ? 'live, DVR' : 'live');
-    return parts.filter((s) => s).join(', ');
-  }
-
-  function cell(text: string, className?: string): HTMLTableCellElement {
-    const td = document.createElement('td');
-    td.textContent = text;
-    if (className !== undefined) td.className = className;
-    return td;
-  }
-
-  /** The composition's resources, one row each, with a Play where the engine can. */
-  function renderComposition(c: Composition): void {
-    composition.replaceChildren();
-    composition.hidden = false;
-    const name = document.createElement('h3');
-    name.className = 'composition-title';
-    name.textContent = c.title;
-    composition.append(name);
-    if (c.chapters.length > 0 || c.fullLength !== undefined) {
-      const note = document.createElement('p');
-      note.className = 'hint';
-      if (c.chapters.length > 0) {
-        note.textContent = `${c.chapters.length} chapters from the IL, set through engine.chapters.set.`;
-      } else if (c.fullLength !== undefined) {
-        const urn = c.fullLength;
-        note.textContent = 'This clip is cut from an episode, which has the chapters. ';
-        const open = document.createElement('button');
-        open.type = 'button';
-        open.textContent = 'Open the episode';
-        open.addEventListener('click', () => {
-          void resolve(urn);
-        });
-        note.append(open);
-      }
-      composition.append(note);
-    }
-    if (c.block !== undefined) {
-      // The IL blocks the media: the player says why, in its own language.
-      const block = c.block;
-      current = null;
-      player.removeAttribute('src');
-      player.block(block);
-      const note = document.createElement('p');
-      note.className = 'hint';
-      note.textContent = 'The IL blocks this media. The player shows why, through player.block.';
-      composition.append(note);
-      if (c.resources.length === 0) return;
-    }
-    if (c.resources.length === 0) {
-      const none = document.createElement('p');
-      none.className = 'hint';
-      none.textContent = 'This media has no playable resource.';
-      composition.append(none);
-      return;
-    }
-    const table = document.createElement('table');
-    table.className = 'resources';
-    const head = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    for (const text of ['Resource', 'DRM', 'Token', '']) {
-      const th = document.createElement('th');
-      th.scope = 'col';
-      th.textContent = text;
-      headRow.append(th);
-    }
-    head.append(headRow);
-    const body = document.createElement('tbody');
-    for (const resource of c.resources) {
-      const tr = document.createElement('tr');
-      const drm = (resource.drmList ?? []).map((d) => d.type.toLowerCase()).join(', ');
-      tr.append(
-        cell(describeResource(resource)),
-        cell(drm === '' ? 'clear' : drm, drm === '' ? 'muted' : 'pill'),
-        cell(
-          resource.tokenType === 'AKAMAI' ? 'akamai' : 'none',
-          resource.tokenType === 'AKAMAI' ? 'pill' : 'muted',
-        ),
-      );
-      const action = document.createElement('td');
-      if (resource.streaming === 'HLS' || resource.streaming === 'DASH') {
-        const play = document.createElement('button');
-        play.type = 'button';
-        play.textContent = 'Play';
-        play.addEventListener('click', () => {
-          void play_(c, resource);
-        });
-        action.append(play);
-      } else {
-        action.className = 'muted';
-        action.title = 'The engine plays HLS and DASH; a progressive file needs no engine';
-        action.textContent = 'not adaptive';
-      }
-      tr.append(action);
-      body.append(tr);
-    }
-    table.append(head, body);
-    composition.append(table);
-  }
-
-  async function play_(c: Composition, resource: IlResource): Promise<void> {
-    tell(`preparing ${c.title}…`);
-    try {
-      const signal = next();
-      const url =
-        resource.tokenType === 'AKAMAI' ? await tokenize(resource.url, signal) : resource.url;
-      const drm = drmFor(resource);
-      load({
-        label: c.title,
-        url,
-        type: resource.mimeType,
-        ...(drm === null ? {} : { licenseUrl: drm.licenseUrl }),
-        ...(drm?.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
-        ...(c.imageUrl === undefined ? {} : { poster: `${c.imageUrl}?width=1280&format=jpg` }),
-        ...(c.chapters.length === 0 ? {} : { appChapters: c.chapters }),
-        ...(c.markers.length === 0 ? {} : { markers: c.markers }),
-      });
-      tell(`playing ${c.title}${drm === null ? '' : ' (DRM)'}`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-      tell(`could not prepare the stream: ${String((error as Error).message)}`, true);
-    }
-  }
-
-  async function resolve(urn: string): Promise<void> {
-    results.hidden = true;
-    tell('resolving…');
+  async function list(find: (signal: AbortSignal) => Promise<readonly Example[]>): Promise<void> {
+    tell('loading…');
     const signal = next();
     try {
-      const c = await fetchComposition(urn, signal);
-      renderComposition(c);
-      tell(`${c.resources.length} resource(s)`);
+      const found = await find(signal);
+      renderExamples(found);
+      tell(found.length === 0 ? 'nothing found' : `${found.length} programmes`);
     } catch (error) {
       if ((error as Error).name === 'AbortError') return;
-      composition.hidden = true;
-      tell(`could not resolve ${urn}: ${String((error as Error).message)}`, true);
+      examples.replaceChildren();
+      tell(`could not list: ${String((error as Error).message)}`, true);
     }
   }
 
-  async function search(text: string): Promise<void> {
-    tell('searching…');
-    const signal = next();
-    try {
-      const list = await searchMedia(bu.value as BusinessUnit, text, signal);
-      renderResults(list);
-      tell(list.length === 0 ? 'no results' : `${list.length} results`);
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') return;
-      tell(`search failed: ${String((error as Error).message)}`, true);
+  function choose(): void {
+    const entry = chosen();
+    id.placeholder = entry.placeholder;
+    id.value = '';
+    panel.hidden = true;
+    unit.hidden = entry.units === undefined;
+    query.hidden = entry.search === undefined;
+    query.value = '';
+    unit.replaceChildren();
+    for (const name of entry.units ?? []) {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name.toUpperCase();
+      option.selected = name === 'rts';
+      unit.append(option);
     }
+    void list((signal) => entry.examples(signal));
   }
 
-  function submit(): void {
+  function search(): void {
     clearTimeout(debounce);
-    const text = query.value.trim();
-    if (text === '') return;
-    if (text.startsWith('urn:')) void resolve(text);
-    else void search(text);
+    const entry = chosen();
+    const words = query.value.trim();
+    if (entry.search === undefined || words === '') return;
+    debounce = window.setTimeout(() => {
+      void list((signal) =>
+        (entry.search as NonNullable<DemoConnector['search']>)(words, unit.value, signal),
+      );
+    }, 300);
   }
 
+  picker.addEventListener('change', choose);
+  query.addEventListener('input', search);
+  unit.addEventListener('change', search);
   form.addEventListener('submit', (event) => {
     event.preventDefault();
-    submit();
+    const value = id.value.trim();
+    if (value !== '') loadProgramme(chosen().connector.type, { id: value }, value);
   });
-  query.addEventListener('input', () => {
-    clearTimeout(debounce);
-    const text = query.value.trim();
-    if (text === '' || text.startsWith('urn:')) {
-      results.hidden = true;
+  // The data path: what `fetch` returns, shown, edited, and played without a second fetch.
+  byId<HTMLButtonElement>('connector-fetch').addEventListener('click', async () => {
+    const value = id.value.trim();
+    const connector = chosen().connector;
+    if (value === '' || connector.fetch === undefined) return;
+    tell('fetching…');
+    try {
+      const data = await connector.fetch(value, next());
+      text.value = JSON.stringify(data, null, 2);
+      panel.hidden = false;
+      tell('the data, as the connector fetched it');
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      tell(`could not fetch: ${String((error as Error).message)}`, true);
+    }
+  });
+  byId<HTMLButtonElement>('connector-inject').addEventListener('click', () => {
+    let data: unknown;
+    try {
+      data = JSON.parse(text.value);
+    } catch (error) {
+      tell(`not JSON: ${String((error as Error).message)}`, true);
       return;
     }
-    debounce = window.setTimeout(() => void search(text), 300);
+    loadProgramme(chosen().connector.type, { data }, `${chosen().name} data`);
   });
-  bu.addEventListener('change', submit);
+  choose();
 }
+
+// ---- the tracker: added to the player on the page, and moved with it ---------
+
+const trackerLog = byId<HTMLOListElement>('tracker-log');
+const tracker = logTracker((line) => {
+  const item = document.createElement('li');
+  item.textContent = `${new Date().toLocaleTimeString()} ${line}`;
+  trackerLog.append(item);
+  // The newest line stays in view, as a console does.
+  trackerLog.scrollTop = trackerLog.scrollHeight;
+});
+const logToggle = byId<HTMLInputElement>('log-tracker');
+if (logToggle.checked) player.trackers.add(tracker);
+logToggle.addEventListener('change', () => {
+  if (logToggle.checked) player.trackers.add(tracker);
+  else player.trackers.delete(tracker);
+});
+byId<HTMLButtonElement>('clear-log').addEventListener('click', () => {
+  trackerLog.replaceChildren();
+});
 
 // ---- the chooser: a dialog with the two routes ---------------------------------
 
@@ -813,9 +780,11 @@ function composition(): string {
   for (const screen of ordered) {
     if (!screen.checked) continue;
     const tagName = SCREEN_TAGS[screen.dataset.screen ?? ''] ?? 'mbx-error-screen';
-    // The title shows what the demo knows of the source: its name and its poster.
+    // The title shows what the demo knows of the source: its name and its
+    // poster. A connector's programme brings its own title, which the
+    // element shows when the attributes leave it out.
     const own =
-      tagName === 'mbx-title'
+      tagName === 'mbx-title' && programme === null
         ? { heading: playing, artwork: poster.value === '' ? null : poster.value }
         : {};
     lines.push(tag(tagName, own));
@@ -954,19 +923,23 @@ function markupFor(element: MatteboxPlayerElement): string {
   // Markers come from a content API, not the markup: the page sets them.
   const marks = element.markers.list;
   const markers =
-    marks.length === 0
-      ? ''
-      : `\n\n  // After src: a new source clears them.\n  document.querySelector('mattebox-player').markers.set([\n${marks
-          .map(
-            (marker) =>
-              `    { ${Object.entries(marker)
-                .map(
-                  ([key, value]) =>
-                    `${key}: ${typeof value === 'string' ? `'${value}'` : typeof value === 'number' ? value : JSON.stringify(value)}`,
-                )
-                .join(', ')} },`,
-          )
-          .join('\n')}\n  ]);`;
+    programme !== null
+      ? programme.injected
+        ? `\n\n  // The programme's data, which the connector resolves without a fetch.\n  document.querySelector('mattebox-player').sources = [\n    { type: '${programme.type}', data: /* what the connector's fetch returns */ },\n  ];`
+        : ''
+      : marks.length === 0
+        ? ''
+        : `\n\n  // After src: a new source clears them.\n  document.querySelector('mattebox-player').markers.set([\n${marks
+            .map(
+              (marker) =>
+                `    { ${Object.entries(marker)
+                  .map(
+                    ([key, value]) =>
+                      `${key}: ${typeof value === 'string' ? `'${value}'` : typeof value === 'number' ? value : JSON.stringify(value)}`,
+                  )
+                  .join(', ')} },`,
+            )
+            .join('\n')}\n  ]);`;
   // A stage list and kernel config are not attributes: they go to define().
   const options = [
     ...(built.keys
@@ -976,10 +949,15 @@ function markupFor(element: MatteboxPlayerElement): string {
         ]
       : []),
     ...(built.goal === null ? [] : [`    config: { bufferGoalSeconds: ${built.goal} },`]),
+    ...connectorOptions(),
   ];
-  const imports = built.keys
-    ? "\n  import full from 'mattebox/presets/full';\n  import emeCore from 'mattebox/stages/eme-core';"
-    : '';
+  const connector = connectorOptions().length > 0;
+  const name = (programme?.type ?? '').split('/')[0];
+  const imports = `${
+    built.keys
+      ? "\n  import full from 'mattebox/presets/full';\n  import emeCore from 'mattebox/stages/eme-core';"
+      : ''
+  }${connector ? `\n  import { ${name} } from './connectors/${name}.js';` : ''}`;
   // A language is one import per package on the page that has words, and one registration.
   const code = element.getAttribute('language');
   const used = WORD_PACKAGES.filter(
@@ -1013,6 +991,19 @@ ${options.join('\n')}
   import '@mattebox/player';${extra}${edges}${markers}
 </script>`;
   return `<mattebox-player${inner}\n>${children}</mattebox-player>\n\n${script}`;
+}
+
+/** The `connectors` option, when the source is a programme a demo connector resolves. */
+function connectorOptions(): string[] {
+  const type = programme?.type;
+  const entry = DEMO_CONNECTORS.find((candidate) => candidate.connector.type === type);
+  if (entry === undefined) return [];
+  // The export of `demo/src/connectors/<name>.ts` is named after the type's first word.
+  const name = entry.connector.type.split('/')[0] as string;
+  return [
+    `    // The demo's own connector: demo/src/connectors/${name}.ts`,
+    `    connectors: [${name}],`,
+  ];
 }
 
 function render(): void {

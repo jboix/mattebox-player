@@ -15,7 +15,7 @@ import type { MatteboxPlayerElement } from '@mattebox/player';
 import type { PlaylistItem } from '@mattebox/player-playlist';
 import { createPlaylist } from '@mattebox/player-playlist';
 import logoUrl from '../../docs/logo.svg';
-import { fetchComposition, searchMedia, tokenize } from './srgssr.js';
+import { mainChapter, searchMedia, srgssr } from './connectors/srgssr.js';
 import { wireTheme } from './theme.js';
 
 for (const img of document.querySelectorAll<HTMLImageElement>('img.logo')) img.src = logoUrl;
@@ -55,8 +55,10 @@ function artwork(imageUrl: string): string {
 
 /**
  * The reels RTS publishes: what a search for "reel" finds in the upright
- * format, each resolved to its HLS stream. A reel that does not resolve is
- * left out.
+ * format, each resolved to its HLS stream by the SRG SSR connector. The
+ * page calls the connector itself and gives the playlist plain URLs,
+ * because the playlist preloads the next reel, and a preload skips a
+ * connector source. A reel that does not resolve is left out.
  */
 async function rtsReels(): Promise<PlaylistItem[]> {
   const signal = new AbortController().signal;
@@ -65,16 +67,18 @@ async function rtsReels(): Promise<PlaylistItem[]> {
   const resolved = await Promise.all(
     upright.map(async (media): Promise<PlaylistItem | null> => {
       try {
-        const composition = await fetchComposition(media.urn, signal);
-        const resource = composition.resources.find((r) => r.streaming === 'HLS');
-        if (resource === undefined) return null;
-        const token = resource.tokenType !== undefined && resource.tokenType !== 'NONE';
+        const data = await srgssr.fetch?.(media.urn, signal);
+        if (data === undefined) return null;
+        const { sources } = await srgssr.resolve(data, signal);
+        const hls = sources.find((source) => source.type === 'application/vnd.apple.mpegurl');
+        if (hls === undefined) return null;
+        const imageUrl = mainChapter(data).imageUrl;
         return {
-          src: token ? await tokenize(resource.url, signal) : resource.url,
+          src: hls.url,
           type: 'application/vnd.apple.mpegurl',
           heading: media.title,
           subheading: `RTS, ${Math.round(media.duration / 1000)} s`,
-          ...(composition.imageUrl === undefined ? {} : { artwork: artwork(composition.imageUrl) }),
+          ...(imageUrl === undefined ? {} : { artwork: artwork(imageUrl) }),
           duration: media.duration / 1000,
         };
       } catch {

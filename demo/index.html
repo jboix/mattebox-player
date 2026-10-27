@@ -48,7 +48,7 @@
       <h2 id="content-title">Content</h2>
       <div class="segments" role="tablist" aria-label="Content source">
         <button type="button" role="tab" data-route="static" aria-selected="true">Static</button>
-        <button type="button" role="tab" data-route="srgssr" aria-selected="false">SRG SSR</button>
+        <button type="button" role="tab" data-route="connectors" aria-selected="false">Broadcasters</button>
       </div>
       <button type="button" id="close-content" aria-label="Close">✕</button>
     </div>
@@ -69,15 +69,26 @@
       <p id="stream-note" class="hint"></p>
     </div>
 
-    <div id="route-srgssr" role="tabpanel" hidden>
-      <form id="search-form" class="row">
-        <select id="search-bu" aria-label="Business unit"></select>
-        <input id="search-query" class="grow" type="search" placeholder="Search a title, or paste a URN" autocomplete="off" />
-        <button type="submit">Search</button>
+    <div id="route-connectors" role="tabpanel" hidden>
+      <div class="row">
+        <select id="connector" aria-label="Broadcaster"></select>
+        <select id="connector-unit" aria-label="Business unit" hidden></select>
+        <input id="connector-query" class="grow" type="search" placeholder="Search a title" autocomplete="off" aria-label="Search" hidden />
+      </div>
+      <form id="connector-form" class="row">
+        <input id="connector-id" class="grow" autocomplete="off" aria-label="Programme id" />
+        <button type="submit">Play</button>
+        <button type="button" id="connector-fetch">Show the data</button>
       </form>
-      <p id="search-state" class="hint" aria-live="polite"></p>
-      <ol id="search-results" class="picks tall" hidden></ol>
-      <div id="composition" hidden></div>
+      <p id="connector-state" class="hint" aria-live="polite"></p>
+      <ol id="connector-examples" class="picks tall" aria-label="Programmes to try"></ol>
+      <div id="connector-data" hidden>
+        <p class="hint">What the connector's fetch returned. Edit it and play it: the player resolves it without a fetch.</p>
+        <textarea id="connector-json" class="data" spellcheck="false" aria-label="Programme data"></textarea>
+        <div class="row">
+          <button type="button" id="connector-inject">Play this data</button>
+        </div>
+      </div>
     </div>
   </dialog>
 
@@ -93,6 +104,15 @@
           <button type="button" id="copy-markup">Copy</button>
         </div>
         <pre id="markup"></pre>
+      </section>
+      <section class="flag flag-bottom" aria-labelledby="tracker-title">
+        <div class="flag-head">
+          <h2 id="tracker-title">Tracker</h2>
+          <label><input type="checkbox" id="log-tracker" checked /> Log tracker</label>
+          <button type="button" id="clear-log">Clear</button>
+        </div>
+        <p class="hint">A tracker that sends nothing: it lists what a media analytics tracker would send.</p>
+        <ol id="tracker-log" class="log" aria-label="Tracker log"></ol>
       </section>
     </div>
 

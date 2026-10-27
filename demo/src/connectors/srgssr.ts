@@ -1,13 +1,15 @@
 /**
- * SRG SSR content through the integration layer (IL): search by business
- * unit, resolve a URN to its media composition, pick a resource, and add
- * the Akamai token the resource needs. Demo code only: the element never
- * knows where a URL came from. Adapted from the engine's playground, itself
- * adapted from pillarbox-web.
+ * SRG SSR content through the integration layer (IL), as a connector for
+ * `srgssr/urn`: `fetch` gets the media composition of a URN, and `resolve`
+ * turns it into sources, with the Akamai token each resource needs, and
+ * the title, chapters, credits and block reason. Demo code only: the
+ * element never knows where a URL came from. Adapted from the engine's
+ * playground, itself adapted from pillarbox-web.
  */
 
-import type { Block, Marker, Text } from '@mattebox/player';
+import type { Block, Connector, Marker, ProgrammeMetadata, Source, Text } from '@mattebox/player';
 import type { ChapterInput } from 'mattebox/stages/chapters';
+import type { DemoConnector } from './types.js';
 
 const IL_HOST = 'il.srgssr.ch';
 export const BUSINESS_UNITS = ['srf', 'rts', 'rsi', 'rtr', 'swi'] as const;
@@ -47,22 +49,8 @@ export interface IlResource {
   readonly drmList?: readonly DrmEntry[];
 }
 
-export interface Composition {
-  readonly title: string;
-  readonly imageUrl?: string;
-  readonly resources: readonly IlResource[];
-  /** The chapters of the full-length media, for `engine.chapters.set`. */
-  readonly chapters: readonly ChapterInput[];
-  /** The URN of the episode a clip is cut from, which has the chapters. */
-  readonly fullLength?: string;
-  /** The credits and the blocked parts, for `element.markers.set`. */
-  readonly markers: readonly Marker[];
-  /** Why the media does not play, for `element.block`, when the IL blocks it. */
-  readonly block?: Block;
-}
-
 /** One chapter of a media composition, as the IL describes it. */
-interface IlChapter {
+export interface IlChapter {
   readonly urn: string;
   readonly title: string;
   readonly type?: string;
@@ -81,6 +69,8 @@ interface IlChapter {
     readonly markIn: number;
     readonly markOut: number;
   }>;
+  /** The Commanders Act labels of the chapter, which a tracker maps. */
+  readonly analyticsMetadata?: Readonly<Record<string, string>>;
   /** Parts of the chapter; one with a `blockReason` must not play. */
   readonly segmentList?: ReadonlyArray<{
     readonly markIn: number;
@@ -230,29 +220,77 @@ export async function searchMedia(
   );
 }
 
-export async function fetchComposition(urn: string, signal: AbortSignal): Promise<Composition> {
-  const url = `https://${IL_HOST}/integrationlayer/2.1/mediaComposition/byUrn/${encodeURIComponent(
-    urn,
-  )}?onlyChapters=true&vector=portalplay`;
-  const response = await fetch(url, { signal });
-  if (!response.ok) throw new Error(`media composition failed: HTTP ${response.status}`);
-  const data = (await response.json()) as {
-    chapterUrn: string;
-    chapterList?: IlChapter[];
-  };
-  const list = data.chapterList ?? [];
-  const chapter = list.find((c) => c.urn === data.chapterUrn);
+/** The IL's media composition of a URN, as `fetch` returns it and as a page can inject it. */
+export interface IlComposition {
+  readonly chapterUrn: string;
+  readonly chapterList?: readonly IlChapter[];
+}
+
+/** The main chapter: the one the URN names. */
+export function mainChapter(data: IlComposition): IlChapter {
+  const chapter = data.chapterList?.find((c) => c.urn === data.chapterUrn);
   if (chapter === undefined) throw new Error('media composition has no main chapter');
+  return chapter;
+}
+
+/** One resource as a source: the token added, and the DRM of this browser's key system. */
+async function sourceOf(resource: IlResource, signal: AbortSignal): Promise<Source | null> {
+  // A progressive file, such as an MP3 or an MP4, plays through the browser.
+  if (!['HLS', 'DASH', 'PROGRESSIVE'].includes(resource.streaming)) return null;
+  const drm = drmFor(resource);
+  // An encrypted resource without this browser's key system does not play here.
+  if ((resource.drmList?.length ?? 0) > 0 && drm === null) return null;
+  const url = resource.tokenType === 'AKAMAI' ? await tokenize(resource.url, signal) : resource.url;
   return {
-    title: chapter.title,
-    ...(chapter.imageUrl === undefined ? {} : { imageUrl: chapter.imageUrl }),
-    resources: chapter.resourceList ?? [],
-    chapters: chaptersOf(chapter, list),
-    markers: markersOf(chapter),
-    ...(chapter.blockReason === undefined ? {} : { block: blockOf(chapter.blockReason) }),
-    ...(chapter.fullLengthUrn === undefined ? {} : { fullLength: chapter.fullLengthUrn }),
+    url,
+    type: resource.mimeType,
+    ...(drm === null
+      ? {}
+      : {
+          drm: {
+            licenseUrl: drm.licenseUrl,
+            ...(drm.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
+          },
+        }),
   };
 }
+
+export const srgssr: Connector<IlComposition> = {
+  type: 'srgssr/urn',
+  async fetch(urn, signal) {
+    const url = `https://${IL_HOST}/integrationlayer/2.1/mediaComposition/byUrn/${encodeURIComponent(
+      urn,
+    )}?onlyChapters=true&vector=portalplay`;
+    const response = await fetch(url, { signal });
+    if (!response.ok) throw new Error(`media composition failed: HTTP ${response.status}`);
+    return (await response.json()) as IlComposition;
+  },
+  // The resources in the IL's order, which the player tries in turn, as pillarbox-web does.
+  async resolve(data, signal) {
+    const list = data.chapterList ?? [];
+    const chapter = mainChapter(data);
+    const image = chapter.imageUrl;
+    const metadata: ProgrammeMetadata = {
+      title: chapter.title,
+      ...(image === undefined
+        ? {}
+        : { image: `${image}?width=320&format=jpg`, poster: `${image}?width=1280&format=jpg` }),
+      chapters: chaptersOf(chapter, list),
+      markers: markersOf(chapter),
+    };
+    if (chapter.blockReason !== undefined) {
+      return { sources: [], block: blockOf(chapter.blockReason), metadata };
+    }
+    const sources = await Promise.all(
+      (chapter.resourceList ?? []).map((resource) => sourceOf(resource, signal)),
+    );
+    // The adaptive resources first: a progressive file is the fallback.
+    const adaptive = (source: Source): boolean =>
+      !/^(audio|video)\/(mp4|mpeg)/.test(source.type ?? '');
+    const found = sources.filter((source) => source !== null);
+    return { sources: [...found.filter(adaptive), ...found.filter((s) => !adaptive(s))], metadata };
+  },
+};
 
 /** The Akamai ACL for a stream URL: its directory and everything below. */
 function aclPath(url: URL): string {
@@ -261,7 +299,7 @@ function aclPath(url: URL): string {
 }
 
 /** Adds the Akamai auth parameters the token server issues for the stream's path. */
-export async function tokenize(streamUrl: string, signal: AbortSignal): Promise<string> {
+async function tokenize(streamUrl: string, signal: AbortSignal): Promise<string> {
   const url = new URL(streamUrl);
   const response = await fetch(`${TOKEN_SERVER}${encodeURIComponent(aclPath(url))}`, { signal });
   if (!response.ok) throw new Error(`token server failed: HTTP ${response.status}`);
@@ -272,7 +310,7 @@ export async function tokenize(streamUrl: string, signal: AbortSignal): Promise<
 }
 
 /** The DRM entry for the key system this browser has, or null for a clear resource. */
-export function drmFor(resource: IlResource): DrmEntry | null {
+function drmFor(resource: IlResource): DrmEntry | null {
   const fairplay = 'webkitEnterFullscreen' in document.createElement('video');
   const wanted = fairplay ? 'FAIRPLAY' : 'WIDEVINE';
   return (resource.drmList ?? []).find((d) => d.type === wanted) ?? null;
@@ -285,3 +323,24 @@ export function fmtDuration(ms: number): string {
     ? `${Math.floor(minutes / 60)} h ${minutes % 60} min`
     : `${Math.max(1, minutes)} min`;
 }
+
+/** A search result as an example to play: its title, and what it is. */
+async function find(query: string, unit: string, signal: AbortSignal) {
+  const list = await searchMedia(unit as BusinessUnit, query, signal);
+  return list.map((result) => ({
+    id: result.urn,
+    title: result.title,
+    note: [result.mediaType.toLowerCase(), fmtDuration(result.duration)]
+      .filter((bit) => bit !== '')
+      .join(', '),
+  }));
+}
+
+export const srgssrDemo: DemoConnector = {
+  connector: srgssr,
+  name: 'SRG SSR',
+  placeholder: 'A URN, such as urn:rts:video:…',
+  examples: (signal) => find('journal', 'rts', signal),
+  search: find,
+  units: BUSINESS_UNITS,
+};
