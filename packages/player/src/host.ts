@@ -13,6 +13,18 @@ import type { Mattebox } from 'mattebox';
 import type { Markers } from './controls/markers.js';
 import type { Messages } from './messages.js';
 import { PLAYER } from './tags.js';
+import type { Text } from './text.js';
+
+/**
+ * Why the programme does not play, as the page's content API says: the
+ * player shows it over the picture in place of the video.
+ */
+export interface Block {
+  /** The title. Without one, the player's own words for "Not available". */
+  readonly title?: Text;
+  /** What the viewer reads under the title, such as "Only available in Switzerland". */
+  readonly message?: Text;
+}
 
 export interface PlayerHost extends HTMLElement {
   readonly video: HTMLVideoElement;
@@ -20,6 +32,8 @@ export interface PlayerHost extends HTMLElement {
   readonly player: Player | null;
   /** The fatal error of the current load, or null: a control attached after the event still sees it. */
   readonly error: PlayerError | null;
+  /** What `block()` set, or null: a control attached after `blockchange` still sees it. */
+  readonly blocked: Block | null;
   /** The ranges the page named: credits to skip, parts that must not play. */
   readonly markers: Markers;
   /** Loads the sources again, in the order a load reads them. */

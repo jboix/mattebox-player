@@ -17,6 +17,8 @@ import type { PlayerHost } from '../host.js';
 import { findPlayer } from '../host.js';
 import type { Messages } from '../messages.js';
 import { PLAYER } from '../tags.js';
+import type { Text } from '../text.js';
+import { textIn } from '../text.js';
 
 export abstract class Component extends HTMLElement {
   declare protected player: PlayerHost | null;
@@ -96,6 +98,11 @@ export abstract class Component extends HTMLElement {
    */
   protected word(attribute: string, id: keyof Messages, english: string): string {
     return this.getAttribute(attribute) ?? this.player?.message(id) ?? english;
+  }
+
+  /** Words the page gave, in the player's language. */
+  protected pageText(text: Text): string {
+    return textIn(text, this.player?.locale ?? '');
   }
 
   /** Keeps `off` to run on detach. */

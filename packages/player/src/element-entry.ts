@@ -7,6 +7,7 @@ import { MatteboxPlayerElement } from './element.js';
 
 export type { MatteboxPlayerOptions } from './element.js';
 export { MatteboxPlayerElement } from './element.js';
-export type { PlayerHost } from './host.js';
+export type { Block, PlayerHost } from './host.js';
+export type { Text } from './text.js';
 
 MatteboxPlayerElement.define();

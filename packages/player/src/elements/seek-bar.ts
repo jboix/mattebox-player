@@ -597,7 +597,9 @@ export class MbxSeekBar extends Component {
     // preview would show them.
     const blocked = this.player?.markers.within(when).find((marker) => marker.kind === 'blocked');
     const title = blocked
-      ? (blocked.label ?? this.word('label-blocked', 'blocked', 'Not available'))
+      ? blocked.label === undefined
+        ? this.word('label-blocked', 'blocked', 'Not available')
+        : this.pageText(blocked.label)
       : (chapter?.title ?? '');
     this.caption.hidden = title === '';
     this.caption.textContent = title;

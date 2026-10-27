@@ -384,6 +384,18 @@ byId<HTMLButtonElement>('load-url').addEventListener('click', () => {
       }
       composition.append(note);
     }
+    if (c.block !== undefined) {
+      // The IL blocks the media: the player says why, in its own language.
+      const block = c.block;
+      current = null;
+      player.removeAttribute('src');
+      player.block(block);
+      const note = document.createElement('p');
+      note.className = 'hint';
+      note.textContent = 'The IL blocks this media. The player shows why, through player.block.';
+      composition.append(note);
+      if (c.resources.length === 0) return;
+    }
     if (c.resources.length === 0) {
       const none = document.createElement('p');
       none.className = 'hint';
@@ -949,7 +961,8 @@ function markupFor(element: MatteboxPlayerElement): string {
             (marker) =>
               `    { ${Object.entries(marker)
                 .map(
-                  ([key, value]) => `${key}: ${typeof value === 'string' ? `'${value}'` : value}`,
+                  ([key, value]) =>
+                    `${key}: ${typeof value === 'string' ? `'${value}'` : typeof value === 'number' ? value : JSON.stringify(value)}`,
                 )
                 .join(', ')} },`,
           )

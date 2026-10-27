@@ -40,7 +40,7 @@ import { announcer } from './announcer.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { languageName } from './controls/track-names.js';
-import type { PlayerHost } from './host.js';
+import type { Block, PlayerHost } from './host.js';
 import type { LocaleSource } from './locales.js';
 import { addLocale, load, onLocales, registered, wordsNow } from './locales.js';
 import type { Messages, Words } from './messages.js';
@@ -50,6 +50,7 @@ import { STYLE } from './style.js';
 import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
 import { ERROR_SCREEN, PLAYER } from './tags.js';
+import { textIn } from './text.js';
 import type { Chosen } from './video-sources.js';
 import {
   chosen,
@@ -190,6 +191,8 @@ export interface MatteboxPlayerEventMap {
   markerschange: CustomEvent<readonly Marker[]>;
   /** Playback reached a blocked range and moved past it. */
   blocked: CustomEvent<Marker>;
+  /** The page called `block()` or `unblock()`, or a new source cleared the block: the block, or null. */
+  blockchange: CustomEvent<Block | null>;
 }
 
 export interface MatteboxPlayerElement {
@@ -317,6 +320,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private core: Player | null;
   declare private current: Session | null;
   declare private failure: PlayerError | null;
+  /** What `block()` set, or null. */
+  declare private stop: Block | null;
   /** Whether an attribute change is the element's own reflection, which must not write back to the video. */
   declare private reflecting: boolean;
   /** Watches the element's box for `layout`, while connected. */
@@ -354,6 +359,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.core = null;
     this.current = null;
     this.failure = null;
+    this.stop = null;
     this.reflecting = false;
     this.sizes = null;
     this.fixed = false;
@@ -451,8 +457,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   set sources(value: readonly Source[] | null) {
     this.list = value;
-    // Markers belong to a source, as for `src`.
+    // Markers and a block belong to a source, as for `src`.
     if (this.marks.list.length > 0) this.marks.set([]);
+    this.unblock();
     this.reload();
   }
 
@@ -506,6 +513,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       if (epoch !== this.wordsEpoch) return;
       this.shown = tag;
       this.words = words;
+      this.showBlock();
       this.emit('localechange', tag);
     };
     const key = registered(tag);
@@ -660,6 +668,58 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    */
   get error(): PlayerError | null {
     return this.failure;
+  }
+
+  /**
+   * Shows why the programme does not play, in place of the video, and
+   * stops the load: the reason the page's content API gave, such as a
+   * geographic or an age restriction. The error screen shows the title,
+   * else "Not available", and the message, with no retry. Each text can
+   * be given by language tag, and follows the player's language. A new
+   * `src` or `sources` clears it. Fires `blockchange`.
+   */
+  block(block: Block): void {
+    this.stop = block;
+    this.media.pause();
+    clearTimeout(this.slow);
+    this.enqueue(() => this.teardown());
+    const [title, message] = this.blockWords(block);
+    // An error screen in the player is an alert of its own, read already.
+    if (this.querySelector(ERROR_SCREEN) === null) {
+      this.voice.tell(message === '' ? title : `${title}. ${message}`);
+    }
+    this.showBlock();
+    this.emit('blockchange', block);
+  }
+
+  /** Removes the block. Nothing plays until a source loads: set one, or call `retry()`. */
+  unblock(): void {
+    if (this.stop === null) return;
+    this.stop = null;
+    this.surface.clear();
+    this.emit('blockchange', null);
+  }
+
+  /** What `block()` set, or null. */
+  get blocked(): Block | null {
+    return this.stop;
+  }
+
+  /** A block's title and message in the player's language: the title defaults to the `blocked` word. */
+  private blockWords(block: Block): [string, string] {
+    return [
+      block.title === undefined
+        ? (this.words.blocked ?? 'Not available')
+        : textIn(block.title, this.shown),
+      block.message === undefined ? '' : textIn(block.message, this.shown),
+    ];
+  }
+
+  /** Puts the block on the row under the video, under native controls. */
+  private showBlock(): void {
+    if (this.stop === null || this.getAttribute(CONTROLS) === 'custom') return;
+    const [title, message] = this.blockWords(this.stop);
+    this.surface.inform(title, message);
   }
 
   connectedCallback(): void {
@@ -864,6 +924,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Markers belong to a source. Cleared here, not on `emptied`, which
     // arrives later and would clear the ones the page sets right after.
     if (name === 'src' && this.marks.list.length > 0) this.marks.set([]);
+    if (name === 'src') this.unblock();
     this.reload();
   }
 
@@ -878,6 +939,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.media.controls = !custom && value !== 'none';
     // Under custom controls the error screen element carries a fatal error.
     if (custom) this.surface.clear();
+    else this.showBlock();
     if (!custom) {
       if (this.focusable) this.removeAttribute('tabindex');
       this.focusable = false;

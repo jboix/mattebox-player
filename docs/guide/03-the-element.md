@@ -139,6 +139,7 @@ player.sources = [
 | `video`        | The `<video>` inside, in light DOM                                                                      |
 | `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                |
 | `markers`      | The ranges the page named in this source: see [Markers](#markers)                                       |
+| `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                      |
 | `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)   |
 | `videoSource`  | The version that plays, or null for the source itself                                                   |
 | `language`     | The `language` attribute, or empty. Setting it changes the words at once                                |
@@ -188,6 +189,9 @@ tier.
 language that finished loading, or an `addLocale` call. Its `detail` is the
 language tag, empty for English.
 
+`blockchange` fires on `block()`, on `unblock()`, and when a new source
+clears the block. Its `detail` is the block, or null.
+
 `castload` comes from the button of `@mattebox/player-cast`. It fires
 before the request goes to the receiver. It bubbles, it is composed, and it
 is cancelable. Its `detail` is the load request of the sender SDK. The page
@@ -228,6 +232,41 @@ player.markers.set([
 - `markerschange` fires when the list changes, with the list as `detail`.
 - `blocked` fires each time the player moves past a blocked range, with
   the marker as `detail`. Show a notice there if your viewers need one.
+- A `label` can be given by language, as a block's words are: see
+  [Blocks](#blocks).
+
+## Blocks
+
+`block()` shows why the programme does not play, such as a geographic or an
+age restriction, and stops the load. Your content API gives the reason, and
+you give the player its words:
+
+```ts
+player.block({
+  title: { en: 'Not available', de: 'Nicht verfügbar', fr: 'Non disponible' },
+  message: {
+    en: 'This content is not available outside Switzerland.',
+    de: 'Dieser Inhalt ist ausserhalb der Schweiz nicht verfügbar.',
+    fr: 'Ce contenu n’est pas disponible hors de Suisse.',
+  },
+});
+```
+
+- `<mbx-error-screen>` shows the title and the message, with no retry.
+  Under native controls, the row under the video shows them.
+- Each text is a string, or the same words by language tag. The player
+  reads them in its own language: the tag, then its language alone, then
+  `en`, then the first entry. They change with `language`, as the
+  controls' words do.
+- Without a `title`, the title is the player's word for "Not available",
+  in the player's language.
+- A new `src` or `sources` clears the block, as it clears the markers.
+  `unblock()` clears it too. Nothing plays until a source loads: set one,
+  or call `retry()`.
+- `player.blocked` is the block, or null, and `blockchange` fires when it
+  changes.
+- The live region says the title and the message, unless an
+  `<mbx-error-screen>` in the player says them.
 
 ## Stages
 
@@ -455,7 +494,7 @@ subtitles menus read the video's own track lists. See
 | `mbx-fullscreen-button` |                                                                              | `label-enter`, `label-exit`                                                                                                                                                                                                             | `icon-enter`, `icon-exit`                | Toggles fullscreen on the player. Hidden without the API. Sets `fullscreen` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `mbx-start-button`      |                                                                              | `label-play`, `label-replay`                                                                                                                                                                                                            | `icon-play`, `icon-replay`               | Shows a large play button over the picture while paused, and a replay after the end. Hidden while playing, behind an error, and in a box too short to keep it above the bar                                                                                                                                                                                                                                                                                                                                                                                   |
 | `mbx-marker-button`     |                                                                              | `label-opening-credits`, `label-closing-credits`, `label-skip`                                                                                                                                                                          |                                          | Shows a skip button over the picture inside a marker the page set, other than `blocked`. A press moves to the marker's end. It sits above the bar, and hides once the media has ended. While the player carries `upnext`, a card such as the playlist's `<mbx-up-next>` covers the closing credits, and the button leaves them to it                                                                                                                                                                                                                          |
-| `mbx-error-screen`      |                                                                              | `label-title`, `label-retry`                                                                                                                                                                                                            |                                          | Shows a fatal error over the picture, with the category, the code and a retry that calls the player's `retry()`                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `mbx-error-screen`      |                                                                              | `label-title`, `label-retry`, `label-blocked`                                                                                                                                                                                           |                                          | Shows a fatal error over the picture, with the category, the code and a retry that calls the player's `retry()`. Shows the page's block, with its title and message and no retry                                                                                                                                                                                                                                                                                                                                                                              |
 | `mbx-spinner`           |                                                                              | `label`                                                                                                                                                                                                                                 | `icon`                                   | Shows a turning ring in the place of the start button while the player has `waiting`                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `mbx-title`             | `heading`, `subheading`, `artwork`                                           |                                                                                                                                                                                                                                         |                                          | Shows the artwork next to the heading and subheading, above the bar. Beside artwork, a long heading wraps to three lines, or two above a subheading; without artwork it keeps one line. Shown while the video is paused, including before the first play. Has `playing` for the page's own rule                                                                                                                                                                                                                                                               |
 
@@ -808,7 +847,8 @@ wants them uses `controls="custom"`.
 
 Under native controls, a fatal error shows in the player's own row under
 the video, the error surface, with the category, the code and a retry.
-Under `custom`, `<mbx-error-screen>` shows the error instead.
+Under `custom`, `<mbx-error-screen>` shows the error instead. A block
+shows in the same places, with its title and message and no retry.
 
 `controls="none"` takes the browser's controls off the video, appends
 nothing, and hides every child but the video. A page keeps its composition
@@ -919,7 +959,7 @@ Two rules make this work:
 | Every menu                          | `button`, `icon`, `popup`, `title`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-glyph`, `badge-text`, `item-detail`, `page-item`, `glyph-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
 | The chosen item of a menu           | `checked`, added to the part of the item. It is the only state in a part name, because a page cannot otherwise select the state of an item inside a shadow root                                                                         |
 | `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                                                                                                                      |
-| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `retry`                                                                                                                                                                      |
+| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `message`, `retry`                                                                                                                                                           |
 
 Part names are public API. A release can add names. A name is only renamed
 in a major version.

@@ -1208,6 +1208,17 @@ describe('markers', () => {
     await expect.poll(() => inner(button).textContent).toBe('Skip credits');
   });
 
+  it("a skip button reads a label given by language in the player's language", async () => {
+    const player = await loaded({}, 100);
+    const button = control(player, 'mbx-marker-button');
+    player.markers.set([
+      { start: 0, end: 20, kind: 'recap', label: { en: 'recap', fr: 'résumé' } },
+    ]);
+    expect(inner(button).textContent).toBe('Skip recap');
+    player.language = 'fr-CH';
+    expect(inner(button).textContent).toBe('Skip résumé');
+  });
+
   it('the skip button leaves the closing credits to an up next card, and keeps the others', async () => {
     const player = await loaded({}, 100);
     const button = control(player, 'mbx-marker-button');

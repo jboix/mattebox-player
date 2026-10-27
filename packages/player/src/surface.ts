@@ -11,6 +11,8 @@ import { el } from './dom.js';
 export interface ErrorSurface {
   readonly root: HTMLElement;
   show(error: PlayerError): void;
+  /** Shows a block's words, with no retry: a retry cannot lift a block. */
+  inform(title: string, message: string): void;
   clear(): void;
 }
 
@@ -31,6 +33,13 @@ export function errorSurface(retry: () => void, word: () => string): ErrorSurfac
       category.textContent = error.category;
       code.textContent = error.code;
       button.textContent = word();
+      button.hidden = false;
+      root.hidden = false;
+    },
+    inform(title: string, message: string): void {
+      category.textContent = title;
+      code.textContent = message;
+      button.hidden = true;
       root.hidden = false;
     },
     clear(): void {

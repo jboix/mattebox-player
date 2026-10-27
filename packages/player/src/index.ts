@@ -65,9 +65,10 @@ export { MbxTitle } from './entries/title.js';
 export { MbxVideoMenu } from './entries/video-menu.js';
 export { MbxVolume } from './entries/volume.js';
 export { MbxVolumeSlider } from './entries/volume-slider.js';
-export type { PlayerHost } from './host.js';
+export type { Block, PlayerHost } from './host.js';
 export type { LocaleSource } from './locales.js';
 export type { Messages, PlayerMessages, Words } from './messages.js';
+export type { Text } from './text.js';
 
 declare global {
   interface HTMLElementTagNameMap {

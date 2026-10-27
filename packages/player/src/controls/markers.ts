@@ -8,6 +8,7 @@
  * A blocked range is never played: entering it, by playback or by a seek,
  * moves the playhead to its end.
  */
+import type { Text } from '../text.js';
 
 /** One range, in seconds of the media. */
 export interface Marker {
@@ -20,9 +21,10 @@ export interface Marker {
   readonly kind: string;
   /**
    * Words for the range: what a skip button names for a kind it does not
-   * know, and what the seek bar's preview shows over a blocked range.
+   * know, and what the seek bar's preview shows over a blocked range. By
+   * language tag, the player reads them in its own language.
    */
-  readonly label?: string;
+  readonly label?: Text;
 }
 
 export interface Markers {

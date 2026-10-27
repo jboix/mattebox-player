@@ -6,7 +6,7 @@
  * adapted from pillarbox-web.
  */
 
-import type { Marker } from '@mattebox/player';
+import type { Block, Marker, Text } from '@mattebox/player';
 import type { ChapterInput } from 'mattebox/stages/chapters';
 
 const IL_HOST = 'il.srgssr.ch';
@@ -57,6 +57,8 @@ export interface Composition {
   readonly fullLength?: string;
   /** The credits and the blocked parts, for `element.markers.set`. */
   readonly markers: readonly Marker[];
+  /** Why the media does not play, for `element.block`, when the IL blocks it. */
+  readonly block?: Block;
 }
 
 /** One chapter of a media composition, as the IL describes it. */
@@ -71,6 +73,8 @@ interface IlChapter {
   readonly fullLengthMarkIn?: number;
   readonly fullLengthMarkOut?: number;
   readonly resourceList?: IlResource[];
+  /** Why the chapter does not play, such as `GEOBLOCK` or `STARTDATE`. */
+  readonly blockReason?: string;
   /** Opening and closing credits, in milliseconds. */
   readonly timeIntervalList?: ReadonlyArray<{
     readonly type: string;
@@ -112,14 +116,62 @@ function chaptersOf(main: IlChapter, list: readonly IlChapter[]): ChapterInput[]
   return out;
 }
 
-/** What the seek bar's preview says over a blocked segment, by its block reason. */
-const BLOCKED: Readonly<Record<string, string>> = {
-  LEGAL: 'Not available for legal reasons',
-  GEOBLOCK: 'Not available in your region',
-  COMMERCIAL: 'Not available for commercial reasons',
-  AGERATING18: 'Not available at this hour: rated 18',
-  AGERATING12: 'Not available at this hour: rated 12',
+/**
+ * Why a chapter or a segment does not play, by the IL's block reason, in
+ * the four languages of SRG SSR. The player shows them in its own language:
+ * over the picture for a chapter, in the seek bar's preview for a segment.
+ * Machine-drafted, not yet reviewed by a native speaker.
+ */
+const BLOCKED: Readonly<Record<string, Text>> = {
+  GEOBLOCK: {
+    en: 'This content is not available outside Switzerland.',
+    de: 'Dieser Inhalt ist ausserhalb der Schweiz nicht verfügbar.',
+    fr: 'Ce contenu n’est pas disponible hors de Suisse.',
+    it: 'Questo contenuto non è disponibile fuori dalla Svizzera.',
+  },
+  LEGAL: {
+    en: 'This content is not available for legal reasons.',
+    de: 'Dieser Inhalt ist aus rechtlichen Gründen nicht verfügbar.',
+    fr: 'Ce contenu n’est pas disponible pour des raisons juridiques.',
+    it: 'Questo contenuto non è disponibile per motivi legali.',
+  },
+  COMMERCIAL: {
+    en: 'This commercial content is not available.',
+    de: 'Dieser kommerzielle Inhalt ist nicht verfügbar.',
+    fr: 'Ce contenu commercial n’est pas disponible.',
+    it: 'Questo contenuto commerciale non è disponibile.',
+  },
+  STARTDATE: {
+    en: 'This content is not available yet.',
+    de: 'Dieser Inhalt ist noch nicht verfügbar.',
+    fr: 'Ce contenu n’est pas encore disponible.',
+    it: 'Questo contenuto non è ancora disponibile.',
+  },
+  ENDDATE: {
+    en: 'This content is no longer available.',
+    de: 'Dieser Inhalt ist nicht mehr verfügbar.',
+    fr: 'Ce contenu n’est plus disponible.',
+    it: 'Questo contenuto non è più disponibile.',
+  },
+  AGERATING18: {
+    en: 'To protect young viewers, this content is available only between 11 pm and 5 am.',
+    de: 'Zum Schutz von Minderjährigen ist dieser Inhalt nur zwischen 23 und 5 Uhr verfügbar.',
+    fr: 'Pour protéger les mineurs, ce contenu est disponible uniquement entre 23 h et 5 h.',
+    it: 'Per proteggere i minori, questo contenuto è disponibile solo tra le 23 e le 5.',
+  },
+  AGERATING12: {
+    en: 'To protect young viewers, this content is available only between 8 pm and 6 am.',
+    de: 'Zum Schutz von Minderjährigen ist dieser Inhalt nur zwischen 20 und 6 Uhr verfügbar.',
+    fr: 'Pour protéger les mineurs, ce contenu est disponible uniquement entre 20 h et 6 h.',
+    it: 'Per proteggere i minori, questo contenuto è disponibile solo tra le 20 e le 6.',
+  },
 };
+
+/** The words of a block reason: an unknown one gets the player's own "Not available". */
+function blockOf(reason: string): Block {
+  const message = BLOCKED[reason];
+  return message === undefined ? {} : { message };
+}
 
 /**
  * The credits and the blocked segments of the main chapter as player
@@ -133,12 +185,16 @@ function markersOf(main: IlChapter): Marker[] {
   }));
   const blocked = (main.segmentList ?? [])
     .filter((segment) => segment.blockReason !== undefined)
-    .map((segment) => ({
-      start: segment.markIn / 1000,
-      end: segment.markOut / 1000,
-      kind: 'blocked',
-      label: BLOCKED[segment.blockReason as string] ?? 'Not available',
-    }));
+    .map((segment) => {
+      // Without words of its own, the preview says the player's "Not available".
+      const label = BLOCKED[segment.blockReason as string];
+      return {
+        start: segment.markIn / 1000,
+        end: segment.markOut / 1000,
+        kind: 'blocked',
+        ...(label === undefined ? {} : { label }),
+      };
+    });
   return [...credits, ...blocked];
 }
 
@@ -193,6 +249,7 @@ export async function fetchComposition(urn: string, signal: AbortSignal): Promis
     resources: chapter.resourceList ?? [],
     chapters: chaptersOf(chapter, list),
     markers: markersOf(chapter),
+    ...(chapter.blockReason === undefined ? {} : { block: blockOf(chapter.blockReason) }),
     ...(chapter.fullLengthUrn === undefined ? {} : { fullLength: chapter.fullLengthUrn }),
   };
 }

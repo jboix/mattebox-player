@@ -33,6 +33,9 @@
   font-size: 0.8667em;
   color: var(--mbx-error);
 }
+[part~="message"] {
+  max-width: 32em;
+}
 [part~="retry"] {
   height: 2.4em;
   padding: 0 1.0667em;

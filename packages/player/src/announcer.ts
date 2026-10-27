@@ -20,6 +20,8 @@ export interface Announcer {
   readonly root: HTMLElement;
   /** Says the phrase of `label-<name>`, else the language's `id`, else `fallback`. */
   say(name: string, id: keyof Messages, fallback: string, track?: string): void;
+  /** Says `text` as it is: words the page gave, such as a block's. */
+  tell(text: string): void;
 }
 
 /**
@@ -38,16 +40,19 @@ export function announcer(
   // role="status" implies it; some older screen readers read only the attribute.
   root.setAttribute('aria-live', 'polite');
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const tell = (text: string): void => {
+    if (host.getAttribute('announce') === 'off') return;
+    root.textContent = '';
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      root.textContent = text;
+    }, REFILL_MS);
+  };
   return {
     root,
     say(name, id, fallback, track = '') {
-      if (host.getAttribute('announce') === 'off') return;
-      const text = fill(host.getAttribute(`label-${name}`) ?? word(id) ?? fallback, { track });
-      root.textContent = '';
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        root.textContent = text;
-      }, REFILL_MS);
+      tell(fill(host.getAttribute(`label-${name}`) ?? word(id) ?? fallback, { track }));
     },
+    tell,
   };
 }

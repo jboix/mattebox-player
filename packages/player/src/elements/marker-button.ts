@@ -121,6 +121,6 @@ export class MbxMarkerButton extends Component {
       known !== undefined
         ? this.word(`label-${kind}`, ...known)
         : (this.getAttribute(`label-${kind}`) ??
-          (this.marker.label === undefined ? skip : `${skip} ${this.marker.label}`));
+          (this.marker.label === undefined ? skip : `${skip} ${this.pageText(this.marker.label)}`));
   }
 }
