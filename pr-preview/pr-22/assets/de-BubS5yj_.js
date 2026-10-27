@@ -1,0 +1,1 @@
+var e={castStart:`Auf den Fernseher streamen`,castStop:`Streaming beenden`,castingTo:`Wiedergabe auf {device}`};export{e as default};

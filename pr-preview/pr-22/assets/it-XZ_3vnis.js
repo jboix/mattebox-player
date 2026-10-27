@@ -1,0 +1,1 @@
+var e={diagnostics:`Diagnostica`,diagnosticsCopy:`Copia il rapporto`,diagnosticsCopied:`Copiato`,diagnosticsClose:`Chiudi`};export{e as default};

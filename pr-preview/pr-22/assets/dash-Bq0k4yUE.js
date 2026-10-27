@@ -1,0 +1,1 @@
+import{n as e,t}from"./tiers-Dfo_I42N.js";import{t as n}from"./define-B9-tNbqE.js";var r=n(`dash`,()=>[...e(),...t()]);export{r as default};
