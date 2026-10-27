@@ -93,41 +93,9 @@ tries them in their order, as a video does.
 
 ## Versions of the picture
 
-A source can name other versions of its picture at their own URLs, such as
-a sign-language version. `<mbx-video-menu>` lists them after the video
-tracks of the manifest. You declare them as `<mbx-video-track>` children,
-which apply to the `src` attribute and the `<source>` children:
-
-```html
-<mattebox-player controls="custom" src="vod/master.m3u8">
-  <mbx-video-track src="vod/sign.m3u8" kind="sign" srclang="sgg"></mbx-video-track>
-</mattebox-player>
-```
-
-| Attribute of `<mbx-video-track>` | What it does                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------- |
-| `src`                            | Sets the URL of the version                                                             |
-| `kind`                           | Sets the kind, as HTML's `VideoTrack.kind`: `sign`, `captions`, `alternative` (default) |
-| `label`                          | Sets the name the menu shows. Without it, the menu names the kind                       |
-| `srclang`                        | Sets the language tag                                                                   |
-| `type`                           | Sets its MIME type                                                                      |
-
-From script, a source of the `sources` property carries the same fields in
-`videoTracks`, with `url`, `language` and an optional `drm`:
-
-```ts
-player.sources = [
-  { url: 'vod/master.m3u8', videoTracks: [{ url: 'vod/sign.m3u8', kind: 'sign', language: 'sgg' }] },
-];
-```
-
-- A version is a new load, not a track switch. The picture stops for as long as the version takes to start.
-- The last frame stays on screen as the poster until the version shows its own. A video from another origin needs CORS for this; without it, the poster shows.
-- The controls show the play state from before until then, and the player carries `switching`.
-- The version starts at the same position and in the same play state. A live source joins it at its live edge.
-- The audio and subtitle tracks with the same language, audio description and SDH are selected on the version.
-- On a version, the menu offers the source back instead of the version's own tracks.
-- A new `src`, `sources` or `<source>` load is a new source, and drops the versions of the old one.
+A source can name other versions of its picture, such as a sign-language
+version, with `<mbx-video-track>` children. See
+[chapter 12](12-fallback-and-versions.md#versions-of-the-picture).
 
 ## Properties
 
@@ -214,67 +182,13 @@ negative. A cancelled `seekkey` does not seek. The seek bar cancels it under
 
 ## Markers
 
-Markers are ranges of the media that you name from your own content API:
-the opening and closing credits, a recap, or a part that must not play.
-No stream format carries credits as a standard, so the page sets them.
-They work the same for an engine session and a native one.
-
-```ts
-player.markers.set([
-  { start: 0, end: 52, kind: 'opening-credits' },
-  { start: 600, end: 630, kind: 'blocked', label: 'Not available for legal reasons' },
-  { start: 1380, end: 1440, kind: 'closing-credits' },
-]);
-```
-
-| `kind`            | What happens                                                                                                                                                          |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `opening-credits` | `<mbx-marker-button>` shows "Skip intro" inside the range                                                                                                             |
-| `closing-credits` | `<mbx-marker-button>` shows "Skip credits" inside the range, unless the player carries `upnext`                                                                       |
-| `blocked`         | Playback never enters the range: the player moves past its end. The seek bar shows a hollow in the track there, and its preview shows the `label`, or "Not available" |
-| Any other word    | `<mbx-marker-button>` shows "Skip" and the marker's `label`                                                                                                           |
-
-- Set the markers after `src`: a new source clears them.
-- `player.markers.list` gives them by start, and `player.markers.within(time)`
-  the ones that hold a time.
-- `markerschange` fires when the list changes, with the list as `detail`.
-- `blocked` fires each time the player moves past a blocked range, with
-  the marker as `detail`. Show a notice there if your viewers need one.
-- A `label` can be given by language, as a block's words are: see
-  [Blocks](#blocks).
+Markers are ranges you name from your content API: credits to skip, and
+parts that must not play. See [chapter 11](11-blocks-and-markers.md#markers).
 
 ## Blocks
 
-`block()` shows why the programme does not play, such as a geographic or an
-age restriction, and stops the load. Your content API gives the reason, and
-you give the player its words:
-
-```ts
-player.block({
-  title: { en: 'Not available', de: 'Nicht verfügbar', fr: 'Non disponible' },
-  message: {
-    en: 'This content is not available outside Switzerland.',
-    de: 'Dieser Inhalt ist ausserhalb der Schweiz nicht verfügbar.',
-    fr: 'Ce contenu n’est pas disponible hors de Suisse.',
-  },
-});
-```
-
-- `<mbx-error-screen>` shows the title and the message, with no retry.
-  Under native controls, the row under the video shows them.
-- Each text is a string, or the same words by language tag. The player
-  reads them in its own language: the tag, then its language alone, then
-  `en`, then the first entry. They change with `language`, as the
-  controls' words do.
-- Without a `title`, the title is the player's word for "Not available",
-  in the player's language.
-- A new `src` or `sources` clears the block, as it clears the markers.
-  `unblock()` clears it too. Nothing plays until a source loads: set one,
-  or call `retry()`.
-- `player.blocked` is the block, or null, and `blockchange` fires when it
-  changes.
-- The live region says the title and the message, unless an
-  `<mbx-error-screen>` in the player says them.
+`block()` shows why a programme does not play, in the player's language,
+and stops the load. See [chapter 11](11-blocks-and-markers.md#blocks).
 
 ## Stages
 
@@ -591,52 +505,9 @@ button.addEventListener('castload', (event) => {
 
 ### Languages
 
-Each package ships its words in 11 languages besides English: `ar`, `ca`,
-`de`, `es`, `fr`, `hi`, `it`, `ja`, `ko`, `pt` (European) and `zh`
-(Simplified). Each language is an entry of its own, so a page downloads only
-the languages it imports. You register a language once for every player on
-the page:
-
-```ts
-import { MatteboxPlayerElement } from '@mattebox/player';
-import words from '@mattebox/player/locales/de';
-import playlistWords from '@mattebox/player-playlist/locales/de';
-
-MatteboxPlayerElement.addLocale('de', words, playlistWords);
-```
-
-A source can also be a function that loads the words. It runs only when a
-player shows that language, so a page registers every language it offers
-and downloads one:
-
-```ts
-MatteboxPlayerElement.addLocale('fr', () => import('@mattebox/player/locales/fr'));
-```
-
-A player shows, from the first that applies:
-
-1. A control's `label-*` attribute. See [Labels](#labels).
-2. The words of its `language` attribute, such as `language="fr"`.
-3. The words of the nearest `lang` attribute: on the player, an ancestor,
-   or `<html>`.
-4. English, which the controls carry themselves.
-
-- A tag with a region falls back to its language: `de-CH` takes `de`.
-- A word a language lacks stays English.
-- Changing `language`, or `lang` on `<html>` or on the player, changes
-  every word at once, without a reload. A change of `lang` on another
-  ancestor is read at the next connect; set `language` instead.
-- A later `addLocale` for a language goes over the earlier one, so you
-  change one word with `addLocale('de', { play: 'Abspielen' })`.
-- The ids and their English are in the `PlayerMessages` type, and in
-  `PlaylistMessages`, `CastMessages` and `DiagnosticsMessages` for the
-  packages. A word set that misses an id fails to compile with
-  `satisfies PlayerMessages`.
-- A control of your own reads a word with `player.message(id)`, and
-  renders again on `localechange`.
-
-The shipped words are machine drafts that no native speaker has reviewed
-yet.
+The controls speak 11 languages besides English, and follow the page's
+`lang` or the player's `language`. [Chapter 10](10-languages.md) explains
+how you register a language and how the player picks one.
 
 ### Labels
 

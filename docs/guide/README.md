@@ -14,6 +14,9 @@ chapters in order the first time, then use the table.
 | [07 Playlist](07-playlist.md)                               | The list from markup or a script, what plays next, the list, the up next card |
 | [08 Preferences](08-preferences.md)                         | The viewer's choices kept across programmes and visits, the store, your keys  |
 | [09 Connectors and trackers](09-connectors-and-trackers.md) | A programme by its id or its data, the trackers your page adds                |
+| [10 Languages](10-languages.md)                             | The controls in your viewer's language, loaded only when shown                |
+| [11 Blocks and markers](11-blocks-and-markers.md)           | Credits to skip, parts that must not play, why a programme does not play      |
+| [12 Fallback and versions](12-fallback-and-versions.md)     | Several sources in order, versions of the picture such as sign language       |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.

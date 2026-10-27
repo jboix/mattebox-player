@@ -73,7 +73,7 @@ session play it the same way.
 | `markers`                                                                    | Sets the item's markers, as JSON                                            |
 
 `markers` takes the list that `player.markers.set()` takes (see
-[03 The element](03-the-element.md#markers)):
+[11 Blocks and markers](11-blocks-and-markers.md#markers)):
 
 ```html
 <mbx-playlist-item
