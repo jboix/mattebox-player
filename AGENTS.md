@@ -14,7 +14,9 @@ control, a package of its own because of its weight) and
 `@mattebox/player-cast` (Chromecast, a package of its own because it loads
 Google's sender SDK onto the page) and `@mattebox/player-spatial-nav`
 (the remote control on a TV, a package of its own because most pages never
-run on one). Read
+run on one), `@mattebox/player-playlist` (the playlist) and
+`@mattebox/player-preferences` (the viewer's preferences, a package of its
+own because storing them is the page's decision). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in
@@ -60,8 +62,8 @@ you had to reach around.
 8. **Banned TypeScript:** non-const `enum`, `namespace`, parameter properties,
    decorators. The emit check enforces this.
 
-9. **The floor is Chromium 76.** The core, the player and the spatial-nav
-   package run on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
+9. **The floor is Chromium 76.** The core, the player, the spatial-nav and
+   the preferences packages run on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
    The cast and the diagnostics packages follow the same floor, so one rule
    covers them all. Do
    not use a browser feature newer than Chromium 76 without a fallback in the

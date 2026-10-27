@@ -12,6 +12,7 @@ chapters in order the first time, then use the table.
 | [05 Diagnostics](05-diagnostics.md)         | The stats panel, the charts, the browser, the report                          |
 | [06 TV](06-tv.md)                           | The remote: moving focus, seeking with a target, the key codes                |
 | [07 Playlist](07-playlist.md)               | The list from markup or a script, what plays next, the list, the up next card |
+| [08 Preferences](08-preferences.md)         | The viewer's choices kept across programmes and visits, the store, your keys  |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.

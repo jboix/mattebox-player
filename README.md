@@ -9,29 +9,33 @@
 [![@mattebox/player-diagnostics](https://img.shields.io/npm/v/@mattebox/player-diagnostics?label=%40mattebox%2Fplayer-diagnostics)](https://www.npmjs.com/package/@mattebox/player-diagnostics)
 [![@mattebox/player-cast](https://img.shields.io/npm/v/@mattebox/player-cast?label=%40mattebox%2Fplayer-cast)](https://www.npmjs.com/package/@mattebox/player-cast)
 [![@mattebox/player-spatial-nav](https://img.shields.io/npm/v/@mattebox/player-spatial-nav?label=%40mattebox%2Fplayer-spatial-nav)](https://www.npmjs.com/package/@mattebox/player-spatial-nav)
+[![@mattebox/player-playlist](https://img.shields.io/npm/v/@mattebox/player-playlist?label=%40mattebox%2Fplayer-playlist)](https://www.npmjs.com/package/@mattebox/player-playlist)
+[![@mattebox/player-preferences](https://img.shields.io/npm/v/@mattebox/player-preferences?label=%40mattebox%2Fplayer-preferences)](https://www.npmjs.com/package/@mattebox/player-preferences)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-The Mattebox player is five packages over the
+The Mattebox player is seven packages over the
 [mattebox](https://github.com/jboix/mattebox) engine. The engine feeds a
 MediaSource and never sets the `src` of the video. The player decides which
 handler to use, and adds a custom UI on top of it.
 
-| Package                        | What it is                                                                                                           | Side effects                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `@mattebox/player-core`        | The layer without a UI. It resolves a source and runs the handler chain. About a kilobyte                            | None                             |
-| `@mattebox/player`             | The `<mattebox-player>` custom element over the core. No framework                                                   | Registers the element on import  |
-| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send         | Registers the element on import  |
-| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`. Chromecast from the player, over Google's sender SDK                    | Registers the elements on import |
-| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player | Registers the element on import  |
+| Package                        | What it is                                                                                                                       | Side effects                     |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `@mattebox/player-core`        | The layer without a UI. It resolves a source and runs the handler chain. About a kilobyte                                        | None                             |
+| `@mattebox/player`             | The `<mattebox-player>` custom element over the core. No framework                                                               | Registers the element on import  |
+| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                     | Registers the element on import  |
+| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`. Chromecast from the player, over Google's sender SDK                                | Registers the elements on import |
+| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player             | Registers the element on import  |
+| `@mattebox/player-playlist`    | The playlist from markup or a script, its controls, and the up next card                                                         | Registers the elements on import |
+| `@mattebox/player-preferences` | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits | Registers the element on import  |
 
 A page with its own UI has two options:
 
 1. Install the core alone and write the UI elements.
 2. Install the player and restyle it. Every control has a `part`, and the page styles it with `::part()`.
 
-The engine is a peer dependency of the core, the player, the diagnostics
-and the cast. The diagnostics, the cast and the TV navigation are optional
-player elements.
+The engine is a peer dependency of the core, the player, the diagnostics,
+the cast and the preferences. The diagnostics, the cast, the TV navigation, the playlist and the
+preferences are optional player elements.
 
 > \[!NOTE]
 > The cast is a package of its own because its button loads Google's script

@@ -52,6 +52,10 @@ export const alias = [
     replacement: fileURLToPath(new URL('packages/spatial-nav/src/index.ts', import.meta.url)),
   },
   {
+    find: '@mattebox/player-preferences',
+    replacement: fileURLToPath(new URL('packages/preferences/src/index.ts', import.meta.url)),
+  },
+  {
     find: '@mattebox/player-playlist',
     replacement: fileURLToPath(new URL('packages/playlist/src/index.ts', import.meta.url)),
   },

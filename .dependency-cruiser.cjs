@@ -16,26 +16,26 @@ module.exports = {
         'so the checkable invariant is the one that matters: anything else under the core is a ' +
         'reach into its internals.',
       severity: 'error',
-      from: { path: '^packages/(player|diagnostics|cast|spatial-nav|playlist)/' },
+      from: { path: '^packages/(player|diagnostics|cast|spatial-nav|playlist|preferences)/' },
       to: { path: '^packages/core/src/', pathNot: '^packages/core/src/index\\.ts$' },
     },
     {
       name: 'side-packages-reach-the-player-through-its-entry',
       comment:
-        "The diagnostics, cast, spatial-nav and playlist elements are controls of the page's own kind: they take the " +
+        "The diagnostics, cast, spatial-nav, playlist and preferences elements are controls of the page's own kind: they take the " +
         "player's public types from its entry and nothing from its internals.",
       severity: 'error',
-      from: { path: '^packages/(diagnostics|cast|spatial-nav|playlist)/' },
+      from: { path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences)/' },
       to: { path: '^packages/player/src/', pathNot: '^packages/player/src/index\\.ts$' },
     },
     {
       name: 'the-player-never-imports-the-side-packages',
       comment:
-        'The diagnostics, cast and spatial-nav packages are optional; the player must not know them.',
+        'The diagnostics, cast, spatial-nav, playlist and preferences packages are optional; the player must not know them.',
       severity: 'error',
       from: { path: '^packages/(core|player)/' },
       to: {
-        path: '^packages/(diagnostics|cast|spatial-nav)/|node_modules/@mattebox/player-(diagnostics|cast|spatial-nav)/',
+        path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences)/|node_modules/@mattebox/player-(diagnostics|cast|spatial-nav|playlist|preferences)/',
       },
     },
     {

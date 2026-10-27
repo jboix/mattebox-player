@@ -30,12 +30,14 @@ npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/diagnosti
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/cast
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/spatial-nav
 npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/playlist
+npm pkg set "devDependencies.@mattebox/player-core=^$core" -w packages/preferences
 
 player=$(node -p "require('./packages/player/package.json').version")
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/diagnostics
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/cast
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/spatial-nav
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/playlist
+npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/preferences
 
 npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 git add package-lock.json packages/*/package.json

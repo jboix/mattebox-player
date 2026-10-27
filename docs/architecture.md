@@ -1,6 +1,6 @@
 # Architecture
 
-The Mattebox player is four packages over the `mattebox` engine. This
+The Mattebox player is seven packages over the `mattebox` engine. This
 document lists what each package owns and the rules between the packages.
 The [guide](guide/README.md) explains how to use them.
 
@@ -13,6 +13,8 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report | The player (peer, types only), the engine (peer) |
 | `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`, Chromecast over Google's sender SDK | The player (peer, types only), the engine (peer) |
 | `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back             | The player (peer, types only)                    |
+| `@mattebox/player-playlist`    | The playlist, its controls and the up next card                                  | The player (peer, types only)                    |
+| `@mattebox/player-preferences` | `<mbx-preferences>` and the store of the viewer's preferences                    | The player (peer, types only), the engine (peer) |
 
 The packages follow four rules:
 

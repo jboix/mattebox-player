@@ -62,6 +62,17 @@ module.exports = [
     limit: '2 kB',
   },
   {
+    name: '@mattebox/player-preferences',
+    path: 'packages/preferences/dist/cdn/mattebox-player-preferences.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The engine is a peer for its track helpers, and the player for its
+    // types alone. The plan proposed 2 kB; the store, the element, and both
+    // the engine's and Safari's tracks measured 2.93 kB.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '3 kB',
+  },
+  {
     name: '@mattebox/player-playlist',
     path: 'packages/playlist/dist/cdn/mattebox-player-playlist.min.js',
     disablePlugins: ['@size-limit/esbuild'],

@@ -46,6 +46,7 @@
         "packages/core/src/**",
         "packages/player/src/**",
         "packages/spatial-nav/src/**",
+        "packages/preferences/src/**",
         "packages/playlist/src/**",
         "packages/diagnostics/src/**"
       ],

@@ -44,6 +44,10 @@
       "entry": ["src/index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     },
+    "packages/preferences": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
     "packages/playlist": {
       "entry": ["src/index.ts", "cdn/*.ts", "src/locales/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
