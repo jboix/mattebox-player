@@ -303,6 +303,28 @@ describe('the element', () => {
     expect(inside(element, 'page-engine').textContent).toContain('native session');
   });
 
+  it("lists the page's trackers with their session and device ids, in the panel and the report", async () => {
+    const { player, element } = await mount([nativeHandler()]);
+    expect(element.report().trackers).toEqual([]);
+    player.trackers.add({
+      name: 'audience',
+      session: 'b7e1c2d4',
+      device: 'f00d',
+      start: () => undefined,
+      stop: () => undefined,
+    });
+    player.trackers.add({ name: 'log', start: () => undefined, stop: () => undefined });
+    inside(element, 'button').click();
+    await expect
+      .poll(() => rows(element, 'playback').audience)
+      .toBe('session b7e1c2d4, device f00d');
+    expect(rows(element, 'playback').log).toBe('–');
+    expect(element.report().trackers).toEqual([
+      { name: 'audience', session: 'b7e1c2d4', device: 'f00d' },
+      { name: 'log', session: null, device: null },
+    ]);
+  });
+
   it('shows the engine, its tracks and its ladder, and counts a switch', async () => {
     const engine = fakeEngine();
     const { element } = await mount([fakeHandler(engine)]);

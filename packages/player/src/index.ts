@@ -34,6 +34,16 @@ import type { MbxVideoMenu } from './entries/video-menu.js';
 import type { MbxVolume } from './entries/volume.js';
 import type { MbxVolumeSlider } from './entries/volume-slider.js';
 
+export type {
+  Connector,
+  ConnectorSource,
+  Programme,
+  ProgrammeMetadata,
+  ProgrammeSource,
+  Resolution,
+  Source,
+  SourceDrm,
+} from '@mattebox/player-core';
 export type { Marker, Markers } from './controls/markers.js';
 export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
@@ -66,9 +76,12 @@ export { MbxVideoMenu } from './entries/video-menu.js';
 export { MbxVolume } from './entries/volume.js';
 export { MbxVolumeSlider } from './entries/volume-slider.js';
 export type { Block, PlayerHost } from './host.js';
+export type { DeviceIdOptions } from './ids.js';
+export { deviceId, sessionId } from './ids.js';
 export type { LocaleSource } from './locales.js';
 export type { Messages, PlayerMessages, Words } from './messages.js';
 export type { Text } from './text.js';
+export type { Tracker, Trackers } from './trackers.js';
 
 declare global {
   interface HTMLElementTagNameMap {

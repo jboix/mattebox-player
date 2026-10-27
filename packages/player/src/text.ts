@@ -4,8 +4,9 @@
  * its own language and reads again on `localechange`.
  */
 
-/** Words in one language, or by language tag, such as `{ de: '…', fr: '…', en: '…' }`. */
-export type Text = string | { readonly [language: string]: string };
+import type { Text } from '@mattebox/player-core';
+
+export type { Text };
 
 /**
  * The words of `text` for `locale`: the tag, then its language alone, so

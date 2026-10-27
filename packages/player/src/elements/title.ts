@@ -6,7 +6,9 @@
  * from attributes, `heading`,
  * `subheading` and `artwork`, because the stream carries none of it: a page
  * writes what it knows, and a Cast receiver writes what the sender said.
- * With none of the three the element draws nothing.
+ * An attribute the page leaves out takes the programme's title, subtitle
+ * or image, from what a connector resolved. With none, the element draws
+ * nothing.
  *
  * Shown while the video is paused, which includes before the first play,
  * and hidden while it plays. The element carries `playing` for that rule,
@@ -58,6 +60,9 @@ export class MbxTitle extends Component {
     this.observe(player, ['switching'], () => {
       this.state(player);
     });
+    this.listen(player, ['programmechange'], () => {
+      this.render();
+    });
     if (typeof ResizeObserver !== 'undefined') {
       this.resizer = new ResizeObserver(() => {
         this.fit(player);
@@ -98,9 +103,10 @@ export class MbxTitle extends Component {
   }
 
   protected override render(): void {
-    const heading = this.getAttribute('heading') ?? '';
-    const subheading = this.getAttribute('subheading') ?? '';
-    const artwork = this.getAttribute('artwork');
+    const metadata = this.player?.programme?.metadata;
+    const heading = this.getAttribute('heading') ?? metadata?.title ?? '';
+    const subheading = this.getAttribute('subheading') ?? metadata?.subtitle ?? '';
+    const artwork = this.getAttribute('artwork') ?? metadata?.image ?? null;
     this.heading.textContent = heading;
     this.subheading.textContent = subheading;
     if (artwork === null) {

@@ -5,7 +5,7 @@
  * report for the same failure. See the engine's guide chapter 09.
  */
 import type { MatteboxError } from 'mattebox';
-import type { PlayerError } from './types.js';
+import type { Block, PlayerError } from './types.js';
 
 /**
  * Thrown from `handle` when a handler cannot claim the source after all. The
@@ -13,6 +13,16 @@ import type { PlayerError } from './types.js';
  * mattebox handler throws it on `MANIFEST_UNSUPPORTED`.
  */
 export class Declined extends Error {}
+
+/** What `load` rejects with when its programme is blocked. Nothing loaded; `programme` carries the block. */
+export class Blocked extends Error {
+  declare readonly block: Block;
+
+  constructor(block: Block) {
+    super('blocked');
+    this.block = block;
+  }
+}
 
 /** The names behind `MediaError.code`, for the error's context. */
 const MEDIA_ERR = [

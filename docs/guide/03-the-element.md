@@ -140,6 +140,8 @@ player.sources = [
 | `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                |
 | `markers`      | The ranges the page named in this source: see [Markers](#markers)                                       |
 | `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                      |
+| `programme`    | What the current load resolved: see [chapter 09](09-connectors-and-trackers.md#what-the-player-applies) |
+| `trackers`     | The page's trackers: see [chapter 09](09-connectors-and-trackers.md#trackers)                           |
 | `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)   |
 | `videoSource`  | The version that plays, or null for the source itself                                                   |
 | `language`     | The `language` attribute, or empty. Setting it changes the words at once                                |
@@ -191,6 +193,12 @@ language tag, empty for English.
 
 `blockchange` fires on `block()`, on `unblock()`, and when a new source
 clears the block. Its `detail` is the block, or null.
+
+`programmechange` fires when a load resolves its sources, before
+`sourcechange`. Its `detail` is the programme, or null at an unload.
+
+`trackerschange` fires when a tracker is added, removed, started or
+stopped. Its `detail` is the list of trackers.
 
 `castload` comes from the button of `@mattebox/player-cast`. It fires
 before the request goes to the receiver. It bubbles, it is composed, and it
@@ -305,6 +313,10 @@ MatteboxPlayerElement.define({ config: { traceCapacity: 500 } });
 
 `drm` sets the DRM of a native session. It takes the options of
 `attachEme` from `mattebox/eme`. See [Native HLS in Safari](#native-hls-in-safari).
+
+`connectors` registers one connector per source type, which turns a
+programme id into what plays. A player keeps the connectors of its first
+load. See [chapter 09](09-connectors-and-trackers.md).
 
 ## Native HLS in Safari
 

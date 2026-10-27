@@ -118,6 +118,24 @@ export interface DiagnosticsReport {
   readonly support: Support | null;
   /** The trace entries the element kept, slimmed, oldest first, or null for a native session. */
   readonly trace: readonly unknown[] | null;
+  /** The page's trackers on the player, with the ids support asks for. */
+  readonly trackers: readonly TrackerReport[];
+}
+
+export interface TrackerReport {
+  readonly name: string;
+  readonly session: string | null;
+  readonly device: string | null;
+}
+
+/** The trackers of `player`, or none on a player older than trackers. */
+export function trackersOf(player: PlayerHost): TrackerReport[] {
+  const list = (player as Partial<PlayerHost>).trackers?.list ?? [];
+  return list.map((tracker) => ({
+    name: tracker.name,
+    session: tracker.session ?? null,
+    device: tracker.device ?? null,
+  }));
 }
 
 /** The figures of the engine's qoe stage, as `engine.qoe` gives them. */
@@ -293,5 +311,6 @@ export function buildReport(sources: ReportSources): DiagnosticsReport {
     marks: sources.marks.filter((mark) => mark.t >= since),
     support: sources.support,
     trace: engine === null ? null : sources.history,
+    trackers: trackersOf(player),
   };
 }

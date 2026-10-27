@@ -8,24 +8,9 @@
  * A blocked range is never played: entering it, by playback or by a seek,
  * moves the playhead to its end.
  */
-import type { Text } from '../text.js';
+import type { Marker } from '@mattebox/player-core';
 
-/** One range, in seconds of the media. */
-export interface Marker {
-  readonly start: number;
-  readonly end: number;
-  /**
-   * What the range is: `opening-credits`, `closing-credits`, `blocked`, or
-   * a page's own word.
-   */
-  readonly kind: string;
-  /**
-   * Words for the range: what a skip button names for a kind it does not
-   * know, and what the seek bar's preview shows over a blocked range. By
-   * language tag, the player reads them in its own language.
-   */
-  readonly label?: Text;
-}
+export type { Marker };
 
 export interface Markers {
   /** The markers of the current source, by start. */

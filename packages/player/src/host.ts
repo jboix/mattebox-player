@@ -8,22 +8,42 @@
  * This is the whole surface a control gets. A control that needs more
  * has found a gap in the player's public API, and the gap is the bug.
  */
-import type { Player, PlayerError, Source, SourceVideoTrack } from '@mattebox/player-core';
+import type {
+  Block,
+  Player,
+  PlayerError,
+  Programme,
+  Source,
+  SourceVideoTrack,
+} from '@mattebox/player-core';
 import type { Mattebox } from 'mattebox';
 import type { Markers } from './controls/markers.js';
 import type { Messages } from './messages.js';
 import { PLAYER } from './tags.js';
-import type { Text } from './text.js';
 
-/**
- * Why the programme does not play, as the page's content API says: the
- * player shows it over the picture in place of the video.
- */
-export interface Block {
-  /** The title. Without one, the player's own words for "Not available". */
-  readonly title?: Text;
-  /** What the viewer reads under the title, such as "Only available in Switzerland". */
-  readonly message?: Text;
+export type { Block };
+
+export interface Tracker {
+  /** What the diagnostics panel calls it. */
+  readonly name: string;
+  /** The id of the tracker's current session, which the diagnostics panel shows for support. */
+  readonly session?: string | undefined;
+  /** The id of the device the tracker reports, which the diagnostics panel shows too. */
+  readonly device?: string | undefined;
+  /** At the start of each programme, or at once when added during one. */
+  start(programme: Programme, player: PlayerHost): void;
+  /** At the end of the programme, at unload, or when removed during one. */
+  stop(): void;
+}
+
+export interface Trackers {
+  /** Adds a tracker; during a programme, it starts at once. */
+  add(tracker: Tracker): void;
+  /** Removes a tracker; during a programme, it stops at once. False when it was not there. */
+  delete(tracker: Tracker): boolean;
+  has(tracker: Tracker): boolean;
+  /** The trackers, in the order they were added. */
+  readonly list: readonly Tracker[];
 }
 
 export interface PlayerHost extends HTMLElement {
@@ -36,6 +56,10 @@ export interface PlayerHost extends HTMLElement {
   readonly blocked: Block | null;
   /** The ranges the page named: credits to skip, parts that must not play. */
   readonly markers: Markers;
+  /** What the current load resolved to, with what a connector said of the programme; null without one. */
+  readonly programme: Programme | null;
+  /** The page's trackers, started at each programme. */
+  readonly trackers: Trackers;
   /** Loads the sources again, in the order a load reads them. */
   retry(): void;
   /** The other versions of the picture the source names at their own URLs. */

@@ -4,6 +4,7 @@
  */
 import type { Mattebox } from 'mattebox';
 import type { EmeAttachment } from 'mattebox/eme';
+import type { ChapterInput } from 'mattebox/stages/chapters';
 
 /** A URL and, when known, its MIME type. Without a type the extension decides, see `inferType`. */
 export interface Source {
@@ -38,6 +39,100 @@ export interface SourceDrm {
   /** One server per key system, keyed by name such as `com.widevine.alpha`. It wins over `licenseUrl`. */
   readonly licenseUrls?: Readonly<Record<string, string>>;
   readonly certificateUrl?: string;
+}
+
+/** Words in one language, or by language tag, such as `{ de: '…', fr: '…', en: '…' }`. */
+export type Text = string | { readonly [language: string]: string };
+
+/**
+ * Why the programme does not play, as the page's content API says: the
+ * player shows it over the picture in place of the video.
+ */
+export interface Block {
+  /** The title. Without one, the player's own words for "Not available". */
+  readonly title?: Text;
+  /** What the viewer reads under the title, such as "Only available in Switzerland". */
+  readonly message?: Text;
+}
+
+/** A range of the programme a content API names, in seconds. */
+export interface Marker {
+  readonly start: number;
+  readonly end: number;
+  /**
+   * What the range is: `opening-credits`, `closing-credits`, `blocked`, or
+   * a page's own word.
+   */
+  readonly kind: string;
+  /**
+   * Words for the range: what a skip button names for a kind it does not
+   * know, and what the seek bar's preview shows over a blocked range. By
+   * language tag, the player reads them in its own language.
+   */
+  readonly label?: Text;
+}
+
+/**
+ * A programme a connector resolves: by `id`, which the connector fetches,
+ * or by `data` you already have, which it resolves without a fetch. Give
+ * the id with the data to name the programme to your trackers.
+ */
+export interface ConnectorSource {
+  /** The type a connector is registered for, such as `srgssr/urn`. */
+  readonly type: string;
+  readonly id?: string;
+  readonly data?: unknown;
+}
+
+/** What `load` takes: a URL, or a programme a connector resolves. */
+export type ProgrammeSource = Source | ConnectorSource;
+
+/**
+ * Turns the id of a programme into what plays, for one source type. A
+ * connector without `fetch` takes injected data only.
+ */
+export interface Connector<Data = unknown> {
+  readonly type: string;
+  /** Fetches the programme's data from your content API. */
+  fetch?(id: string, signal: AbortSignal): Promise<Data>;
+  /**
+   * The sources, the metadata and the block of the data. It may fetch
+   * what each playback needs, such as a token, but never the data itself.
+   */
+  resolve(data: Data, signal: AbortSignal): Resolution | Promise<Resolution>;
+}
+
+/** What a connector resolves a programme to. */
+export interface Resolution {
+  /** Tried in order, as a `sources` list is. */
+  readonly sources: readonly Source[];
+  /** Why the programme does not play. A block wins over the sources: nothing loads. */
+  readonly block?: Block;
+  readonly metadata?: ProgrammeMetadata;
+}
+
+/** What a content API says about a programme, which the stream does not carry. */
+export interface ProgrammeMetadata {
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly description?: string;
+  /** The URL of the programme's image, for a title or a system's media controls. */
+  readonly image?: string;
+  /** The URL of the picture the video shows before it plays. */
+  readonly poster?: string;
+  readonly chapters?: readonly ChapterInput[];
+  /** Credits to skip and parts that must not play. */
+  readonly markers?: readonly Marker[];
+}
+
+/** One `load`: what the page gave, and what it resolved to. */
+export interface Programme extends Resolution {
+  /** The sources the page gave `load`, in its order. */
+  readonly given: readonly ProgrammeSource[];
+  /** The first connector input of `given`: its type, id and data. Absent without one. */
+  readonly type?: string;
+  readonly id?: string;
+  readonly data?: unknown;
 }
 
 /** How much of a source to fetch ahead of its load. */
@@ -110,6 +205,8 @@ export interface PlayerError {
 }
 
 export interface PlayerEvents {
+  /** A load resolved its sources, before any handler runs; null at unload. */
+  readonly programme: Programme | null;
   /** A session replaced another, or was unloaded (null). */
   readonly sourcechange: Session | null;
   readonly error: PlayerError;
@@ -120,6 +217,8 @@ export type PlayerEvent = keyof PlayerEvents;
 export interface PlayerOptions {
   /** Tried in order; the first non-empty `canHandle` wins. Order is the integrator's policy. */
   readonly handlers: readonly Handler[];
+  /** One per source type. A source of another type goes to the handlers as it is. */
+  readonly connectors?: readonly Connector[];
 }
 
 export interface Player {
@@ -132,16 +231,27 @@ export interface Player {
    * the next one: each reports a non-fatal `error` that carries `source`,
    * and `sourcechange` fires for the session that replaces it. The error of
    * the last source is fatal.
+   *
+   * A connector source resolves first, through the connector of its type,
+   * and a new load aborts it. A `Source` whose type names a connector gives
+   * its URL as the id. `programme` fires once the list is resolved. A
+   * blocked programme loads nothing, and the promise rejects with `Blocked`.
    */
-  load(source: Source | readonly Source[]): Promise<Session>;
+  load(source: ProgrammeSource | readonly ProgrammeSource[]): Promise<Session>;
   unload(): Promise<void>;
   /**
    * Fetches the start of a source ahead of its load. It asks the handler
    * `load` would give the source to, whatever session plays now: of a list,
    * the first source a handler takes. It resolves with nothing done when
-   * that handler has no `preload`, and never rejects.
+   * that handler has no `preload`, and never rejects. It skips connector
+   * sources, whose data it would fetch a second time at the load.
    */
-  preload(source: Source | readonly Source[], options?: PreloadOptions): Promise<void>;
+  preload(
+    source: ProgrammeSource | readonly ProgrammeSource[],
+    options?: PreloadOptions,
+  ): Promise<void>;
   readonly session: Session | null;
+  /** What the current load resolved to, or null before one and after `unload`. */
+  readonly programme: Programme | null;
   on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void;
 }

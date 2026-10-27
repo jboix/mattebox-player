@@ -20,7 +20,7 @@ handler to use, and adds a custom UI on top of it.
 
 | Package                        | What it is                                                                                                                       | Side effects                     |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `@mattebox/player-core`        | The layer without a UI. It resolves a source and runs the handler chain. About a kilobyte                                        | None                             |
+| `@mattebox/player-core`        | The layer without a UI. It resolves a source through your connectors and runs the handler chain. About three kilobytes           | None                             |
 | `@mattebox/player`             | The `<mattebox-player>` custom element over the core. No framework                                                               | Registers the element on import  |
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                     | Registers the element on import  |
 | `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`. Chromecast from the player, over Google's sender SDK                                | Registers the elements on import |
@@ -106,7 +106,7 @@ The [guide](docs/guide/README.md) explains the rest, starting with
 
 ## Documentation
 
-- [Guide](docs/guide/README.md): how to use the four packages, one chapter per topic.
+- [Guide](docs/guide/README.md): how to use the packages, one chapter per topic.
 - [Architecture](docs/architecture.md): the packages, the rules between them, and the handler chain.
 - [Stability](docs/stability.md): what you can rely on before 1.0, and what 1.0 promises.
 - [Demo](https://demo.mattebox.ch/): every kind of source, with the handler that played it.

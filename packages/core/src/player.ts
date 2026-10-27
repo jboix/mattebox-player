@@ -11,8 +11,9 @@
  * event, later than a video's own: a DRM failure arrives after the
  * metadata and before the first frame.
  */
-import { Declined, fromEngineError, fromMediaError } from './errors.js';
+import { Blocked, Declined, fromEngineError, fromMediaError } from './errors.js';
 import { inferType } from './infer-type.js';
+import { ConnectorFailure, connectorFor, expand } from './programme.js';
 import type {
   Handler,
   HandlerEnvironment,
@@ -23,6 +24,8 @@ import type {
   PlayerEvents,
   PlayerOptions,
   PreloadOptions,
+  Programme,
+  ProgrammeSource,
   Session,
   Source,
 } from './types.js';
@@ -42,10 +45,15 @@ function unclaimed(source: Source): PlayerError {
 
 export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): Player {
   const listeners: { readonly [E in PlayerEvent]: Set<(payload: PlayerEvents[E]) => void> } = {
+    programme: new Set(),
     sourcechange: new Set(),
     error: new Set(),
   };
+  const connectors = options.connectors ?? [];
   let current: Session | null = null;
+  let programme: Programme | null = null;
+  /** Aborts the connector fetch of the load in flight, when a newer load or an unload comes. */
+  let controller: AbortController | null = null;
   /** Bumped by every load and by unload. A load whose number is stale lost. */
   let generation = 0;
   /** Loads run one at a time, so they settle in the order they were called. */
@@ -200,11 +208,41 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     throw new Error(`no handler for ${url}`);
   }
 
-  function load(source: Source | readonly Source[]): Promise<Session> {
+  function load(source: ProgrammeSource | readonly ProgrammeSource[]): Promise<Session> {
     const mine = ++generation;
+    controller?.abort();
+    const control = new AbortController();
+    controller = control;
     const start = async (): Promise<Session> => {
       await release();
-      candidates = Array.isArray(source) ? (source as readonly Source[]) : [source as Source];
+      const given = Array.isArray(source)
+        ? (source as readonly ProgrammeSource[])
+        : [source as ProgrammeSource];
+      let resolved: Programme;
+      try {
+        resolved = await expand(given, connectors, control.signal);
+      } catch (cause) {
+        if (mine === generation && cause instanceof ConnectorFailure) {
+          // A failed programme is still one: a tracker started on it sees the error that follows.
+          const context = cause.error.context as { type: string; id?: string };
+          programme = {
+            given,
+            sources: [],
+            type: context.type,
+            ...(context.id === undefined ? {} : { id: context.id }),
+          };
+          emit('programme', programme);
+          emit('error', cause.error);
+        }
+        throw cause;
+      }
+      // A later load replaced this one: its chain still runs, as before connectors, and disposes what it gets.
+      if (mine === generation) {
+        programme = resolved;
+        emit('programme', resolved);
+        if (resolved.block !== undefined) throw new Blocked(resolved.block);
+      }
+      candidates = resolved.sources;
       index = 0;
       armed = true;
       return select(mine);
@@ -215,13 +253,15 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   }
 
   async function preload(
-    source: Source | readonly Source[],
+    source: ProgrammeSource | readonly ProgrammeSource[],
     preloadOptions?: PreloadOptions,
   ): Promise<void> {
     const env = environment();
     for (const given of Array.isArray(source)
-      ? (source as readonly Source[])
-      : [source as Source]) {
+      ? (source as readonly ProgrammeSource[])
+      : [source as ProgrammeSource]) {
+      // A connector source would fetch its data here and again at the load.
+      if (!('url' in given) || connectorFor(given, connectors) !== undefined) continue;
       const resolved = resolve(given);
       const handler = ordered(resolved, env).find((h) => h.canHandle(resolved, env) !== '');
       if (handler === undefined) continue;
@@ -233,8 +273,12 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
 
   function unload(): Promise<void> {
     generation += 1;
+    controller?.abort();
     const started = queue.then(release, release).then(() => {
       emit('sourcechange', null);
+      if (programme === null) return;
+      programme = null;
+      emit('programme', null);
     });
     queue = started.catch(() => undefined);
     return started;
@@ -246,6 +290,9 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     preload,
     get session(): Session | null {
       return current;
+    },
+    get programme(): Programme | null {
+      return programme;
     },
     on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void {
       const set = listeners[event] as Set<(payload: PlayerEvents[E]) => void>;

@@ -19,9 +19,12 @@
  */
 
 import type {
+  Connector,
   Handler,
   Player,
   PlayerError,
+  Programme,
+  ProgrammeSource,
   Session,
   Source,
   SourceVideoTrack,
@@ -51,6 +54,8 @@ import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
 import { ERROR_SCREEN, PLAYER } from './tags.js';
 import { textIn } from './text.js';
+import type { Tracker, TrackerRunner, Trackers } from './trackers.js';
+import { createTrackers } from './trackers.js';
 import type { Chosen } from './video-sources.js';
 import {
   chosen,
@@ -193,6 +198,10 @@ export interface MatteboxPlayerEventMap {
   blocked: CustomEvent<Marker>;
   /** The page called `block()` or `unblock()`, or a new source cleared the block: the block, or null. */
   blockchange: CustomEvent<Block | null>;
+  /** A load resolved what it plays, before the session: the programme, or null at unload. */
+  programmechange: CustomEvent<Programme | null>;
+  /** A tracker was added, removed, started or stopped: the trackers. */
+  trackerschange: CustomEvent<readonly Tracker[]>;
 }
 
 export interface MatteboxPlayerElement {
@@ -238,6 +247,12 @@ export interface MatteboxPlayerOptions {
    * with `handlers`, which carry their own.
    */
   readonly drm?: AttachEmeOptions;
+  /**
+   * One per source type, such as `srgssr/urn`: a source of that type is a
+   * programme id, or data you give, which the connector resolves to what
+   * plays. Kept with `handlers`.
+   */
+  readonly connectors?: readonly Connector[];
 }
 
 /**
@@ -312,7 +327,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The chapters URL the current session's engine was given, or null. */
   declare private given: string | null;
   /** The sources the page set from script, or null. */
-  declare private list: readonly Source[] | null;
+  declare private list: readonly ProgrammeSource[] | null;
+  declare private readonly tracking: TrackerRunner;
   /** The sources of the last run, as text: what tells a new `<source>` child from the ones already tried. */
   declare private tried: string;
   /** The options this element was constructed with, or null for the ones `define()` recorded. */
@@ -338,7 +354,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Whether a run is queued and not yet started, so a burst of changes loads once. */
   declare private pending: boolean;
   /** The source the versions of `videoSources` belong to: the one that played before a switch. */
-  declare private programme: Source | null;
+  declare private original: Source | null;
   /** The version that plays, or null for the programme itself. */
   declare private version: SourceVideoTrack | null;
   /** True while a version loads, so its `sourcechange` keeps the programme. */
@@ -368,7 +384,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.offs = [];
     this.queue = Promise.resolve();
     this.pending = false;
-    this.programme = null;
+    this.original = null;
     this.version = null;
     this.switching = false;
     this.switched = null;
@@ -411,6 +427,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.failure = null;
     });
     this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
+    this.tracking = createTrackers(this, () => this.emit('trackerschange', this.tracking.list));
     this.stage = document.createElement('div');
     this.stage.setAttribute('part', 'stage');
     const slot = document.createElement('slot');
@@ -451,11 +468,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * over them, and they win over the `<source>` children. Setting them
    * loads, and null returns to the children.
    */
-  get sources(): readonly Source[] | null {
+  get sources(): readonly ProgrammeSource[] | null {
     return this.list;
   }
 
-  set sources(value: readonly Source[] | null) {
+  set sources(value: readonly ProgrammeSource[] | null) {
     this.list = value;
     // Markers and a block belong to a source, as for `src`.
     if (this.marks.list.length > 0) this.marks.set([]);
@@ -560,7 +577,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const had = chosen(this.current?.engine ?? null);
     const clean = emeAvailable() ? source : withoutDrm(source);
     const was = this.version;
-    this.programme = clean;
+    this.original = clean;
     this.switched = clean;
     this.version = null;
     if (was !== null) this.emit('videosourcechange', null);
@@ -569,7 +586,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   /** The other versions of the picture the source names at their own URLs, for the video menu. */
   get videoSources(): readonly SourceVideoTrack[] {
-    return this.programme?.videoTracks ?? [];
+    return this.original?.videoTracks ?? [];
   }
 
   /** The version of `videoSources` that plays, or null for the source itself. */
@@ -584,7 +601,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * Fires `videosourcechange`.
    */
   selectVideoSource(track: SourceVideoTrack | null): void {
-    const programme = this.programme;
+    const programme = this.original;
     if (programme === null || track === this.version) return;
     if (track !== null && programme.videoTracks?.includes(track) !== true) return;
     const media = this.media;
@@ -679,10 +696,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * `src` or `sources` clears it. Fires `blockchange`.
    */
   block(block: Block): void {
+    this.refuse(block);
+    this.enqueue(() => this.teardown());
+  }
+
+  /** Shows the block, for `block()` and for a programme a connector blocked, which loaded nothing. */
+  private refuse(block: Block): void {
     this.stop = block;
     this.media.pause();
     clearTimeout(this.slow);
-    this.enqueue(() => this.teardown());
     const [title, message] = this.blockWords(block);
     // An error screen in the player is an alert of its own, read already.
     if (this.querySelector(ERROR_SCREEN) === null) {
@@ -703,6 +725,39 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** What `block()` set, or null. */
   get blocked(): Block | null {
     return this.stop;
+  }
+
+  /**
+   * What the current load resolved to: the sources, and what a connector
+   * said of the programme. Null before a load and after an unload.
+   */
+  get programme(): Programme | null {
+    return this.core?.programme ?? null;
+  }
+
+  /**
+   * The page's trackers. Each starts at every programme and stops at its
+   * end; one added or removed during a programme starts or stops at once.
+   */
+  get trackers(): Trackers {
+    return this.tracking;
+  }
+
+  /**
+   * Applies what the load resolved, before any session: the markers, the
+   * poster, the block. The page's own `poster` and markers set after the
+   * source win. Then the trackers start on the programme.
+   */
+  private programmed(programme: Programme | null): void {
+    const metadata = programme?.metadata;
+    if (metadata?.markers !== undefined) this.marks.set(metadata.markers);
+    if (!this.hasAttribute('poster')) {
+      if (metadata?.poster === undefined) this.media.removeAttribute('poster');
+      else this.media.poster = metadata.poster;
+    }
+    if (programme?.block !== undefined) this.refuse(programme.block);
+    this.emit('programmechange', programme);
+    this.tracking.begin(programme);
   }
 
   /** A block's title and message in the player's language: the title defaults to the `blocked` word. */
@@ -1061,7 +1116,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * the `sources` property, then the `<source>` children in their order.
    * A child carries its own `license-url` and `certificate-url`.
    */
-  private wanted(): readonly Source[] {
+  private wanted(): readonly ProgrammeSource[] {
     // The `<mbx-video-track>` children are versions of the `src` or `<source>` picture.
     const versions = markupVideoTracks(this);
     const withVersions = versions.length === 0 ? {} : { videoTracks: versions };
@@ -1073,7 +1128,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // A browser without EME gets no DRM stage, and a source must not bring DRM back.
     const eme = emeAvailable();
     if (this.list !== null) {
-      return eme ? this.list : this.list.map(withoutDrm);
+      return eme
+        ? this.list
+        : this.list.map((source) => ('url' in source ? withoutDrm(source) : source));
     }
     const found: Source[] = [];
     for (const child of Array.from(this.children)) {
@@ -1103,6 +1160,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private adopt(session: Session): void {
     this.given = null;
     this.configure(session);
+    // A content API's chapters, unless the `chapters` attribute names a file.
+    const chapters = this.core?.programme?.metadata?.chapters;
+    if (chapters !== undefined && session.engine !== null && this.getAttribute(CHAPTERS) === null) {
+      namespaces(session.engine).chapters?.set(chapters);
+    }
     // The engine's attach empties the media element to reset its resource
     // selection (`kernel/mse.ts`), and the chapters track goes with the
     // `<source>` children it means. Wanted: the track to survive attach.
@@ -1114,8 +1176,15 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   private async ensure(): Promise<Player> {
     if (this.core !== null) return this.core;
-    const core = createPlayer(this.media, { handlers: await this.chain() });
+    const connectors = this.options.connectors;
+    const core = createPlayer(this.media, {
+      handlers: await this.chain(),
+      ...(connectors === undefined ? {} : { connectors }),
+    });
     this.offs.push(
+      core.on('programme', (programme) => {
+        this.programmed(programme);
+      }),
       core.on('sourcechange', (session) => {
         // Before the event goes out, so a control that reads `engine` on
         // `sourcechange` sees the session the event is about.
@@ -1123,7 +1192,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         // A version loads under the programme it belongs to; any other load is a programme of its own.
         if (!this.switching) {
           const was = this.version;
-          this.programme = session?.source ?? null;
+          this.original = session?.source ?? null;
           this.switched = null;
           this.version = null;
           this.held?.();

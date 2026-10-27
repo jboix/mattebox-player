@@ -32,7 +32,7 @@ import { findPlayer, whenPlayer } from './host.js';
 import { icon } from './icon.js';
 import type {} from './messages.js';
 import type { DiagnosticsReport, QoeFigures } from './report.js';
-import { buildReport } from './report.js';
+import { buildReport, trackersOf } from './report.js';
 import type { Sampler } from './sampler.js';
 import { createSampler } from './sampler.js';
 import { STYLE } from './style.js';
@@ -559,9 +559,22 @@ export class MbxDiagnostics extends HTMLElement {
     // The engine's own figures, when its qoe stage is in the stack: they
     // count from the load, where the stalls above count from the sampling.
     const qoe = (engine as Namespaces | null)?.qoe;
+    // The ids support asks a viewer for, to find the session in the tracker's own data.
+    const trackers = trackersOf(player).map(
+      (tracker): Pair => [
+        tracker.name,
+        [
+          tracker.session === null ? '' : `session ${tracker.session}`,
+          tracker.device === null ? '' : `device ${tracker.device}`,
+        ]
+          .filter((part) => part !== '')
+          .join(', ') || '–',
+      ],
+    );
     return [
       { title: 'Source', rows: source },
       { title: 'Playback', rows: playback },
+      ...(trackers.length === 0 ? [] : [{ title: 'Trackers', rows: trackers }]),
       ...(qoe === undefined
         ? []
         : [
