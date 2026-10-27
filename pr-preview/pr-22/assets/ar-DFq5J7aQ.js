@@ -1,1 +1,0 @@
-var e={diagnostics:`التشخيص`,diagnosticsCopy:`نسخ التقرير`,diagnosticsCopied:`تم النسخ`,diagnosticsClose:`إغلاق`};export{e as default};

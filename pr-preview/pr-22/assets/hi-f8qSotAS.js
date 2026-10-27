@@ -1,1 +1,0 @@
-var e={diagnostics:`निदान`,diagnosticsCopy:`रिपोर्ट कॉपी करें`,diagnosticsCopied:`कॉपी हो गई`,diagnosticsClose:`बंद करें`};export{e as default};

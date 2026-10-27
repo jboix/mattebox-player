@@ -1,1 +1,0 @@
-var e={castStart:`TV로 전송`,castStop:`전송 중지`,castingTo:`{device}에 전송 중`};export{e as default};
