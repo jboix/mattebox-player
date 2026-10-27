@@ -5,7 +5,7 @@
   <text x="44" y="176" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="700" fill="#111114">mattebox player</text>
   <text x="44" y="200" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">main · + mattebox v0.16.0, full preset</text>
   <rect x="480" y="150" width="420" height="54" fill="#f0f0f3"/>
-  <rect x="480" y="150" width="62.6" height="54" fill="#e8930c"/>
+  <rect x="480" y="150" width="62.5" height="54" fill="#e8930c"/>
   <text x="1056" y="186" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="30" font-weight="700" fill="#111114">119.1 KB</text>
   <text x="44" y="260" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#111114">video.js 8 + vhs</text>
   <text x="44" y="284" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">v8.24.0 · VHS built in</text>
@@ -21,7 +21,7 @@
   <text x="44" y="452" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">v4.19.2 · hls- and dash-video-element</text>
   <rect x="480" y="402" width="420" height="54" fill="#f0f0f3"/>
   <rect x="480" y="402" width="235.8" height="54" fill="#a1a1aa"/>
-  <text x="1056" y="438" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#6b6b74">449.2 KB</text>
+  <text x="1056" y="438" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#6b6b74">449.1 KB</text>
   <text x="44" y="512" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#111114">video.js 10 + hls.js + dash.js</text>
   <text x="44" y="536" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">v10.0.0-rc.2 · skin, hlsjs- and dash-video</text>
   <rect x="480" y="486" width="420" height="54" fill="#f0f0f3"/>
@@ -31,7 +31,7 @@
   <text x="44" y="620" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">v1.15.6 · default layout</text>
   <rect x="480" y="570" width="420" height="54" fill="#f0f0f3"/>
   <rect x="480" y="570" width="275.2" height="54" fill="#a1a1aa"/>
-  <text x="1056" y="606" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#6b6b74">524.3 KB</text>
+  <text x="1056" y="606" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#6b6b74">524.2 KB</text>
   <text x="44" y="680" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#111114">bitmovin player</text>
   <text x="44" y="704" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#6b6b74">v8.279.0 · the full bundle, with its ui</text>
   <rect x="480" y="654" width="420" height="54" fill="#f0f0f3"/>
