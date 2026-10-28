@@ -182,12 +182,15 @@ export class MbxSeekBar extends Component {
   declare private divided: string;
   declare private list: Chapter[];
   declare private pending: number | null;
+  /** The last time a frame wrote during the drag, so the release does not seek there again. */
+  declare private written: number | null;
   declare private frame: number;
 
   constructor() {
     super();
     this.range = EMPTY;
     this.pending = null;
+    this.written = null;
     this.frame = 0;
     this.divided = '';
     this.list = [];
@@ -347,6 +350,8 @@ export class MbxSeekBar extends Component {
     const drag = this.drag;
     this.drag = 'none';
     this.dragged = null;
+    const written = this.written;
+    this.written = null;
     const player = this.player;
     if (player === null) return;
     if (drag === 'scrub') {
@@ -354,7 +359,9 @@ export class MbxSeekBar extends Component {
       if (value === null) trick?.scrubEnd();
       else trick?.scrubEnd(value);
     } else {
-      if (value !== null) player.video.currentTime = value;
+      // A click writes on the press and again on the release, at the same
+      // time: one seek is enough, and a tracker counts each one.
+      if (value !== null && value !== written) player.video.currentTime = value;
       if (this.resume) void player.video.play().catch(() => undefined);
       this.resume = false;
     }
@@ -458,6 +465,7 @@ export class MbxSeekBar extends Component {
     const video = this.player?.video;
     if (this.pending === null || video === undefined) return;
     video.currentTime = this.pending;
+    if (this.drag === 'seek') this.written = this.pending;
     this.pending = null;
   }
 

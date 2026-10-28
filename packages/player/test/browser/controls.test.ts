@@ -1746,6 +1746,22 @@ describe('the seek bar', () => {
     expect(player.video.currentTime).toBeCloseTo(6, 0);
   });
 
+  it('seeks once for a click, which writes on the press and again on the release', async () => {
+    const player = await ready(10);
+    const element = control(player, 'mbx-seek-bar');
+    let seeks = 0;
+    player.video.addEventListener('seeking', () => {
+      seeks += 1;
+    });
+    pointer(element, 'pointerdown', 0.5);
+    // The press writes in the next frame, and the release at the same place writes nothing.
+    await once(player.video, 'seeked');
+    pointer(element, 'pointerup', 0.5, 0);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(seeks).toBe(1);
+    expect(player.video.currentTime).toBeCloseTo(5, 0);
+  });
+
   it('leaves a paused video paused after the drag', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');
