@@ -268,14 +268,23 @@ it('the options are remembered across a reload', async () => {
   expect($$('mbx-fullscreen-button', bar())).toHaveLength(1);
 });
 
-it('the SRG SSR route is there, and idle until asked', async () => {
+it('the Broadcasters route lists the connectors, SRG SSR first with its units and search', async () => {
   const { $, $$ } = await mount({ row: 'none' });
   await userEvent.click($('#open-content'));
-  await userEvent.click($('[data-route="srgssr"]'));
-  expect(visible($('#route-srgssr'))).toBe(true);
+  await userEvent.click($('[data-route="connectors"]'));
+  expect(visible($('#route-connectors'))).toBe(true);
   expect(visible($('#route-static'))).toBe(false);
-  expect($$('#search-bu option')).toHaveLength(5);
-  expect(visible($('#search-results'))).toBe(false);
+  expect($$('#connector option').map((option) => option.textContent)).toEqual([
+    'SRG SSR',
+    'SVT',
+    'ARD',
+    '3Cat',
+    'DW',
+  ]);
+  expect($$('#connector-unit option')).toHaveLength(5);
+  expect(visible($('#connector-unit'))).toBe(true);
+  expect(visible($('#connector-query'))).toBe(true);
+  expect(visible($('#connector-data'))).toBe(false);
 });
 
 it('the TV setup composes the player for a remote, and an edit by hand makes it Custom', async () => {
