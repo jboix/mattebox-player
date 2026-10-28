@@ -353,6 +353,24 @@ describe('<mattebox-player>', () => {
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
   });
 
+  it('keeps the source it loads when it moves in the page, in the task it got the source', async () => {
+    // A page that moves the player into place and gives it a source at once,
+    // as a feed does: a move is no removal, so nothing tears the load down.
+    const player = mount();
+    const slot = document.createElement('div');
+    document.body.append(slot);
+    const programmes: unknown[] = [];
+    player.addEventListener('sourcechange', (event) =>
+      programmes.push((event as CustomEvent).detail),
+    );
+    slot.prepend(player);
+    player.setAttribute('src', 'https://cdn.test/hls/master.m3u8');
+    await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(player.player?.session).not.toBeNull();
+    expect(programmes.filter((detail) => detail === null)).toEqual([]);
+  });
+
   it('hands the element from the native handler to the engine on a source change', async () => {
     const url = silence();
     const player = mount({ src: url, type: 'audio/wav' });

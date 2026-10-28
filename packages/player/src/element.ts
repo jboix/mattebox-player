@@ -936,8 +936,13 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.unwatch?.();
     this.unwatch = null;
     // A single-page app must not leave a pipeline attached to a video it
-    // navigated away from. Reconnecting loads the `src` again.
-    this.enqueue(() => this.teardown());
+    // navigated away from. Reconnecting loads the `src` again. A move is no
+    // removal: as HTML's media element waits for a stable state before it
+    // pauses, the teardown waits a microtask and runs only if the element is
+    // still out of the document.
+    queueMicrotask(() => {
+      if (!this.isConnected) this.enqueue(() => this.teardown());
+    });
   }
 
   attributeChangedCallback(name: string): void {
