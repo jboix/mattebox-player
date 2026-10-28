@@ -92,6 +92,26 @@ describe('a block', () => {
     expect(changes).toEqual([geo, null, geo, null, geo, null]);
   });
 
+  it('leaves only the video and the error screen while a block or an error shows', async () => {
+    const player = mount('custom');
+    const bar = player.querySelector<HTMLElement>('mbx-control-bar');
+    if (bar === null) throw new Error('no bar');
+    player.block(geo);
+    expect(player.hasAttribute('blocked')).toBe(true);
+    expect(getComputedStyle(bar).display).toBe('none');
+    expect(getComputedStyle(screenOf(player)).display).not.toBe('none');
+    expect(getComputedStyle(player.video).display).not.toBe('none');
+    player.unblock();
+    expect(player.hasAttribute('blocked')).toBe(false);
+    expect(getComputedStyle(bar).display).not.toBe('none');
+    const fatal = { category: 'network', code: 'NETWORK_ERROR', fatal: true, recoverable: true };
+    (player as unknown as { report(error: unknown): void }).report(fatal);
+    expect(player.hasAttribute('error')).toBe(true);
+    expect(getComputedStyle(bar).display).toBe('none');
+    player.video.dispatchEvent(new Event('playing'));
+    expect(player.hasAttribute('error')).toBe(false);
+  });
+
   it('stops the video', () => {
     const player = mount('custom');
     player.video.play().catch(() => undefined);

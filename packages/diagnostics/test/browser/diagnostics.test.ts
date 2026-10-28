@@ -516,6 +516,54 @@ describe('the element', () => {
     expect(element.report().at).toBeDefined();
   });
 
+  it('opens from the error screen, which leaves the bar shown while the panel is open', async () => {
+    const { player, element } = await mount([nativeHandler()]);
+    const screen = document.createElement('mbx-error-screen');
+    player.append(screen);
+    const bar = player.querySelector('mbx-control-bar') as HTMLElement;
+    const fatal = {
+      category: 'media',
+      code: 'MEDIA_DECODE_ERROR',
+      fatal: true,
+      recoverable: false,
+      handler: 'native',
+    };
+    // The element's own report path, as a handler's fatal error takes it.
+    (player as unknown as { report(error: unknown): void }).report(fatal);
+    await expect.poll(() => screen.hidden).toBe(false);
+    expect(getComputedStyle(bar).display).toBe('none');
+    const open = inside(screen, 'diagnostics') as HTMLButtonElement;
+    expect(open.hidden).toBe(false);
+    expect(open.textContent).toBe('Diagnostics');
+
+    open.click();
+    expect(inside(element, 'panel').hidden).toBe(false);
+    expect(player.hasAttribute('diagnostics')).toBe(true);
+    expect(getComputedStyle(bar).display).not.toBe('none');
+    expect(element.report().playback).toBeDefined();
+
+    element.hide();
+    expect(player.hasAttribute('diagnostics')).toBe(false);
+    expect(getComputedStyle(bar).display).toBe('none');
+  });
+
+  it('leaves the error screen without the button when the player has no diagnostics', async () => {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    const screen = document.createElement('mbx-error-screen');
+    player.append(screen);
+    document.body.append(player);
+    (player as unknown as { report(error: unknown): void }).report({
+      category: 'media',
+      code: 'MEDIA_DECODE_ERROR',
+      fatal: true,
+      recoverable: false,
+      handler: 'native',
+    });
+    await expect.poll(() => screen.hidden).toBe(false);
+    expect(inside(screen, 'diagnostics').hidden).toBe(true);
+  });
+
   it('takes its words from attributes', async () => {
     const { element } = await mount([nativeHandler()]);
     element.setAttribute('label', 'Diagnòstics');

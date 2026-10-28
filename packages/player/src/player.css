@@ -70,6 +70,16 @@
 :host([ended]) ::slotted(mbx-marker-button) {
   display: none;
 }
+/* An error or a block leaves the video and the screen that says why. The
+   bar, the title and the other screens would drive or describe a
+   programme that does not play. The diagnostics stay: the panel in flow,
+   and the bar while its panel is open, which the player says with
+   `diagnostics`. */
+:host([error]:not([diagnostics])) ::slotted(:not(video):not(mbx-error-screen):not(mbx-diagnostics)),
+:host([blocked]:not([diagnostics]))
+  ::slotted(:not(video):not(mbx-error-screen):not(mbx-diagnostics)) {
+  display: none;
+}
 /* controls="none" hides every child but the video, so a page keeps its
    composition in place and turns it off with one attribute. A normal rule
    from the page still wins over this one, the way it does over any rule

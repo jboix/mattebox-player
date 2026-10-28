@@ -353,10 +353,16 @@ export class MbxDiagnostics extends HTMLElement {
     if (!this.panel.hidden) this.paint();
   }
 
-  private show(): void {
+  /**
+   * Opens the panel, as the button does. The player carries `diagnostics`
+   * while it is open, so the error screen leaves the bar it sits in shown.
+   */
+  show(): void {
     if (!this.panel.hidden) return;
     this.panel.hidden = false;
     if (!this.hasAttribute('inline')) {
+      // Before the fit below, which measures the bar the attribute shows.
+      this.player?.toggleAttribute('diagnostics', true);
       this.setAttribute('open', '');
       this.toggle.setAttribute('aria-expanded', 'true');
       document.addEventListener('pointerdown', this.outside, true);
@@ -370,11 +376,13 @@ export class MbxDiagnostics extends HTMLElement {
     if (!this.hasAttribute('inline')) this.tabs[this.tab].focus();
   }
 
-  private hide(): void {
+  /** Closes the panel. An inline panel stays open while it is in the player. */
+  hide(): void {
     clearInterval(this.drawer);
     this.drawer = undefined;
     if (this.panel.hidden) return;
     this.panel.hidden = true;
+    this.player?.removeAttribute('diagnostics');
     this.removeAttribute('open');
     this.toggle.setAttribute('aria-expanded', 'false');
     document.removeEventListener('pointerdown', this.outside, true);

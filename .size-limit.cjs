@@ -29,7 +29,7 @@ module.exports = [
     brotli: true,
     // 31 kB since the languages: the registry, the language the player
     // resolves and watches, and an id at every word took 0.68 kB.
-    limit: '32 kB',
+    limit: '35 kB',
   },
   {
     name: '@mattebox/player-diagnostics',

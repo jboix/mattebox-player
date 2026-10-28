@@ -424,6 +424,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // An error over a picture that then plays is wrong by definition.
     this.media.addEventListener('playing', () => {
       this.failure = null;
+      this.reflect();
     });
     this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
     this.tracking = createTrackers(this, () => this.emit('trackerschange', this.tracking.list));
@@ -710,6 +711,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.voice.tell(message === '' ? title : `${title}. ${message}`);
     }
     this.showBlock();
+    this.reflect();
     this.emit('blockchange', block);
   }
 
@@ -718,6 +720,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     if (this.stop === null) return;
     this.stop = null;
     this.surface.clear();
+    this.reflect();
     this.emit('blockchange', null);
   }
 
@@ -910,6 +913,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.toggleAttribute('audio', this.audio());
     this.toggleAttribute('started', this.started);
     this.toggleAttribute('waiting', this.waiting);
+    this.toggleAttribute('error', this.failure !== null);
+    this.toggleAttribute('blocked', this.stop !== null);
     this.reflecting = false;
   }
 
@@ -1092,6 +1097,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       // Under custom controls the error screen element is the surface, and
       // the element's own row under the video stays quiet.
       if (this.getAttribute(CONTROLS) !== 'custom') this.surface.show(error);
+      this.reflect();
     }
     this.emit('error', error);
   }
@@ -1106,6 +1112,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const core = await this.ensure();
     this.failure = null;
     this.surface.clear();
+    this.reflect();
 
     try {
       await core.load(sources);
