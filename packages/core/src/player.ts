@@ -13,7 +13,8 @@
  */
 import { Blocked, Declined, fromEngineError, fromMediaError } from './errors.js';
 import { inferType } from './infer-type.js';
-import { ConnectorFailure, connectorFor, expand } from './programme.js';
+import type { Resolved } from './programme.js';
+import { ConnectorFailure, connectorFor, expand, partsOf, run } from './programme.js';
 import type {
   Handler,
   HandlerEnvironment,
@@ -43,6 +44,19 @@ function unclaimed(source: Source): PlayerError {
   };
 }
 
+/** How long a preload counts by default, in seconds: as long as the engine keeps a preloaded manifest. */
+const KEEP_SECONDS = 30;
+
+/** A connector source `preload` resolved, or is resolving. */
+interface Kept {
+  readonly type: string;
+  readonly id: string | undefined;
+  readonly data: unknown;
+  readonly until: number;
+  readonly result: Promise<Resolved>;
+  readonly control: AbortController;
+}
+
 export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): Player {
   const listeners: { readonly [E in PlayerEvent]: Set<(payload: PlayerEvents[E]) => void> } = {
     programme: new Set(),
@@ -54,6 +68,15 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   let programme: Programme | null = null;
   /** Aborts the connector fetch of the load in flight, when a newer load or an unload comes. */
   let controller: AbortController | null = null;
+  /**
+   * What the last `preload` of a connector source resolved, which the next
+   * load of the same programme takes instead of asking the connector again.
+   * One at a time, and for as long as the engine keeps a preloaded
+   * manifest: a resolution can carry a token that expires.
+   */
+  let kept: Kept | null = null;
+  /** The programme the last preload resolved, for a page that shows what comes next. */
+  let preloaded: Programme | null = null;
   /** Bumped by every load and by unload. A load whose number is stale lost. */
   let generation = 0;
   /** Loads run one at a time, so they settle in the order they were called. */
@@ -220,7 +243,7 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
         : [source as ProgrammeSource];
       let resolved: Programme;
       try {
-        resolved = await expand(given, connectors, control.signal);
+        resolved = await expand(given, connectors, control.signal, take);
       } catch (cause) {
         if (mine === generation && cause instanceof ConnectorFailure) {
           // A failed programme is still one: a tracker started on it sees the error that follows.
@@ -252,16 +275,37 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     return started;
   }
 
-  async function preload(
-    source: ProgrammeSource | readonly ProgrammeSource[],
-    preloadOptions?: PreloadOptions,
+  /**
+   * The kept resolution of this connector source, once: a second load asks
+   * the connector again. Undefined when the preload was of another
+   * programme or is too old. The load's abort reaches the preload's requests.
+   */
+  function take(
+    type: string,
+    id: string | undefined,
+    data: unknown,
+    signal: AbortSignal,
+  ): Promise<Resolved> | undefined {
+    const entry = kept;
+    if (entry === null || entry.type !== type) return undefined;
+    const same = data !== undefined ? entry.data === data : id !== undefined && entry.id === id;
+    if (!same) return undefined;
+    kept = null;
+    if (Date.now() > entry.until) {
+      entry.control.abort();
+      return undefined;
+    }
+    signal.addEventListener('abort', () => entry.control.abort());
+    return entry.result;
+  }
+
+  /** Preloads the first source of the list a handler takes, with the handler that would play it. */
+  async function preloadSources(
+    list: readonly Source[],
+    preloadOptions: PreloadOptions | undefined,
   ): Promise<void> {
     const env = environment();
-    for (const given of Array.isArray(source)
-      ? (source as readonly ProgrammeSource[])
-      : [source as ProgrammeSource]) {
-      // A connector source would fetch its data here and again at the load.
-      if (!('url' in given) || connectorFor(given, connectors) !== undefined) continue;
+    for (const given of list) {
       const resolved = resolve(given);
       const handler = ordered(resolved, env).find((h) => h.canHandle(resolved, env) !== '');
       if (handler === undefined) continue;
@@ -269,6 +313,59 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
       await handler.preload?.(resolved, preloadOptions)?.catch(() => undefined);
       return;
     }
+  }
+
+  async function preload(
+    source: ProgrammeSource | readonly ProgrammeSource[],
+    preloadOptions?: PreloadOptions,
+  ): Promise<void> {
+    const list = Array.isArray(source)
+      ? (source as readonly ProgrammeSource[])
+      : [source as ProgrammeSource];
+    const at = list.findIndex(
+      (given) => !('url' in given) || connectorFor(given, connectors) !== undefined,
+    );
+    // Plain sources before the first connector source preload as they are.
+    if (at !== 0)
+      return preloadSources(list.slice(0, at === -1 ? undefined : at) as Source[], preloadOptions);
+    const given = list[0] as ProgrammeSource;
+    const connector = connectorFor(given, connectors);
+    if (connector === undefined) return;
+    const { id, data } = partsOf(given);
+    // A newer preload replaces the one kept: its requests stop.
+    kept?.control.abort();
+    const control = new AbortController();
+    const result = run(connector, id, data, control.signal);
+    const entry: Kept = {
+      type: connector.type,
+      id,
+      data,
+      until: Date.now() + (preloadOptions?.keepSeconds ?? KEEP_SECONDS) * 1000,
+      result,
+      control,
+    };
+    kept = entry;
+    let resolved: Resolved;
+    try {
+      resolved = await result;
+    } catch {
+      // The load asks the connector again, and reports what it says then.
+      if (kept === entry) kept = null;
+      return;
+    }
+    const { resolution } = resolved;
+    preloaded = {
+      given: list,
+      sources: resolution.sources,
+      type: connector.type,
+      ...(id === undefined ? {} : { id }),
+      data: resolved.data,
+      ...(resolution.metadata === undefined ? {} : { metadata: resolution.metadata }),
+      ...(resolution.block === undefined ? {} : { block: resolution.block }),
+    };
+    // A blocked programme loads nothing, so nothing of it is fetched ahead.
+    if (resolution.block !== undefined || kept !== entry) return;
+    await preloadSources(resolution.sources, preloadOptions);
   }
 
   function unload(): Promise<void> {
@@ -293,6 +390,9 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     },
     get programme(): Programme | null {
       return programme;
+    },
+    get preloaded(): Programme | null {
+      return preloaded;
     },
     on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void {
       const set = listeners[event] as Set<(payload: PlayerEvents[E]) => void>;

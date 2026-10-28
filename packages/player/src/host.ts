@@ -13,6 +13,7 @@ import type {
   Player,
   PlayerError,
   Programme,
+  ProgrammeSource,
   Source,
   SourceVideoTrack,
 } from '@mattebox/player-core';
@@ -58,6 +59,8 @@ export interface PlayerHost extends HTMLElement {
   readonly markers: Markers;
   /** What the current load resolved to, with what a connector said of the programme; null without one. */
   readonly programme: Programme | null;
+  /** The sources to load when there is no `src` attribute; setting it loads them. */
+  sources: readonly ProgrammeSource[] | null;
   /** The page's trackers, started at each programme. */
   readonly trackers: Trackers;
   /** Loads the sources again, in the order a load reads them. */

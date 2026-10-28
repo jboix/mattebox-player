@@ -291,17 +291,97 @@ describe('a connector source', () => {
     expect(player.programme).toBeNull();
   });
 
-  it('preload skips a connector source, and preloads a plain one', async () => {
+  it('preload resolves a connector source, and the load takes it without a second fetch', async () => {
+    const { handler, seen } = taker();
+    const connector = catalogue();
+    const player = createPlayer(video, { handlers: [handler], connectors: [connector] });
+
+    await player.preload({ type: 'example/tv', id: 'tv:1' });
+
+    expect(connector.fetches).toEqual(['tv:1']);
+    expect(handler.preload).toHaveBeenCalledWith(
+      expect.objectContaining({ url: EPISODE.url }),
+      undefined,
+    );
+    expect(player.preloaded?.metadata?.title).toBe('Episode');
+    await player.load({ type: 'example/tv', id: 'tv:1' });
+    expect(connector.fetches).toEqual(['tv:1']);
+    expect(seen.map((source) => source.url)).toEqual([EPISODE.url]);
+    expect(player.programme?.metadata?.title).toBe('Episode');
+    // Kept once: the next load asks the connector again.
+    await player.load({ type: 'example/tv', id: 'tv:1' });
+    expect(connector.fetches).toEqual(['tv:1', 'tv:1']);
+  });
+
+  it('takes a preload of the same data, and of a plain source of the type, by its id', async () => {
+    const { handler } = taker();
+    const connector = catalogue();
+    const resolve = vi.spyOn(connector, 'resolve');
+    const player = createPlayer(video, { handlers: [handler], connectors: [connector] });
+
+    const data = { title: 'Given', url: 'https://cdn.example/given.m3u8' };
+    await player.preload({ type: 'example/tv', data });
+    await player.load({ type: 'example/tv', data });
+    expect(resolve).toHaveBeenCalledTimes(1);
+
+    await player.preload({ url: 'tv:1', type: 'example/tv' });
+    await player.load({ type: 'example/tv', id: 'tv:1' });
+    expect(connector.fetches).toEqual(['tv:1']);
+  });
+
+  it('asks the connector again for another programme, after keepSeconds, or after a failed preload', async () => {
+    const { handler } = taker();
+    let calls = 0;
+    const connector = catalogue({ 'tv:1': EPISODE, 'tv:2': EPISODE });
+    const fetch = connector.fetch?.bind(connector);
+    connector.fetch = async (id, signal) => {
+      calls += 1;
+      // The first request fails, as a network can.
+      if (calls === 1) throw new Error('offline');
+      return (fetch as NonNullable<typeof fetch>)(id, signal);
+    };
+    const player = createPlayer(video, { handlers: [handler], connectors: [connector] });
+    const failed = errors(player);
+
+    await player.preload({ type: 'example/tv', id: 'tv:1' });
+    await player.load({ type: 'example/tv', id: 'tv:1' });
+    expect(calls).toBe(2);
+    expect(failed).toEqual([]);
+
+    await player.preload({ type: 'example/tv', id: 'tv:1' });
+    await player.load({ type: 'example/tv', id: 'tv:2' });
+    expect(calls).toBe(4);
+
+    await player.preload({ type: 'example/tv', id: 'tv:1' }, { keepSeconds: -1 });
+    await player.load({ type: 'example/tv', id: 'tv:1' });
+    expect(calls).toBe(6);
+  });
+
+  it('preloads nothing of a blocked programme, and says the block in preloaded', async () => {
+    const { handler } = taker();
+    const connector = catalogue({ 'tv:9': { title: 'Nine', blocked: 'Not here.' } });
+    const player = createPlayer(video, { handlers: [handler], connectors: [connector] });
+
+    await player.preload({ type: 'example/tv', id: 'tv:9' });
+
+    expect(handler.preload).not.toHaveBeenCalled();
+    expect(player.preloaded?.block).toEqual({ message: 'Not here.' });
+  });
+
+  it('preloads plain sources as they are', async () => {
     const { handler } = taker();
     const connector = catalogue();
     const player = createPlayer(video, { handlers: [handler], connectors: [connector] });
 
     await player.preload([
-      { type: 'example/tv', id: 'tv:1' },
       { url: 'https://cdn.example/n.mpd' },
+      { type: 'example/tv', id: 'tv:1' },
     ]);
 
     expect(connector.fetches).toEqual([]);
-    expect(handler.preload).toHaveBeenCalledTimes(1);
+    expect(handler.preload).toHaveBeenCalledWith(
+      expect.objectContaining({ url: 'https://cdn.example/n.mpd' }),
+      undefined,
+    );
   });
 });

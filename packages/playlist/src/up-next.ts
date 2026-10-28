@@ -14,6 +14,7 @@
 import type { PlayerHost } from '@mattebox/player';
 import BUTTON_STYLE from './button.css?inline';
 import { icon } from './icons.js';
+import { titleOf } from './playlist.js';
 import { button, el, PlaylistControl, style } from './ui.js';
 import STYLE from './up-next.css?inline';
 
@@ -139,13 +140,14 @@ export class MbxUpNext extends PlaylistControl {
     this.hidden = !shown;
     player.toggleAttribute('upnext', shown);
     if (!shown || next === null) return;
-    const picture = next.artwork ?? next.poster;
+    const title = titleOf(player, next);
+    const picture = title.artwork;
     this.picture.hidden = picture === undefined;
     if (picture !== undefined && this.picture.getAttribute('src') !== picture) {
       this.picture.src = picture;
     }
     this.heading.textContent = this.word('label', 'upNext', 'Up next');
-    this.itemTitle.textContent = next.heading ?? next.src;
+    this.itemTitle.textContent = title.heading ?? next.src;
     this.play.textContent = this.word('label-play', 'upNextPlay', 'Next episode');
     this.dismiss.setAttribute('aria-label', this.word('label-dismiss', 'upNextDismiss', 'Close'));
     // The countdown says when auto-advance moves on by itself.

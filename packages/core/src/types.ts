@@ -243,8 +243,13 @@ export interface Player {
    * Fetches the start of a source ahead of its load. It asks the handler
    * `load` would give the source to, whatever session plays now: of a list,
    * the first source a handler takes. It resolves with nothing done when
-   * that handler has no `preload`, and never rejects. It skips connector
-   * sources, whose data it would fetch a second time at the load.
+   * that handler has no `preload`, and never rejects.
+   *
+   * A connector source resolves here: its connector fetches the data and
+   * resolves it, and its first source preloads. The next `load` of the
+   * same programme, by its type and id or by the same data, takes that
+   * resolution and asks the connector nothing, within `keepSeconds`. One
+   * preload is kept at a time.
    */
   preload(
     source: ProgrammeSource | readonly ProgrammeSource[],
@@ -253,5 +258,7 @@ export interface Player {
   readonly session: Session | null;
   /** What the current load resolved to, or null before one and after `unload`. */
   readonly programme: Programme | null;
+  /** What the last `preload` of a connector source resolved, such as the next title, or null. */
+  readonly preloaded: Programme | null;
   on<E extends PlayerEvent>(event: E, fn: (payload: PlayerEvents[E]) => void): () => void;
 }

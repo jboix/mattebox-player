@@ -13,7 +13,7 @@
  * - The system's own controls, media keys, a lock screen, a TV remote, go
  *   to next and previous through the Media Session API.
  */
-import type { Marker, PlayerHost } from '@mattebox/player';
+import type { Marker, PlayerHost, ProgrammeSource } from '@mattebox/player';
 import type { Order, Random, RepeatMode } from './order.js';
 import { after, arrange, before, random } from './order.js';
 
@@ -21,8 +21,14 @@ export type { RepeatMode } from './order.js';
 
 /** One entry: what the player plays, and what the list shows of it. */
 export interface PlaylistItem {
+  /** The URL, or the programme's id when `type` names a connector. */
   readonly src: string;
   readonly type?: string;
+  /**
+   * The programme's data, for an item whose `type` names a connector: the
+   * connector resolves it without a fetch. From a script only.
+   */
+  readonly programmeData?: unknown;
   readonly poster?: string;
   /** The title's heading, subheading and artwork, as <mbx-title> takes them. */
   readonly heading?: string;
@@ -132,6 +138,41 @@ const TITLE: ReadonlyArray<readonly [keyof PlaylistItem, string]> = [
   ['artwork', 'artwork'],
 ];
 
+/** What the player loads for an item: the URL or the id with its type, and the data the page gave. */
+export function sourceOf(item: PlaylistItem): ProgrammeSource {
+  if (item.programmeData !== undefined && item.type !== undefined) {
+    return { type: item.type, id: item.src, data: item.programmeData };
+  }
+  return item.type === undefined ? { url: item.src } : { url: item.src, type: item.type };
+}
+
+/** What the title, the up next card and the system's controls show of an item. */
+export interface ItemTitle {
+  readonly heading?: string;
+  readonly subheading?: string;
+  readonly artwork?: string;
+}
+
+/**
+ * The item's own heading, subheading and artwork, and for what it leaves
+ * out, what a connector resolved: the programme that plays, or the one the
+ * last preload resolved, when it is this item.
+ */
+export function titleOf(player: PlayerHost, item: PlaylistItem): ItemTitle {
+  const same = (programme: { type?: string; id?: string } | null | undefined): boolean =>
+    programme != null && programme.type === item.type && programme.id === item.src;
+  const programme = [player.programme, player.player?.preloaded].find(same);
+  const metadata = programme?.metadata;
+  const heading = item.heading ?? metadata?.title;
+  const subheading = item.subheading ?? metadata?.subtitle;
+  const artwork = item.artwork ?? item.poster ?? metadata?.image ?? metadata?.poster;
+  return {
+    ...(heading === undefined ? {} : { heading }),
+    ...(subheading === undefined ? {} : { subheading }),
+    ...(artwork === undefined ? {} : { artwork }),
+  };
+}
+
 function write(node: Element, name: string, value: unknown): void {
   if (typeof value === 'string') node.setAttribute(name, value);
   else node.removeAttribute(name);
@@ -193,7 +234,14 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
     if (title !== null) for (const [field, name] of TITLE) write(title, name, item[field]);
     // The source last: every attribute above reloads, and the last load is
     // the one that counts. Markers after it, since a new source clears them.
-    player.setAttribute('src', item.src);
+    const source = sourceOf(item);
+    if ('url' in source) {
+      player.setAttribute('src', item.src);
+    } else {
+      // Data goes through `sources`, which the `src` attribute would win over.
+      player.removeAttribute('src');
+      player.sources = [source];
+    }
     player.markers.set(item.markers ?? []);
     changed({ index: true });
   }
@@ -218,12 +266,11 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
       media.setActionHandler('nexttrack', api.hasNext() ? () => api.next() : null);
       media.setActionHandler('previoustrack', api.hasPrevious() ? () => api.previous() : null);
       if (item !== undefined && typeof MediaMetadata !== 'undefined') {
+        const title = titleOf(player, item);
         media.metadata = new MediaMetadata({
-          title: item.heading ?? '',
-          artist: item.subheading ?? '',
-          ...(item.artwork === undefined && item.poster === undefined
-            ? {}
-            : { artwork: [{ src: (item.artwork ?? item.poster) as string }] }),
+          title: title.heading ?? '',
+          artist: title.subheading ?? '',
+          ...(title.artwork === undefined ? {} : { artwork: [{ src: title.artwork }] }),
         });
       }
     } catch {
@@ -275,9 +322,8 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
     if (!credits && !(left <= 30)) return;
     preloaded = at;
     preloadedAt = now;
-    player.player
-      ?.preload(next.type === undefined ? { url: next.src } : { url: next.src, type: next.type })
-      .catch(() => undefined);
+    // A connector item resolves here, so its load asks the content API nothing.
+    player.player?.preload(sourceOf(next)).catch(() => undefined);
   };
 
   const onSource = (): void => {
@@ -298,6 +344,8 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
   video.addEventListener('loadedmetadata', onMetadata);
   player.addEventListener('error', onError);
   player.addEventListener('sourcechange', onSource);
+  // A connector's title arrives with the programme, after the item was written.
+  player.addEventListener('programmechange', session);
 
   /** Whether playback is running, so a move keeps it running. */
   const running = (): boolean => !video.paused && !video.ended;
@@ -406,6 +454,7 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
         video.removeEventListener('loadedmetadata', onMetadata);
         player.removeEventListener('error', onError);
         player.removeEventListener('sourcechange', onSource);
+        player.removeEventListener('programmechange', session);
         const media = typeof navigator === 'undefined' ? undefined : navigator.mediaSession;
         try {
           media?.setActionHandler('nexttrack', null);

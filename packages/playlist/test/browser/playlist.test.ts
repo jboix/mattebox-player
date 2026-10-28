@@ -296,4 +296,90 @@ seg1.m4s
     expect(fetched.filter((path) => path === '/b/master.m3u8')).toHaveLength(1);
     expect(fetched.filter((path) => path === '/a/master.m3u8')).toHaveLength(1);
   });
+
+  /** An engine player over the fake CDN, with a connector that resolves an id to its master playlist. */
+  function connected(fetched: string[], asked: string[]): MatteboxPlayerElement {
+    return new MatteboxPlayerElement({
+      connectors: [
+        {
+          type: 'example/show',
+          fetch: async (id) => {
+            asked.push(id);
+            return { id };
+          },
+          resolve: (data) => {
+            const { id } = data as { id: string };
+            return {
+              sources: [{ url: `https://cdn.test/${id}/master.m3u8`, type: HLS }],
+              metadata: { title: `Show ${id}`, image: `https://cdn.test/${id}.jpg` },
+            };
+          },
+        },
+      ],
+      handlers: [
+        matteboxHandler({
+          stages: [hlsCmaf()],
+          transport: {
+            fetchImpl: (url: string) => {
+              const path = new URL(url).pathname;
+              fetched.push(path);
+              const body = path.endsWith('master.m3u8')
+                ? MASTER
+                : path.endsWith('v1.m3u8')
+                  ? MEDIA
+                  : null;
+              return Promise.resolve(
+                body === null
+                  ? new Response(null, { status: 404 })
+                  : new Response(body, { status: 200, headers: { 'content-type': HLS } }),
+              );
+            },
+            retry: { maxAttempts: 1 },
+          },
+        }),
+      ],
+    });
+  }
+
+  it('resolves a connector item ahead, so its start asks the content API nothing', async () => {
+    const fetched: string[] = [];
+    const asked: string[] = [];
+    const player = connected(fetched, asked);
+    player.setAttribute('muted', '');
+    document.body.append(player);
+    const playlist = createPlaylist(player, { skipOnError: false });
+    playlist.load([
+      { src: 'a', type: 'example/show' },
+      { src: 'b', type: 'example/show' },
+    ]);
+    await expect.poll(() => fetched).toContain('/a/v1.m3u8');
+    expect(asked).toEqual(['a']);
+
+    Object.defineProperty(player.video, 'duration', { configurable: true, value: 4 });
+    player.video.dispatchEvent(new Event('timeupdate'));
+    await expect.poll(() => fetched).toContain('/b/master.m3u8');
+    expect(asked).toEqual(['a', 'b']);
+    // What the up next card and the system's controls show of the next item.
+    expect(player.player?.preloaded?.metadata?.title).toBe('Show b');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    playlist.next();
+    await expect.poll(() => fetched).toContain('/b/v1.m3u8');
+    expect(asked).toEqual(['a', 'b']);
+    expect(player.programme?.metadata?.title).toBe('Show b');
+    expect(fetched.filter((path) => path === '/b/master.m3u8')).toHaveLength(1);
+  });
+
+  it('plays an item with the programme data the page gave, without a fetch', async () => {
+    const fetched: string[] = [];
+    const asked: string[] = [];
+    const player = connected(fetched, asked);
+    player.setAttribute('muted', '');
+    document.body.append(player);
+    const playlist = createPlaylist(player, { skipOnError: false });
+    playlist.load([{ src: 'c', type: 'example/show', programmeData: { id: 'c' } }]);
+    await expect.poll(() => fetched).toContain('/c/v1.m3u8');
+    expect(asked).toEqual([]);
+    expect(player.hasAttribute('src')).toBe(false);
+  });
 });

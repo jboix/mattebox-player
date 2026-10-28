@@ -48,6 +48,49 @@ function failure(
   });
 }
 
+/** What a connector made of one source: the data it fetched or was given, and its resolution. */
+export interface Resolved {
+  readonly data: unknown;
+  readonly resolution: Resolution;
+}
+
+/**
+ * A resolution made before the load, such as by `preload`, for the
+ * connector source of this type, id and data. Undefined when there is none.
+ */
+export type Take = (
+  type: string,
+  id: string | undefined,
+  data: unknown,
+  signal: AbortSignal,
+) => Promise<Resolved> | undefined;
+
+/** The id and the data a connector source gives: a plain source of a connector's type names its id by URL. */
+export function partsOf(input: ProgrammeSource): { id: string | undefined; data: unknown } {
+  if ('url' in input && input.url !== undefined) return { id: input.url, data: undefined };
+  const asked = input as ConnectorSource;
+  return { id: asked.id, data: asked.data };
+}
+
+/** Fetches the data when the source has none, then resolves it. Throws what the connector throws. */
+export async function run(
+  connector: Connector,
+  id: string | undefined,
+  given: unknown,
+  signal: AbortSignal,
+): Promise<Resolved> {
+  let data = given;
+  if (data === undefined) {
+    // A later load already replaced this one: no request for a programme nobody waits for.
+    if (signal.aborted) throw new Error('aborted');
+    if (id === undefined) throw new Error('a connector source needs an id or data');
+    if (connector.fetch === undefined)
+      throw new Error(`the ${connector.type} connector takes data only`);
+    data = await connector.fetch(id, signal);
+  }
+  return { data, resolution: await connector.resolve(data, signal) };
+}
+
 /** The connector for `source`, or undefined for a source that goes to the handlers as it is. */
 export function connectorFor(
   source: ProgrammeSource,
@@ -68,6 +111,7 @@ export async function expand(
   given: readonly ProgrammeSource[],
   connectors: readonly Connector[],
   signal: AbortSignal,
+  take?: Take,
 ): Promise<Programme> {
   const sources: Source[] = [];
   let named: {
@@ -87,19 +131,18 @@ export async function expand(
     const asked = input as ConnectorSource;
     if (connector === undefined) throw failure('CONNECTOR_UNKNOWN', asked.type, asked.id);
     // A plain source of a connector's type, as the `src` and `type` attributes give it, names its id by URL.
-    const id = url ?? asked.id;
-    let data = url === undefined ? asked.data : undefined;
+    const { id, data: given } = partsOf(input);
+    let data: unknown;
     let resolution: Resolution;
     try {
-      if (data === undefined) {
-        // A later load already replaced this one: no request for a programme nobody waits for.
-        if (signal.aborted) throw new Error('aborted');
-        if (id === undefined) throw new Error('a connector source needs an id or data');
-        if (connector.fetch === undefined)
-          throw new Error(`the ${connector.type} connector takes data only`);
-        data = await connector.fetch(id, signal);
-      }
-      resolution = await connector.resolve(data, signal);
+      // A preload of the same programme resolved it already. If that failed,
+      // the load asks again: the failure may have been the network's.
+      const kept = take?.(connector.type, id, given, signal);
+      const resolved = await (kept === undefined
+        ? run(connector, id, given, signal)
+        : kept.catch(() => run(connector, id, given, signal)));
+      data = resolved.data;
+      resolution = resolved.resolution;
     } catch (cause) {
       // A newer load aborted this one: its own outcome is the one to report.
       if (signal.aborted) throw cause;
