@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-playlist",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A playlist for <mattebox-player>: next, previous, repeat, shuffle, and an up next card, from a script or from markup.",
   "author": "Josep Boix Requesens",
   "repository": {
@@ -54,9 +54,9 @@
     "release:ci": "semantic-release"
   },
   "peerDependencies": {
-    "@mattebox/player": ">=0.10.0"
+    "@mattebox/player": ">=0.12.0"
   },
   "devDependencies": {
-    "@mattebox/player-core": "^0.7.0"
+    "@mattebox/player-core": "^0.8.0"
   }
 }
