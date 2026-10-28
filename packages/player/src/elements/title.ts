@@ -6,9 +6,10 @@
  * from attributes, `heading`,
  * `subheading` and `artwork`, because the stream carries none of it: a page
  * writes what it knows, and a Cast receiver writes what the sender said.
- * An attribute the page leaves out takes the programme's title, subtitle
- * or image, from what a connector resolved. With none, the element draws
- * nothing.
+ * A heading or subheading the page leaves out takes the programme's title
+ * or subtitle, from what a connector resolved. The artwork comes from the
+ * attribute only: the programme's image is the poster already. With none,
+ * the element draws nothing.
  *
  * Shown while the video is paused, which includes before the first play,
  * and hidden while it plays. The element carries `playing` for that rule,
@@ -106,7 +107,7 @@ export class MbxTitle extends Component {
     const metadata = this.player?.programme?.metadata;
     const heading = this.getAttribute('heading') ?? metadata?.title ?? '';
     const subheading = this.getAttribute('subheading') ?? metadata?.subtitle ?? '';
-    const artwork = this.getAttribute('artwork') ?? metadata?.image ?? null;
+    const artwork = this.getAttribute('artwork');
     this.heading.textContent = heading;
     this.subheading.textContent = subheading;
     if (artwork === null) {

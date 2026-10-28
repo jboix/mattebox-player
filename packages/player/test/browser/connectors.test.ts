@@ -94,6 +94,10 @@ describe('a connector source', () => {
     expect(title?.shadowRoot?.querySelector('[part~="subheading"]')?.textContent).toBe(
       'Example TV',
     );
+    // The programme's image is the poster: the title draws no artwork of its own.
+    expect(title?.shadowRoot?.querySelector<HTMLImageElement>('[part~="artwork"]')?.hidden).toBe(
+      true,
+    );
   });
 
   it('plays injected data through sources, and keeps the page poster and title', async () => {
