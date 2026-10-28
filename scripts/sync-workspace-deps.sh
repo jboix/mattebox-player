@@ -4,9 +4,12 @@
 # each package's semantic-release prepare step, before @semantic-release/npm,
 # because `npm version` re-resolves the workspace tree: a range that no longer
 # matches the bumped sibling sends npm to the registry and the install fails.
-# It then refreshes the lock and stages every manifest and the lock. The git
-# plugin only sees files under the releasing package, but its commit takes the
-# whole index, so the sibling ranges and the lock land in the release commit.
+# It then refreshes the lock and stages the lock and every other manifest. The
+# git plugin only sees files under the releasing package, but its commit takes
+# the whole index, so the sibling ranges and the lock land in the release commit.
+# The releasing manifest stays unstaged: the git plugin looks for files with
+# `git ls-files -m`, which lists unstaged changes only, and commits nothing when
+# it finds none.
 #
 # Usage: sync-workspace-deps.sh <package-dir> <next-version>
 set -eu
@@ -41,3 +44,4 @@ npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/preference
 
 npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 git add package-lock.json packages/*/package.json
+git reset -q -- "$package/package.json"
