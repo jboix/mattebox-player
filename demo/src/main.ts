@@ -16,6 +16,7 @@ import type { Marker } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
+import '@mattebox/player-preferences';
 import '@mattebox/player-spatial-nav';
 import full from 'mattebox/presets/full';
 import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
@@ -425,7 +426,12 @@ function loadProgramme(
     clearTimeout(debounce);
     const entry = chosen();
     const words = query.value.trim();
-    if (entry.search === undefined || words === '') return;
+    if (entry.search === undefined) return;
+    // An emptied search goes back to the broadcaster's own list.
+    if (words === '') {
+      void list((signal) => entry.examples(signal));
+      return;
+    }
     debounce = window.setTimeout(() => {
       void list((signal) =>
         (entry.search as NonNullable<DemoConnector['search']>)(words, unit.value, signal),
@@ -768,7 +774,11 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   spinner: 'mbx-spinner',
   title: 'mbx-title',
   'spatial-nav': 'mbx-spatial-nav',
+  preferences: 'mbx-preferences',
 };
+
+/** Where the demo's player keeps the viewer's choices, apart from the demo's own settings. */
+const PREFERENCES_KEY = 'mattebox.demo.preferences';
 
 /** The whole composition: the screens, and the bar with its rows. */
 function composition(): string {
@@ -786,7 +796,9 @@ function composition(): string {
     const own =
       tagName === 'mbx-title' && programme === null
         ? { heading: playing, artwork: poster.value === '' ? null : poster.value }
-        : {};
+        : tagName === 'mbx-preferences'
+          ? { 'storage-key': PREFERENCES_KEY }
+          : {};
     lines.push(tag(tagName, own));
   }
   // The cast screen comes with the cast button: one package, one toggle.
@@ -912,6 +924,9 @@ function markupFor(element: MatteboxPlayerElement): string {
       : []),
     ...(composed.includes('<mbx-spatial-nav')
       ? ["\n  import '@mattebox/player-spatial-nav';"]
+      : []),
+    ...(composed.includes('<mbx-preferences')
+      ? ["\n  import '@mattebox/player-preferences';"]
       : []),
   ].join('');
   // At an edge the spatial navigation hands focus to the application.

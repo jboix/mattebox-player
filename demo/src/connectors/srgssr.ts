@@ -9,6 +9,8 @@
 
 import type { Block, Connector, Marker, ProgrammeMetadata, Source, Text } from '@mattebox/player';
 import type { ChapterInput } from 'mattebox/stages/chapters';
+import type { DrmCapability } from './drm-support.js';
+import { capabilityParameter, drmCapabilities } from './drm-support.js';
 import type { DemoConnector } from './types.js';
 
 const IL_HOST = 'il.srgssr.ch';
@@ -157,6 +159,14 @@ const BLOCKED: Readonly<Record<string, Text>> = {
   },
 };
 
+/** Why a protected programme does not play in a browser without its key systems. Machine-drafted. */
+const NO_KEY_SYSTEM: Text = {
+  en: 'This browser cannot play this protected content.',
+  de: 'Dieser Browser kann diesen geschützten Inhalt nicht abspielen.',
+  fr: 'Ce navigateur ne peut pas lire ce contenu protégé.',
+  it: 'Questo browser non può riprodurre questo contenuto protetto.',
+};
+
 /** The words of a block reason: an unknown one gets the player's own "Not available". */
 function blockOf(reason: string): Block {
   const message = BLOCKED[reason];
@@ -233,34 +243,58 @@ export function mainChapter(data: IlComposition): IlChapter {
   return chapter;
 }
 
-/** One resource as a source: the token added, and the DRM of this browser's key system. */
-async function sourceOf(resource: IlResource, signal: AbortSignal): Promise<Source | null> {
+/** The key system the engine takes for each IL vendor. */
+const KEY_SYSTEMS: Readonly<Record<DrmEntry['type'], string>> = {
+  WIDEVINE: 'com.widevine.alpha',
+  PLAYREADY: 'com.microsoft.playready',
+  FAIRPLAY: 'com.apple.fps',
+};
+
+/**
+ * One resource as a source: the token added, and a license server for each
+ * of its key systems the browser granted, so the engine finds one for the
+ * key system it opens.
+ */
+async function sourceOf(
+  resource: IlResource,
+  granted: readonly DrmCapability[],
+  signal: AbortSignal,
+): Promise<Source | null> {
   // A progressive file, such as an MP3 or an MP4, plays through the browser.
   if (!['HLS', 'DASH', 'PROGRESSIVE'].includes(resource.streaming)) return null;
-  const drm = drmFor(resource);
-  // An encrypted resource without this browser's key system does not play here.
-  if ((resource.drmList?.length ?? 0) > 0 && drm === null) return null;
+  const entries = (resource.drmList ?? []).filter((entry) =>
+    granted.some((capability) => capability.vendor === entry.type),
+  );
+  // An encrypted resource without one of this browser's key systems does not play here.
+  if ((resource.drmList?.length ?? 0) > 0 && entries.length === 0) return null;
   const url = resource.tokenType === 'AKAMAI' ? await tokenize(resource.url, signal) : resource.url;
+  if (entries.length === 0) return { url, type: resource.mimeType };
+  const certificateUrl = entries.find(
+    (entry) => entry.certificateUrl !== undefined,
+  )?.certificateUrl;
   return {
     url,
     type: resource.mimeType,
-    ...(drm === null
-      ? {}
-      : {
-          drm: {
-            licenseUrl: drm.licenseUrl,
-            ...(drm.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
-          },
-        }),
+    drm: {
+      licenseUrls: Object.fromEntries(
+        entries.map((entry) => [KEY_SYSTEMS[entry.type], entry.licenseUrl]),
+      ),
+      ...(certificateUrl === undefined ? {} : { certificateUrl }),
+    },
   };
 }
 
 export const srgssr: Connector<IlComposition> = {
   type: 'srgssr/urn',
+  // The browser's key systems go with the request, as pillarbox-web sends
+  // them: the IL then lists the resource this browser can decrypt.
   async fetch(urn, signal) {
+    const params = new URLSearchParams({ onlyChapters: 'true', vector: 'portalplay' });
+    const capabilities = capabilityParameter(await drmCapabilities());
+    if (capabilities !== '') params.set('drmPlayerCapabilities', capabilities);
     const url = `https://${IL_HOST}/integrationlayer/2.1/mediaComposition/byUrn/${encodeURIComponent(
       urn,
-    )}?onlyChapters=true&vector=portalplay`;
+    )}?${params}`;
     const response = await fetch(url, { signal });
     if (!response.ok) throw new Error(`media composition failed: HTTP ${response.status}`);
     return (await response.json()) as IlComposition;
@@ -281,13 +315,22 @@ export const srgssr: Connector<IlComposition> = {
     if (chapter.blockReason !== undefined) {
       return { sources: [], block: blockOf(chapter.blockReason), metadata };
     }
+    // Injected data was fetched elsewhere: the resources are matched to this browser again.
+    const granted = await drmCapabilities();
     const sources = await Promise.all(
-      (chapter.resourceList ?? []).map((resource) => sourceOf(resource, signal)),
+      (chapter.resourceList ?? []).map((resource) => sourceOf(resource, granted, signal)),
     );
     // The adaptive resources first: a progressive file is the fallback.
     const adaptive = (source: Source): boolean =>
       !/^(audio|video)\/(mp4|mpeg)/.test(source.type ?? '');
     const found = sources.filter((source) => source !== null);
+    // Every resource is encrypted for key systems this browser lacks.
+    if (
+      found.length === 0 &&
+      (chapter.resourceList ?? []).some((r) => (r.drmList?.length ?? 0) > 0)
+    ) {
+      return { sources: [], block: { message: NO_KEY_SYSTEM }, metadata };
+    }
     return { sources: [...found.filter(adaptive), ...found.filter((s) => !adaptive(s))], metadata };
   },
 };
@@ -307,13 +350,6 @@ async function tokenize(streamUrl: string, signal: AbortSignal): Promise<string>
   const params = new URLSearchParams(data.token?.authparams ?? '');
   for (const [key, value] of params) url.searchParams.set(key, value);
   return url.toString();
-}
-
-/** The DRM entry for the key system this browser has, or null for a clear resource. */
-function drmFor(resource: IlResource): DrmEntry | null {
-  const fairplay = 'webkitEnterFullscreen' in document.createElement('video');
-  const wanted = fairplay ? 'FAIRPLAY' : 'WIDEVINE';
-  return (resource.drmList ?? []).find((d) => d.type === wanted) ?? null;
 }
 
 export function fmtDuration(ms: number): string {

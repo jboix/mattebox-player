@@ -4,19 +4,26 @@
  * playlist plays that item. The page measures how long each reel takes to
  * start, and whether its manifest came from a preload.
  *
+ * The reels are a fixed list of RTS URNs, which the SRG SSR connector
+ * resolves at each start: a stream needs a fresh token.
+ *
  * The playlist preloads the next item near the end of the one that plays.
- * A feed moves on before that, so this page asks the engine itself, once a
- * reel plays. Wanted: the playlist to do it. Had to: call `engine.preload`
- * here. The surface that would make it one call: an option of the playlist
- * that preloads the next item from the start.
+ * A feed moves on before that, so this page asks the core itself, once a
+ * reel plays. The preload resolves the next URN too, so its start asks the
+ * IL nothing. Wanted: the playlist to do it. Had to: call `preload` here.
+ * The surface that would make it one call: an option of the playlist that
+ * preloads the next item from the start.
  */
 import '@mattebox/player';
-import type { MatteboxPlayerElement } from '@mattebox/player';
+import { MatteboxPlayerElement } from '@mattebox/player';
 import type { PlaylistItem } from '@mattebox/player-playlist';
 import { createPlaylist } from '@mattebox/player-playlist';
 import logoUrl from '../../docs/logo.svg';
-import { mainChapter, searchMedia, srgssr } from './connectors/srgssr.js';
+import { srgssr } from './connectors/srgssr.js';
+import { REELS } from './reel-list.js';
 import { wireTheme } from './theme.js';
+
+MatteboxPlayerElement.define({ connectors: [srgssr] });
 
 for (const img of document.querySelectorAll<HTMLImageElement>('img.logo')) img.src = logoUrl;
 for (const link of document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]')) {
@@ -53,40 +60,16 @@ function artwork(imageUrl: string): string {
   return `https://il.srgssr.ch/images/?imageUrl=${encodeURIComponent(imageUrl)}&format=jpg&width=480`;
 }
 
-/**
- * The reels RTS publishes: what a search for "reel" finds in the upright
- * format, each resolved to its HLS stream by the SRG SSR connector. The
- * page calls the connector itself and gives the playlist plain URLs,
- * because the playlist preloads the next reel, and a preload skips a
- * connector source. A reel that does not resolve is left out.
- */
-async function rtsReels(): Promise<PlaylistItem[]> {
-  const signal = new AbortController().signal;
-  const found = await searchMedia('rts', 'reel', signal);
-  const upright = found.filter((media) => media.mediaType === 'VIDEO' && media.upright);
-  const resolved = await Promise.all(
-    upright.map(async (media): Promise<PlaylistItem | null> => {
-      try {
-        const data = await srgssr.fetch?.(media.urn, signal);
-        if (data === undefined) return null;
-        const { sources } = await srgssr.resolve(data, signal);
-        const hls = sources.find((source) => source.type === 'application/vnd.apple.mpegurl');
-        if (hls === undefined) return null;
-        const imageUrl = mainChapter(data).imageUrl;
-        return {
-          src: hls.url,
-          type: 'application/vnd.apple.mpegurl',
-          heading: media.title,
-          subheading: `RTS, ${Math.round(media.duration / 1000)} s`,
-          ...(imageUrl === undefined ? {} : { artwork: artwork(imageUrl) }),
-          duration: media.duration / 1000,
-        };
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return resolved.filter((item): item is PlaylistItem => item !== null);
+/** The reels as playlist items: each URN goes to the SRG SSR connector. */
+function rtsReels(): PlaylistItem[] {
+  return REELS.map((reel) => ({
+    src: reel.urn,
+    type: srgssr.type,
+    heading: reel.title,
+    subheading: `RTS, ${Math.round(reel.seconds)} s`,
+    artwork: artwork(reel.image),
+    duration: reel.seconds,
+  }));
 }
 
 interface Slide {
@@ -261,7 +244,9 @@ function run(reels: readonly PlaylistItem[]): void {
     if (item === null || slide === undefined) return;
     const ms = performance.now() - selectedAt;
     const native = player.engine === null;
-    const preloaded = !native && wasPreloaded(item.src, selectedAt);
+    // The stream the connector resolved, with its token: what the preload fetched.
+    const url = player.player?.session?.source.url;
+    const preloaded = !native && url !== undefined && wasPreloaded(url, selectedAt);
     selectedAt = null;
     starts.push({ ms, preloaded });
     const how = native
@@ -337,25 +322,5 @@ function run(reels: readonly PlaylistItem[]): void {
   playlist.load(reels);
 }
 
-/** A line in the feed while the reels load, or when they do not. */
-function notice(text: string): void {
-  const line = document.createElement('p');
-  line.className = 'feed-notice';
-  line.textContent = text;
-  feed.replaceChildren(line);
-}
-
-notice('Loading the reels from RTS');
-rtsReels().then(
-  (reels) => {
-    if (reels.length === 0) {
-      notice('The search found no reel');
-      return;
-    }
-    feed.replaceChildren();
-    run(reels);
-  },
-  (cause: unknown) => {
-    notice(`The reels did not load: ${cause instanceof Error ? cause.message : String(cause)}`);
-  },
-);
+feed.replaceChildren();
+run(rtsReels());

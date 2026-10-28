@@ -105,6 +105,32 @@ interface ArdHome {
   }>;
 }
 
+interface ArdSearch {
+  readonly teasers?: ReadonlyArray<{
+    readonly id: string;
+    readonly type: string;
+    readonly mediumTitle?: string;
+    readonly duration?: number;
+    readonly show?: { readonly title?: string } | null;
+  }>;
+}
+
+/** The Mediathek's own search over its programmes on demand, which answers any origin. */
+async function find(query: string, _unit: string, signal: AbortSignal): Promise<Example[]> {
+  const params = new URLSearchParams({ searchString: query, pageNumber: '0', pageSize: '20' });
+  const data = await json<ArdSearch>(`${GATEWAY}/widgets/ard/search/vod?${params}`, signal);
+  return (data.teasers ?? []).map((teaser) => ({
+    id: teaser.id,
+    title: teaser.mediumTitle ?? teaser.id,
+    note: [
+      teaser.show?.title,
+      teaser.duration ? `${Math.max(1, Math.round(teaser.duration / 60))} min` : '',
+    ]
+      .filter((bit): bit is string => bit !== undefined && bit !== '')
+      .join(', '),
+  }));
+}
+
 export const ardDemo: DemoConnector = {
   connector: ard,
   name: 'ARD',
@@ -128,4 +154,5 @@ export const ardDemo: DemoConnector = {
     }
     return out.slice(0, 20);
   },
+  search: find,
 };

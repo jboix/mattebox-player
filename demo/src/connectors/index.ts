@@ -5,9 +5,9 @@
  */
 import { ardDemo } from './ard.js';
 import { dwDemo } from './dw.js';
-import { rtveDemo } from './rtve.js';
 import { srgssrDemo } from './srgssr.js';
 import { svtDemo } from './svt.js';
+import { threecatDemo } from './threecat.js';
 import type { DemoConnector } from './types.js';
 
 export type { DemoConnector, Example } from './types.js';
@@ -16,7 +16,7 @@ export const DEMO_CONNECTORS: readonly DemoConnector[] = [
   srgssrDemo,
   svtDemo,
   ardDemo,
-  rtveDemo,
+  threecatDemo,
   dwDemo,
 ];
 

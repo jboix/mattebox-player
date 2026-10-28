@@ -901,14 +901,6 @@ label[title] > span {
   cursor: pointer;
 }
 
-/* What the feed says while the reels load. */
-.feed-notice {
-  margin: 0;
-  padding: 1rem;
-  color: #f3ede4;
-  font: 12px / 1.5 var(--mono);
-}
-
 /* The artwork shows until the picture starts. */
 .reel-art {
   position: absolute;

@@ -57,11 +57,43 @@ export function logTracker(write: (line: string) => void): Tracker {
         target.addEventListener(name, fn);
         offs.push(() => target.removeEventListener(name, fn));
       };
-      on(video, 'playing', () => write(`play at ${at()}`));
-      on(video, 'pause', () => {
-        if (!video.ended) write(`pause at ${at()}`);
+      // A drag on the seek bar pauses, seeks at each frame and resumes: the
+      // player carries `scrubbing` through it, with the state from before,
+      // and the tracker counts the drag as one seek, from where it began to
+      // where it settled, with no pause and no play.
+      const dragging = (): boolean => player.hasAttribute('scrubbing');
+      let from: string | undefined;
+      let last = at();
+      let held: string | null = null;
+      let resuming = false;
+      const settled = (): void => {
+        if (from === undefined || dragging() || video.seeking) return;
+        write(`seek from ${from} to ${at()}`);
+        from = undefined;
+        last = at();
+      };
+      const watch = new MutationObserver(() => {
+        const now = player.getAttribute('scrubbing');
+        if (now === null && held !== null) resuming = held === 'playing';
+        held = now;
+        settled();
       });
-      on(video, 'seeking', () => write(`seek to ${at()}`));
+      watch.observe(player, { attributes: true, attributeFilter: ['scrubbing'] });
+      offs.push(() => watch.disconnect());
+      on(video, 'timeupdate', () => {
+        if (!video.seeking) last = at();
+      });
+      on(video, 'playing', () => {
+        if (resuming) resuming = false;
+        else if (!dragging()) write(`play at ${at()}`);
+      });
+      on(video, 'pause', () => {
+        if (!video.ended && !dragging()) write(`pause at ${at()}`);
+      });
+      on(video, 'seeking', () => {
+        from ??= last;
+      });
+      on(video, 'seeked', settled);
       on(video, 'ended', () => write(`end at ${at()}`));
       on(player, 'error', (event) => {
         const error = (event as CustomEvent<{ code: string; fatal: boolean }>).detail;
