@@ -445,7 +445,14 @@ function loadProgramme(
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const value = id.value.trim();
-    if (value !== '') loadProgramme(chosen().connector.type, { id: value }, value);
+    if (value === '') return;
+    // The id goes into the `src` attribute, so typed text passes this check first.
+    // URNs, numbers and base64 ids all fit.
+    if (!/^[\w.:~=+/-]+$/.test(value)) {
+      tell('not an id the connector can load', true);
+      return;
+    }
+    loadProgramme(chosen().connector.type, { id: value }, value);
   });
   // The data path: what `fetch` returns, shown, edited, and played without a second fetch.
   byId<HTMLButtonElement>('connector-fetch').addEventListener('click', async () => {
