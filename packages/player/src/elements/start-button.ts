@@ -51,7 +51,7 @@ export class MbxStartButton extends Component {
 
   protected override attach(player: PlayerHost): void {
     const video = player.video;
-    this.listen(video, ['play', 'pause', 'ended', 'waiting', 'stalled', 'canplay'], () => {
+    this.listen(video, ['play', 'pause', 'ended', 'waiting', 'canplay'], () => {
       this.render();
     });
     this.listen(video, ['playing', 'loadstart'], () => {

@@ -108,6 +108,8 @@ describe('<mbx-spinner>', () => {
     expect(spinner.hasAttribute('waiting')).toBe(false);
 
     video.dispatchEvent(new Event('stalled'));
+    expect(spinner.hasAttribute('waiting')).toBe(false);
+    video.dispatchEvent(new Event('waiting'));
     expect(spinner.hasAttribute('waiting')).toBe(true);
     video.dispatchEvent(new Event('playing'));
     expect(spinner.hasAttribute('waiting')).toBe(false);

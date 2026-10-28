@@ -2,7 +2,7 @@
  * <mbx-spinner>: shows while the video waits for data, and nothing else. It
  * sits in the player beside the video, centred over the picture, so it is
  * over the poster and inside fullscreen. It reads the video's `waiting`,
- * `stalled`, `playing`, `canplay` and `emptied`, the same events the
+ * `playing`, `canplay` and `emptied`, the same events the
  * player's `waiting` attribute comes from, and carries `waiting` on itself
  * so its stylesheet shows it. It takes the start button's place: a thin
  * ring turns there, a white head on a faint track, in the same monochrome
@@ -15,7 +15,7 @@ import { style } from './shared.js';
 import STYLE from './spinner.css?inline';
 
 /** What the video fires as it waits and as it goes on. */
-const EVENTS = ['waiting', 'stalled', 'playing', 'canplay', 'emptied'];
+const EVENTS = ['waiting', 'playing', 'canplay', 'emptied'];
 
 export class MbxSpinner extends Component {
   static get observedAttributes(): readonly string[] {

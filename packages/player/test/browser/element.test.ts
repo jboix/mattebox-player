@@ -200,8 +200,10 @@ describe('<mattebox-player>', () => {
     video.dispatchEvent(new Event('playing'));
     expect(player.hasAttribute('started')).toBe(true);
     expect(player.hasAttribute('waiting')).toBe(false);
+    // A paused video with a full buffer fires stalled: it is no wait.
     video.dispatchEvent(new Event('stalled'));
-    expect(player.hasAttribute('waiting')).toBe(true);
+    expect(player.hasAttribute('waiting')).toBe(false);
+    video.dispatchEvent(new Event('waiting'));
     video.dispatchEvent(new Event('canplay'));
     expect(player.hasAttribute('waiting')).toBe(false);
     // A new source starts over.

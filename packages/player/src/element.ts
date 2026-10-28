@@ -161,7 +161,6 @@ const STATE_EVENTS = [
   'resize',
   'playing',
   'waiting',
-  'stalled',
   'canplay',
 ];
 
@@ -346,7 +345,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private fixed: boolean;
   /** The video has played once since its source was set: `started`, which tells a first play from a pause. */
   declare private started: boolean;
-  /** The video waits for data: `waiting`, set on `waiting` and `stalled`, cleared once it can play. */
+  /** The video waits for data: `waiting`, set on `waiting`, cleared once it can play. */
   declare private waiting: boolean;
   declare private offs: Array<() => void>;
   /** Everything the element does to the player runs here, so it runs in order. */
@@ -819,7 +818,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       if (!this.started) this.tracks();
       this.started = true;
       this.waiting = false;
-    } else if (event === 'waiting' || event === 'stalled') {
+    } else if (event === 'waiting') {
+      // Not `stalled`: a paused video with a full buffer fires it too, when
+      // nothing more is appended for three seconds. video.js reads `waiting` alone.
       this.waiting = true;
     } else if (event === 'canplay') {
       this.waiting = false;
