@@ -39,6 +39,12 @@ panel fits under the top of the picture and within the width of the player.
 The element has `open` while the panel shows, so the bar does not fade.
 Escape closes the panel, and so does a pointer press outside it.
 
+- `show()` and `hide()` open and close the panel from your script.
+- While the panel is open, the player carries `diagnostics`.
+- After a fatal error, `mbx-error-screen` shows a "Diagnostics" button
+  beside Retry. It opens the panel over the error, so you can copy the
+  report of the error that just happened.
+
 ## Under the video
 
 Anywhere else inside the player, the element is the panel itself: open,
@@ -86,7 +92,7 @@ other pages and charts say that there is no engine.
 - The browser's support, when the element probed it.
 - The trace of the session, as the element kept it.
 - The page's trackers, with their session and device ids. See
-  [chapter 09](09-connectors-and-trackers.md#session-and-device-ids).
+  [chapter 13](13-trackers.md#session-and-device-ids).
 
 The Copy button puts the same report on the clipboard.
 

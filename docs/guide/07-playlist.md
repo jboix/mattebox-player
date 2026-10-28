@@ -103,6 +103,12 @@ the item ends. The segments are not preloaded. The player asks the handler
 that will play the next item, so a source the browser plays itself is not
 preloaded.
 
+An item whose `type` names a [connector](09-connectors.md) gives the
+programme's id as `src`. The preload resolves it too, so the next item
+starts with no request to your content API. Without a `heading` or
+`artwork`, the up next card and the system show the title and picture
+the connector resolved.
+
 The system's media keys, a lock screen and a TV remote go to next and
 previous through the Media Session API. The system shows the item's
 `heading`, `subheading` and `artwork`, or its `poster` without artwork.
@@ -197,7 +203,8 @@ playlist.addEventListener('change', () => console.log(playlist.index));
 
 An item is a plain object. Its fields are the item attributes in camel
 case: `licenseUrl`, `certificateUrl`, `startTime`. `markers` is an array.
-`data` holds anything of your own.
+`data` holds anything of your own. `programmeData` is the data of a
+connector item, which the connector resolves without a fetch.
 
 | Option              | What it does                                                                                            |
 | ------------------- | ------------------------------------------------------------------------------------------------------- |

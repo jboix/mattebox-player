@@ -5,7 +5,7 @@ are, which parts must not play, and why a programme does not play at all.
 Markers name ranges of a programme. A block replaces the whole programme
 with the reason, in the viewer's language.
 
-A [connector](09-connectors-and-trackers.md) can return both, and the player
+A [connector](09-connectors.md) can return both, and the player
 applies them for you.
 
 ## Markers
