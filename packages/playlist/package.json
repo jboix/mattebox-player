@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-playlist",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A playlist for <mattebox-player>: next, previous, repeat, shuffle, and an up next card, from a script or from markup.",
   "author": "Josep Boix Requesens",
   "repository": {
