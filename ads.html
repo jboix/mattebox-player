@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mattebox ads demo</title>
+  <link rel="icon" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+  />
+  <script>
+    // Before the first paint, so the page never flashes the other theme.
+    try {
+      const theme = localStorage.getItem('mattebox.demo.theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+  <script type="module" crossorigin src="/assets/ads-CfYRpm6X.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/objectSpread2-Cp9FhHJ8.js">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-BhK5VrnB.js">
+  <link rel="modulepreload" crossorigin href="/assets/theme-BtJPvcZv.js">
+  <link rel="modulepreload" crossorigin href="/assets/url-jOJ2K0he.js">
+  <link rel="modulepreload" crossorigin href="/assets/scte35-sJIbrDOI.js">
+  <link rel="stylesheet" crossorigin href="/assets/theme-C5N0XPZD.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="home" href="https://mattebox.ch/"><img class="logo" alt="Mattebox, the website"></a>
+    <h1>Mattebox ads</h1>
+    <nav class="pages" aria-label="Demo pages">
+      <button type="button" class="pages-toggle" popovertarget="pages-menu" aria-label="The other demo pages">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M4 13h24v14H4zM13.5 16v8l6.5-4zM7 8.5h18v2.5h-18zM10 4h12v2.5h-12z" /></svg>
+      </button>
+      <div id="pages-menu" class="pages-list" popover>
+        <a class="page-link" href="./">The element</a>
+        <a class="page-link" href="./playlist.html">Playlist</a>
+        <a class="page-link" href="./reels.html">Reels</a>
+      </div>
+    </nav>
+    <button type="button" id="theme-toggle" class="theme-toggle"></button>
+  </header>
+
+  <main id="app" class="rig">
+    <div class="frame">
+      <section aria-label="Player">
+        <mattebox-player id="player" controls="custom" muted>
+          <mbx-start-button></mbx-start-button>
+          <mbx-error-screen></mbx-error-screen>
+          <mbx-spinner></mbx-spinner>
+          <mbx-ad-info></mbx-ad-info>
+          <mbx-ad-skip-button></mbx-ad-skip-button>
+          <mbx-ad-link></mbx-ad-link>
+          <mbx-control-bar>
+            <mbx-current-time></mbx-current-time>
+            <mbx-seek-bar></mbx-seek-bar>
+            <mbx-ad-progress></mbx-ad-progress>
+            <mbx-duration></mbx-duration>
+            <mbx-play-button></mbx-play-button>
+            <mbx-volume></mbx-volume>
+            <mbx-spacer></mbx-spacer>
+            <mbx-subtitles-menu></mbx-subtitles-menu>
+            <mbx-quality-menu></mbx-quality-menu>
+            <mbx-fullscreen-button></mbx-fullscreen-button>
+          </mbx-control-bar>
+        </mattebox-player>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+      <section class="flag flag-bottom" aria-labelledby="code-title">
+        <div class="flag-head">
+          <h2 id="code-title">Markup</h2>
+          <button type="button" id="copy-code">Copy</button>
+        </div>
+        <pre id="code"></pre>
+      </section>
+    </div>
+
+    <aside class="flag flag-right" aria-labelledby="options-title">
+      <div class="flag-head">
+        <h2 id="options-title">The ads</h2>
+      </div>
+
+      <label class="field" title="Where the breaks come from: the stream itself, or an ad server's VAST or VMAP over a programme.">
+        <span>Example</span>
+        <select id="example"></select>
+      </label>
+      <p id="note" class="hint"></p>
+
+      <fieldset class="group">
+        <legend>Breaks</legend>
+        <ol id="breaks" class="log"></ol>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>Events and beacons</legend>
+        <div id="log"></div>
+      </fieldset>
+    </aside>
+  </main>
+</body>
+</html>

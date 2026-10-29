@@ -18,16 +18,18 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/assets/main-D8MP-xgV.js"></script>
+  <script type="module" crossorigin src="/assets/main-DkwlEcMi.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/objectSpread2-Cp9FhHJ8.js">
-  <link rel="modulepreload" crossorigin href="/assets/es2015-iPNM-HR8.js">
-  <link rel="modulepreload" crossorigin href="/assets/theme-DYCBqWwA.js">
-  <link rel="modulepreload" crossorigin href="/assets/tiers-Crc3NVMy.js">
-  <link rel="modulepreload" crossorigin href="/assets/demux-BWlWXatD.js">
-  <link rel="modulepreload" crossorigin href="/assets/define-W-5b00CT.js">
-  <link rel="modulepreload" crossorigin href="/assets/full-DfB1BjTG.js">
-  <link rel="modulepreload" crossorigin href="/assets/srgssr-DIrCcM8y.js">
-  <link rel="stylesheet" crossorigin href="/assets/theme-B4mzNGGx.css">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-BhK5VrnB.js">
+  <link rel="modulepreload" crossorigin href="/assets/theme-BtJPvcZv.js">
+  <link rel="modulepreload" crossorigin href="/assets/url-jOJ2K0he.js">
+  <link rel="modulepreload" crossorigin href="/assets/tiers-CwKFH2YJ.js">
+  <link rel="modulepreload" crossorigin href="/assets/demux-7GpczdSp.js">
+  <link rel="modulepreload" crossorigin href="/assets/scte35-sJIbrDOI.js">
+  <link rel="modulepreload" crossorigin href="/assets/define-DEmNGoTM.js">
+  <link rel="modulepreload" crossorigin href="/assets/full-1AF1soAa.js">
+  <link rel="modulepreload" crossorigin href="/assets/srgssr-CCEP0J9z.js">
+  <link rel="stylesheet" crossorigin href="/assets/theme-C5N0XPZD.css">
 </head>
 <body>
   <header class="masthead">
@@ -44,6 +46,7 @@
       <div id="pages-menu" class="pages-list" popover>
         <a class="page-link" href="./playlist.html">Playlist</a>
         <a class="page-link" href="./reels.html">Reels</a>
+        <a class="page-link" href="./ads.html">Ads</a>
       </div>
     </nav>
     <button type="button" id="theme-toggle" class="theme-toggle"></button>
@@ -118,10 +121,9 @@
         <div class="flag-head">
           <h2 id="tracker-title">Tracker</h2>
           <label><input type="checkbox" id="log-tracker" checked /> Log tracker</label>
-          <button type="button" id="clear-log">Clear</button>
         </div>
         <p class="hint">A tracker that sends nothing: it lists what a media analytics tracker would send.</p>
-        <ol id="tracker-log" class="log" aria-label="Tracker log"></ol>
+        <div id="tracker-log"></div>
       </section>
     </div>
 
