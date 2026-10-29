@@ -18,6 +18,8 @@ export interface Source {
    * video tracks of the manifest, and plays one from the same position.
    */
   readonly videoTracks?: readonly SourceVideoTrack[];
+  /** Seconds to start from. The engine fetches from there; a native video seeks there first. */
+  readonly start?: number;
 }
 
 /** A version of a source's picture at its own URL. */
@@ -238,6 +240,21 @@ export interface Player {
    * blocked programme loads nothing, and the promise rejects with `Blocked`.
    */
   load(source: ProgrammeSource | readonly ProgrammeSource[]): Promise<Session>;
+  /**
+   * Plays `source` on the video in the programme's place, such as an ad.
+   * The programme stays `programme`, and neither `programme` nor
+   * `sourcechange` fires. An error of the source is not reported: the page
+   * that interrupted listens to the video. `resume` plays the programme
+   * again.
+   */
+  interrupt(source: Source): Promise<Session>;
+  /**
+   * Loads the source the programme played before `interrupt` again, from
+   * `start` seconds, and fires nothing. Null when nothing was interrupted.
+   */
+  resume(start?: number): Promise<Session | null>;
+  /** An `interrupt` plays in the programme's place. */
+  readonly interrupted: boolean;
   unload(): Promise<void>;
   /**
    * Fetches the start of a source ahead of its load. It asks the handler

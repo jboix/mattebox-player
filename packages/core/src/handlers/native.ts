@@ -71,6 +71,8 @@ export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
     const eme: EmeAttachment | undefined =
       drm !== undefined && typeof attachEme === 'function' ? attachEme(video, drm) : undefined;
     video.src = source.url;
+    // Before the metadata, this is the position the video starts from.
+    if (source.start !== undefined) video.currentTime = source.start;
 
     async function dispose(): Promise<void> {
       // Removing the attribute is not enough: without `load()` the element

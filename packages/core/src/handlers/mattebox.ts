@@ -162,7 +162,10 @@ export function matteboxHandler(options: MatteboxHandlerOptions = {}): Handler {
       // is the closest signal there is.
       offs.push(held.on('tracks:changed', () => finish(() => resolve(session))));
 
-      held.load(source.url, source.type === undefined ? {} : { mimeType: source.type });
+      held.load(source.url, {
+        ...(source.type === undefined ? {} : { mimeType: source.type }),
+        ...(source.start === undefined ? {} : { start: source.start }),
+      });
 
       // A manifest already parsed inside `load` leaves no event to catch.
       if (held.stats.snapshot().lifecycle.phase === 'ready') finish(() => resolve(session));

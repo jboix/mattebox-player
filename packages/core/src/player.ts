@@ -31,6 +31,16 @@ import type {
   Source,
 } from './types.js';
 
+/**
+ * Whether the engine plays a break in the programme's place, through its
+ * interstitials stage: what fails then is the break's, which the engine
+ * skips, not the programme's.
+ */
+function inBreak(engine: unknown): boolean {
+  const api = (engine as { interstitials?: { readonly playing: unknown } } | null)?.interstitials;
+  return api !== undefined && api.playing !== null;
+}
+
 /** What the core reports when no handler claimed the source. */
 function unclaimed(source: Source): PlayerError {
   return {
@@ -87,6 +97,8 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   let index = 0;
   /** True from a load until the video's first `playing`: a fatal error then tries the next source. */
   let armed = false;
+  /** The programme's source while an `interrupt` plays in its place. */
+  let interrupted: Source | null = null;
 
   function emit<E extends PlayerEvent>(event: E, payload: PlayerEvents[E]): void {
     const set = listeners[event] as Set<(payload: PlayerEvents[E]) => void>;
@@ -95,6 +107,7 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
 
   /** The error of a source: fatal for the last one, and otherwise named after its source. */
   function reject(error: PlayerError, source: Source): void {
+    if (interrupted !== null) return;
     emit('error', index < candidates.length - 1 ? { ...error, fatal: false, source } : error);
   }
 
@@ -104,7 +117,8 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
    * queue, behind whatever the page asked for in the meantime.
    */
   function fail(error: PlayerError | null, session: Session, mine: number): void {
-    if (error === null) return;
+    // What interrupts the programme reports through the video, to whoever interrupted.
+    if (error === null || interrupted !== null) return;
     if (!error.fatal || !armed || mine !== generation || index >= candidates.length - 1) {
       emit('error', error);
       return;
@@ -138,6 +152,9 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     if (session.engine !== null) {
       offs.push(
         session.engine.on('error', (payload) => {
+          // An ad or another clip of a break failed: the engine skips it and
+          // the programme goes on, so it is not the programme's error.
+          if (inBreak(session.engine)) return;
           fail(fromEngineError(payload, session.handler), session, mine);
         }),
       );
@@ -186,7 +203,7 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   }
 
   /** Runs the chain for each source from `index`, until a handler takes one. */
-  async function select(mine: number): Promise<Session> {
+  async function select(mine: number, quiet = false): Promise<Session> {
     const env = environment();
     let url = '';
     for (; index < candidates.length; index += 1) {
@@ -213,7 +230,7 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
         }
         current = session;
         unwatch = watch(session, mine);
-        emit('sourcechange', session);
+        if (!quiet) emit('sourcechange', session);
         // A fatal error raised while the handler was still loading arrived
         // before that subscription. The engine keeps the last one and clears
         // it on every `load`, so this reports that error and never an older one.
@@ -231,7 +248,40 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
     throw new Error(`no handler for ${url}`);
   }
 
+  /** Runs one source through the chain without a word: the programme stays as it is. */
+  function quietly(source: Source): Promise<Session> {
+    const mine = ++generation;
+    controller?.abort();
+    controller = null;
+    const start = async (): Promise<Session> => {
+      await release();
+      candidates = [source];
+      index = 0;
+      armed = false;
+      return select(mine, true);
+    };
+    const started = queue.then(start, start);
+    queue = started.catch(() => undefined);
+    return started;
+  }
+
+  function interrupt(source: Source): Promise<Session> {
+    // A second interrupt, the next ad of a pod, keeps the programme's source.
+    interrupted ??= current?.source ?? candidates[index] ?? null;
+    return quietly(source);
+  }
+
+  async function resume(start?: number): Promise<Session | null> {
+    const source = interrupted;
+    if (source === null) return null;
+    const { start: _, ...rest } = source;
+    const session = await quietly(start === undefined ? rest : { ...rest, start });
+    interrupted = null;
+    return session;
+  }
+
   function load(source: ProgrammeSource | readonly ProgrammeSource[]): Promise<Session> {
+    interrupted = null;
     const mine = ++generation;
     controller?.abort();
     const control = new AbortController();
@@ -382,6 +432,11 @@ export function createPlayer(video: HTMLMediaElement, options: PlayerOptions): P
   }
 
   return {
+    interrupt,
+    resume,
+    get interrupted() {
+      return interrupted !== null;
+    },
     load,
     unload,
     preload,

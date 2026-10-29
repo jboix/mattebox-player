@@ -53,6 +53,70 @@ function stub(
   return { handler, seen, disposed };
 }
 
+describe('interrupt and resume', () => {
+  it("plays a source in the programme's place without a word, then the programme from a position", async () => {
+    const only = stub('only', 'probably');
+    const player = createPlayer(video, { handlers: [only.handler] });
+    const events: string[] = [];
+    player.on('sourcechange', () => events.push('sourcechange'));
+    player.on('programme', () => events.push('programme'));
+    await player.load({ url: 'https://cdn.example/programme.m3u8' });
+    const programme = player.programme;
+    events.length = 0;
+
+    await player.interrupt({ url: 'https://ads.example/ad.mp4', type: 'video/mp4' });
+    expect(player.interrupted).toBe(true);
+    expect(player.session?.source.url).toBe('https://ads.example/ad.mp4');
+    expect(player.programme).toBe(programme);
+    // The next ad of a pod keeps the programme's source to come back to.
+    await player.interrupt({ url: 'https://ads.example/ad2.mp4', type: 'video/mp4' });
+
+    const back = await player.resume(42);
+    expect(back?.source).toMatchObject({ url: 'https://cdn.example/programme.m3u8', start: 42 });
+    expect(player.interrupted).toBe(false);
+    expect(events).toEqual([]);
+    expect(only.disposed).toEqual(['only', 'only', 'only']);
+    expect(await player.resume()).toBeNull();
+  });
+});
+
+describe('an engine that plays a break', () => {
+  it("does not report the break's error as the programme's, and reports one after it", async () => {
+    const listeners: Array<(payload: unknown) => void> = [];
+    const engine = {
+      interstitials: { playing: { break: { id: 'mid' }, asset: 0 } as unknown },
+      on: (name: string, fn: (payload: unknown) => void) => {
+        if (name === 'error') listeners.push(fn);
+        return () => undefined;
+      },
+    };
+    const handler: Handler = {
+      name: 'mattebox',
+      canHandle: () => 'probably',
+      handle: async (): Promise<HandlerSession> => ({
+        handler: 'mattebox',
+        engine: engine as unknown as HandlerSession['engine'],
+        dispose: async () => undefined,
+      }),
+    };
+    const player = createPlayer(video, { handlers: [handler] });
+    const errors: PlayerError[] = [];
+    player.on('error', (error) => errors.push(error));
+    await player.load({ url: 'https://cdn.example/v.m3u8' });
+    const fatal = {
+      category: 'network',
+      code: 'NETWORK_HTTP_STATUS',
+      fatal: true,
+      recoverable: false,
+    };
+    for (const fn of listeners) fn(fatal);
+    expect(errors).toEqual([]);
+    engine.interstitials.playing = null;
+    for (const fn of listeners) fn(fatal);
+    expect(errors.map((error) => error.code)).toEqual(['NETWORK_HTTP_STATUS']);
+  });
+});
+
 describe('createPlayer', () => {
   it('adds the resolved source to the session, type inferred', async () => {
     const stub_ = stub('a', 'maybe');
