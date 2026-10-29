@@ -49,7 +49,7 @@
     "release:ci": "semantic-release"
   },
   "peerDependencies": {
-    "@mattebox/player": ">=0.12.0",
+    "@mattebox/player": ">=0.13.0",
     "mattebox": "^0.17.0"
   },
   "devDependencies": {
