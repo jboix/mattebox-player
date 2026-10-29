@@ -278,7 +278,34 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
     }
   }
 
+  /** A programme ended while its post-roll had still to play: the playlist waits for it. */
+  let waiting = false;
   const onEnded = (): void => {
+    // The end of an ad or another clip of a break: the programme goes on.
+    // At the programme's own end, a post-roll plays first, and the engine
+    // says when all is over.
+    const breaks = (
+      player.engine as { interstitials?: { playing: unknown; ended: boolean } } | null
+    )?.interstitials;
+    if (breaks !== undefined && (breaks.playing !== null || !breaks.ended)) {
+      waiting = breaks.playing === null;
+      return;
+    }
+    finished();
+  };
+  const onOver = (): void => {
+    if (!waiting) return;
+    waiting = false;
+    finished();
+  };
+  let offOver: (() => void) | undefined;
+  const follow = (): void => {
+    offOver?.();
+    waiting = false;
+    offOver = player.engine?.on('interstitials:ended', onOver);
+  };
+
+  function finished(): void {
     if (repeat === 'one') {
       video.currentTime = 0;
       video.play().catch(() => undefined);
@@ -287,7 +314,7 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
     if (!autoadvance || stayed === index()) return;
     const position = after(order, repeat);
     if (position >= 0) play(position, true);
-  };
+  }
 
   const onError = (event: Event): void => {
     const error = (event as CustomEvent<{ readonly fatal?: boolean }>).detail;
@@ -344,6 +371,8 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
   video.addEventListener('loadedmetadata', onMetadata);
   player.addEventListener('error', onError);
   player.addEventListener('sourcechange', onSource);
+  player.addEventListener('sourcechange', follow);
+  follow();
   // A connector's title arrives with the programme, after the item was written.
   player.addEventListener('programmechange', session);
 
@@ -454,6 +483,8 @@ export function createPlaylist(player: PlayerHost, options: PlaylistOptions = {}
         video.removeEventListener('loadedmetadata', onMetadata);
         player.removeEventListener('error', onError);
         player.removeEventListener('sourcechange', onSource);
+        player.removeEventListener('sourcechange', follow);
+        offOver?.();
         player.removeEventListener('programmechange', session);
         const media = typeof navigator === 'undefined' ? undefined : navigator.mediaSession;
         try {

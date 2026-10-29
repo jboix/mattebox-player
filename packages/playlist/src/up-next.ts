@@ -81,13 +81,6 @@ export class MbxUpNext extends PlaylistControl {
       player.video.addEventListener(name, render);
     }
     player.addEventListener('markerschange', render);
-    // With the bar hidden, the card slides down to where the bar was.
-    const idle = (): void => {
-      this.toggleAttribute('idle', player.hasAttribute('idle'));
-    };
-    const watcher = new MutationObserver(idle);
-    watcher.observe(player, { attributes: true, attributeFilter: ['idle'] });
-    idle();
     if (typeof ResizeObserver !== 'undefined') {
       this.resizer = new ResizeObserver(() => {
         this.fit(player);
@@ -103,7 +96,6 @@ export class MbxUpNext extends PlaylistControl {
         player.video.removeEventListener(name, render);
       }
       player.removeEventListener('markerschange', render);
-      watcher.disconnect();
       this.resizer?.disconnect();
       this.resizer = null;
       player.removeAttribute('upnext');
@@ -130,7 +122,11 @@ export class MbxUpNext extends PlaylistControl {
     const credits = player.markers
       .within(video.currentTime)
       .some((marker) => marker.kind === 'closing-credits');
-    const ending = Number.isFinite(left) && left <= WINDOW && !video.ended;
+    // An ad of a break has its own end, which is not the programme's.
+    const breaks = (player.engine as { interstitials?: { playing: unknown } } | null)
+      ?.interstitials;
+    const ending =
+      Number.isFinite(left) && left <= WINDOW && !video.ended && (breaks?.playing ?? null) === null;
     const shown =
       playlist !== null &&
       next !== null &&
