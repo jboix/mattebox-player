@@ -1,6 +1,6 @@
 # Architecture
 
-The Mattebox player is seven packages over the `mattebox` engine. This
+The Mattebox player is eight packages over the `mattebox` engine. This
 document lists what each package owns and the rules between the packages.
 The [guide](guide/README.md) explains how to use them.
 
@@ -15,6 +15,7 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back              | The player (peer, types only)                    |
 | `@mattebox/player-playlist`    | The playlist, its controls and the up next card                                   | The player (peer, types only)                    |
 | `@mattebox/player-preferences` | `<mbx-preferences>` and the store of the viewer's preferences                     | The player (peer, types only), the engine (peer) |
+| `@mattebox/player-ads`         | The ads of each player, VAST and VMAP, the beacons, the three ad elements         | The player (peer, types only), the engine (peer) |
 
 The packages follow four rules:
 

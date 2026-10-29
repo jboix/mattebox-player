@@ -9,6 +9,7 @@ import type { MatteboxPlayerElement } from '@mattebox/player';
 import type { Playlist, PlaylistItem } from '@mattebox/player-playlist';
 import { createPlaylist } from '@mattebox/player-playlist';
 import logoUrl from '../../docs/logo.svg';
+import { eventLog } from './event-log.js';
 import { wireTheme } from './theme.js';
 
 for (const img of document.querySelectorAll<HTMLImageElement>('img.logo')) img.src = logoUrl;
@@ -98,19 +99,11 @@ const repeat = byId<HTMLSelectElement>('repeat');
 const shuffle = byId<HTMLInputElement>('shuffle');
 const autoadvance = byId<HTMLInputElement>('autoadvance');
 const autoplay = byId<HTMLInputElement>('autoplay');
-const log = byId<HTMLOListElement>('log');
+const log = eventLog(byId<HTMLElement>('log'), 'Events');
 const code = byId<HTMLPreElement>('code');
 const status = byId<HTMLElement>('status');
 
 wireTheme(byId<HTMLButtonElement>('theme-toggle'));
-
-/** A line in the event log, newest first, twenty kept. */
-function note(text: string): void {
-  const line = document.createElement('li');
-  line.textContent = `${new Date().toLocaleTimeString()}  ${text}`;
-  log.prepend(line);
-  while (log.childElementCount > 20) log.lastElementChild?.remove();
-}
 
 /** Attribute names for an item's fields, as <mbx-playlist-item> reads them. */
 const ATTRIBUTES: Readonly<Record<string, string>> = {
@@ -199,12 +192,12 @@ playlist.addEventListener('change', (event) => {
   const what = [items ? 'items' : '', index ? `index ${playlist.index}` : '', mode ? 'mode' : '']
     .filter((part) => part !== '')
     .join(', ');
-  note(`change: ${what}`);
+  log.write('change', what);
   show();
 });
 playlist.addEventListener('skip', (event) => {
   const { index } = (event as CustomEvent<{ index: number }>).detail;
-  note(`skip: item ${index} failed, moving on`);
+  log.write('skip', `item ${index} failed, moving on`, 'warn');
 });
 
 sample.addEventListener('change', () => {

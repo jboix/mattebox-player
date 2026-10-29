@@ -11,6 +11,7 @@
 [![@mattebox/player-spatial-nav](https://img.shields.io/npm/v/@mattebox/player-spatial-nav?label=%40mattebox%2Fplayer-spatial-nav)](https://www.npmjs.com/package/@mattebox/player-spatial-nav)
 [![@mattebox/player-playlist](https://img.shields.io/npm/v/@mattebox/player-playlist?label=%40mattebox%2Fplayer-playlist)](https://www.npmjs.com/package/@mattebox/player-playlist)
 [![@mattebox/player-preferences](https://img.shields.io/npm/v/@mattebox/player-preferences?label=%40mattebox%2Fplayer-preferences)](https://www.npmjs.com/package/@mattebox/player-preferences)
+[![@mattebox/player-ads](https://img.shields.io/npm/v/@mattebox/player-ads?label=%40mattebox%2Fplayer-ads)](https://www.npmjs.com/package/@mattebox/player-ads)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 The Mattebox player is seven packages over the
@@ -27,6 +28,7 @@ handler to use, and adds a custom UI on top of it.
 | `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player             | Registers the element on import  |
 | `@mattebox/player-playlist`    | The playlist from markup or a script, its controls, and the up next card                                                         | Registers the elements on import |
 | `@mattebox/player-preferences` | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits | Registers the element on import  |
+| `@mattebox/player-ads`         | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                   | Registers the elements on import |
 
 A page with its own UI has two options:
 
@@ -34,8 +36,9 @@ A page with its own UI has two options:
 2. Install the player and restyle it. Every control has a `part`, and the page styles it with `::part()`.
 
 The engine is a peer dependency of the core, the player, the diagnostics,
-the cast and the preferences. The diagnostics, the cast, the TV navigation, the playlist and the
-preferences are optional player elements.
+the cast, the preferences and the ads. The diagnostics, the cast, the TV
+navigation, the playlist, the preferences and the ads are optional player
+elements.
 
 > \[!NOTE]
 > The cast is a package of its own because its button loads Google's script

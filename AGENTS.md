@@ -16,7 +16,9 @@ Google's sender SDK onto the page) and `@mattebox/player-spatial-nav`
 (the remote control on a TV, a package of its own because most pages never
 run on one), `@mattebox/player-playlist` (the playlist) and
 `@mattebox/player-preferences` (the viewer's preferences, a package of its
-own because storing them is the page's decision). Read
+own because storing them is the page's decision) and `@mattebox/player-ads`
+(ads, a package of its own because it adds an engine stage and talks to ad
+servers). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in

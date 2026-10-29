@@ -20,6 +20,7 @@ import type { PlaylistItem } from '@mattebox/player-playlist';
 import { createPlaylist } from '@mattebox/player-playlist';
 import logoUrl from '../../docs/logo.svg';
 import { srgssr } from './connectors/srgssr.js';
+import { eventLog } from './event-log.js';
 import { REELS } from './reel-list.js';
 import { wireTheme } from './theme.js';
 
@@ -44,7 +45,7 @@ const feed = byId<HTMLDivElement>('feed');
 const preload = byId<HTMLInputElement>('preload');
 const sound = byId<HTMLInputElement>('sound');
 const segments = byId<HTMLSelectElement>('segments');
-const log = byId<HTMLOListElement>('log');
+const log = eventLog(byId<HTMLElement>('log'), 'Reels played');
 const medians = {
   preloaded: byId<HTMLElement>('median-preloaded'),
   network: byId<HTMLElement>('median-network'),
@@ -264,10 +265,10 @@ function run(reels: readonly PlaylistItem[]): void {
           (entry as PerformanceResourceTiming).initiatorType === 'fetch',
       ).length;
     slide.hud.textContent = `start ${Math.round(ms)} ms, ${requests} requests, ${how}`;
-    const line = document.createElement('li');
-    line.textContent = `${Math.round(ms)} ms  ${requests} req  ${how}  ${item.heading ?? ''}`;
-    log.prepend(line);
-    while (log.childElementCount > 30) log.lastElementChild?.remove();
+    log.write(
+      `${Math.round(ms)} ms`,
+      `${requests} requests, ${how}${item.heading === undefined ? '' : `, ${item.heading}`}`,
+    );
     tally();
     preloadNext();
   });
@@ -315,7 +316,7 @@ function run(reels: readonly PlaylistItem[]): void {
 
   byId<HTMLButtonElement>('reset').addEventListener('click', () => {
     starts = [];
-    log.replaceChildren();
+    log.clear();
     tally();
   });
 

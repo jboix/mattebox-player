@@ -1,7 +1,7 @@
 {
   "name": "mattebox-player",
   "version": "0.0.0",
-  "description": "Workspace for @mattebox/player-core, @mattebox/player, @mattebox/player-diagnostics, @mattebox/player-cast, @mattebox/player-spatial-nav, @mattebox/player-playlist and @mattebox/player-preferences",
+  "description": "Workspace for @mattebox/player-core, @mattebox/player, @mattebox/player-diagnostics, @mattebox/player-cast, @mattebox/player-spatial-nav, @mattebox/player-playlist, @mattebox/player-preferences and @mattebox/player-ads",
   "private": true,
   "author": "Josep Boix Requesens",
   "repository": {
@@ -21,7 +21,8 @@
     "packages/cast",
     "packages/spatial-nav",
     "packages/preferences",
-    "packages/playlist"
+    "packages/playlist",
+    "packages/ads"
   ],
   "devEngines": {
     "runtime": {

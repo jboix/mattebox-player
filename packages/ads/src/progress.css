@@ -1,0 +1,33 @@
+/* The seek bar's shape, with the ad's own fill: the same 2.5em row and
+   0.25em track, so the bar does not move when it takes the seek bar's
+   place. Nothing to drag: an ad takes no seek. */
+:host {
+  display: block;
+  flex: 1;
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="rail"] {
+  position: relative;
+  height: 2.5em;
+  margin: 0 0.5em;
+}
+[part~="track"] {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 0.25em;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  overflow: hidden;
+}
+[part~="fill"] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--mbx-ad, #f5c518);
+}

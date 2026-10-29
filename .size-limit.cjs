@@ -73,6 +73,19 @@ module.exports = [
     limit: '3 kB',
   },
   {
+    name: '@mattebox/player-ads',
+    path: 'packages/ads/dist/cdn/mattebox-player-ads.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The engine and the player are peers. The bundle carries the engine's
+    // interstitials stage, about 6 kB with its emsg reader, because the
+    // engine's CDN bundle leaves it out. The plan proposed 9 kB for the
+    // package alone; with the stage it measured 17.32 kB, and 19.22 kB with
+    // the promo, credits and chapter roles and the frosted elements.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '20 kB',
+  },
+  {
     name: '@mattebox/player-playlist',
     path: 'packages/playlist/dist/cdn/mattebox-player-playlist.min.js',
     disablePlugins: ['@size-limit/esbuild'],

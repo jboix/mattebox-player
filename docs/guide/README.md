@@ -18,6 +18,7 @@ chapters in order the first time, then use the table.
 | [11 Blocks and markers](11-blocks-and-markers.md)       | Credits to skip, parts that must not play, why a programme does not play       |
 | [12 Fallback and versions](12-fallback-and-versions.md) | Several sources in order, versions of the picture such as sign language        |
 | [13 Trackers](13-trackers.md)                           | The trackers your page adds, what they read, the session and device ids        |
+| [14 Ads](14-ads.md)                                     | Interstitials, VAST and VMAP, the ad controls, the beacons and the events      |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.

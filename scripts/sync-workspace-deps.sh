@@ -41,6 +41,7 @@ npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/cast
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/spatial-nav
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/playlist
 npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/preferences
+npm pkg set "peerDependencies.@mattebox/player=>=$player" -w packages/ads
 
 npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 git add package-lock.json packages/*/package.json

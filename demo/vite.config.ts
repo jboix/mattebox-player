@@ -1,12 +1,13 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
+import { engineStreams } from './engine-streams.js';
 import { signedUrl } from './signed-url.js';
 
 // The demo imports the workspace packages by name and gets their sources, so
 // HMR works against source and no build is needed first. Pass `--base` for
 // the subpath the hosted build is served from.
 export default defineConfig({
-  plugins: [signedUrl()],
+  plugins: [signedUrl(), engineStreams()],
   resolve: {
     // Each package's languages first: the package names below would match
     // their subpaths too.
@@ -54,6 +55,10 @@ export default defineConfig({
         ),
       },
       {
+        find: '@mattebox/player-ads',
+        replacement: fileURLToPath(new URL('../packages/ads/src/index.ts', import.meta.url)),
+      },
+      {
         find: '@mattebox/player-preferences',
         replacement: fileURLToPath(
           new URL('../packages/preferences/src/index.ts', import.meta.url),
@@ -77,12 +82,13 @@ export default defineConfig({
     // The hosted demo is lowered to the same target as the packages' default
     // build, so a deployment exercises what users ship.
     target: 'es2015',
-    // Three pages: the element, the playlist, and the reels feed.
+    // Four pages: the element, the playlist, the reels feed, and the ads.
     rollupOptions: {
       input: {
         main: fileURLToPath(new URL('index.html', import.meta.url)),
         playlist: fileURLToPath(new URL('playlist.html', import.meta.url)),
         reels: fileURLToPath(new URL('reels.html', import.meta.url)),
+        ads: fileURLToPath(new URL('ads.html', import.meta.url)),
       },
     },
   },

@@ -95,6 +95,8 @@ markers.
 - Previous goes to the previous item in the first 3 seconds of an item. After them, it restarts the item.
 - Previous on a live item always goes to the previous item.
 - A fatal error plays the next item after 3 seconds, and fires `skip`.
+- With ads, the next item waits for the post-roll, and an ad's own end
+  moves nothing. See [chapter 14](14-ads.md).
 
 Near the end of an item, the engine preloads the manifest of the next one:
 inside the closing-credits marker, or in the last 30 seconds. The engine
@@ -176,8 +178,8 @@ last 10 seconds. It shows the next item's artwork and heading.
 While the card shows, the player has `upnext`. `<mbx-marker-button>` then
 hides inside closing credits and leaves them to the card.
 
-The card sits above the bar. When the bar hides, the card moves down into
-its place.
+The card sits above the bar, and stays there when the bar hides, so it
+stays under the pointer.
 
 ## From a script
 

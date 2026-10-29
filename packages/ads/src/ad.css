@@ -1,0 +1,137 @@
+/* Option C: the player's surface, translucent over the picture, blurred
+   behind, with the player's radius and no outline. */
+:host {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  color: var(--mbx-text);
+  font: 500 0.875em / 1.2 var(--mbx-font);
+}
+:host([hidden]) {
+  display: none;
+}
+[part~="panel"] {
+  display: inline-flex;
+  flex-direction: column;
+  border-radius: var(--mbx-radius);
+  background: rgba(28, 28, 32, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+[part~="row"] {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25em;
+  padding: 0 0.85em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+[part~="time"] {
+  margin-inline-start: 0.4em;
+  font-weight: 500;
+  color: #d6d0c6;
+  font-variant-numeric: tabular-nums;
+}
+/* Under the label of a break the stream plays with the controls kept,
+   where the seek bar still shows the programme. */
+[part~="line"] {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.18);
+}
+[part~="line"][hidden] {
+  display: none;
+}
+[part~="line-fill"] {
+  height: 3px;
+  background: var(--mbx-ad, #f5c518);
+}
+[part~="button"] {
+  display: inline-flex;
+  align-items: center;
+  height: 2.75em;
+  padding: 0 0.85em 0 1.1em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: rgba(28, 28, 32, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: inherit;
+  font: inherit;
+  font-size: 1.07em;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+[part~="button"]:hover:not(:disabled) {
+  background: rgba(28, 28, 32, 0.9);
+}
+[part~="button"]:disabled {
+  cursor: default;
+  padding-inline-end: 1.1em;
+  color: #d6d0c6;
+}
+[part~="button"]:focus {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: 2px;
+}
+[part~="button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+[part~="chevron"] {
+  width: 1.25em;
+  height: 1.25em;
+  margin-inline-start: 0.3em;
+}
+[part~="chevron"][hidden] {
+  display: none;
+}
+/* The info button: a frosted circle inside a target the size of a finger. */
+[part~="icon-button"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75em;
+  height: 2.75em;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+[part~="disc"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25em;
+  height: 2.25em;
+  border-radius: 50%;
+  background: rgba(28, 28, 32, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+[part~="icon-button"]:hover [part~="disc"] {
+  background: rgba(28, 28, 32, 0.9);
+}
+[part~="icon-button"]:focus {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: -2px;
+  border-radius: 50%;
+}
+[part~="icon-button"]:focus:not(:focus-visible) {
+  outline: none;
+}
+[part~="icon"],
+::slotted([slot="icon"]) {
+  width: 1.5em;
+  height: 1.5em;
+  fill: currentColor;
+}
+[part~="live"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -7,6 +7,7 @@
         "demo/src/main.ts",
         "demo/src/playlist.ts",
         "demo/src/reels.ts",
+        "demo/src/ads.ts",
         "scripts/*.mjs",
         "scripts/lib/inline-css.mjs",
         "test/e2e/**/*.ts"
@@ -42,6 +43,10 @@
     },
     "packages/spatial-nav": {
       "entry": ["src/index.ts", "cdn/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/ads": {
+      "entry": ["src/index.ts", "src/locales/*.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     },
     "packages/preferences": {

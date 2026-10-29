@@ -30,8 +30,10 @@ function nameOf(programme: Programme): string {
   return programme.metadata?.title ?? programme.id ?? programme.sources[0]?.url ?? 'a programme';
 }
 
-/** A tracker that hands each line to `write`. */
-export function logTracker(write: (line: string) => void): Tracker {
+/** A tracker that hands each line to `write`, with its kind. */
+export function logTracker(
+  write: (kind: string, text: string, level?: 'info' | 'error') => void,
+): Tracker {
   const device = deviceId({ key: 'mattebox.demo.device' });
   let session: string | undefined;
   let offs: Array<() => void> = [];
@@ -46,11 +48,12 @@ export function logTracker(write: (line: string) => void): Tracker {
       session = sessionId();
       const video = player.video;
       const at = (): string => `${video.currentTime.toFixed(1)}s`;
-      write(`start: ${nameOf(programme)}, session ${session}`);
+      write('start', `${nameOf(programme)}, session ${session}`);
       const labels = labelsOf(programme);
       if (labels !== undefined) {
         write(
-          `labels from ${programme.type}: ${Object.keys(labels).length}, such as ${Object.keys(labels).slice(0, 3).join(', ')}`,
+          'labels',
+          `${Object.keys(labels).length} from ${programme.type}, such as ${Object.keys(labels).slice(0, 3).join(', ')}`,
         );
       }
       const on = (target: EventTarget, name: string, fn: (event: Event) => void): void => {
@@ -68,7 +71,7 @@ export function logTracker(write: (line: string) => void): Tracker {
       let resuming = false;
       const settled = (): void => {
         if (from === undefined || dragging() || video.seeking) return;
-        write(`seek from ${from} to ${at()}`);
+        write('seek', `from ${from} to ${at()}`);
         from = undefined;
         last = at();
       };
@@ -85,26 +88,26 @@ export function logTracker(write: (line: string) => void): Tracker {
       });
       on(video, 'playing', () => {
         if (resuming) resuming = false;
-        else if (!dragging()) write(`play at ${at()}`);
+        else if (!dragging()) write('play', `at ${at()}`);
       });
       on(video, 'pause', () => {
-        if (!video.ended && !dragging()) write(`pause at ${at()}`);
+        if (!video.ended && !dragging()) write('pause', `at ${at()}`);
       });
       on(video, 'seeking', () => {
         from ??= last;
       });
       on(video, 'seeked', settled);
-      on(video, 'ended', () => write(`end at ${at()}`));
+      on(video, 'ended', () => write('end', `at ${at()}`));
       on(player, 'error', (event) => {
         const error = (event as CustomEvent<{ code: string; fatal: boolean }>).detail;
-        if (error.fatal) write(`error: ${error.code}`);
+        if (error.fatal) write('error', error.code, 'error');
       });
       beat = window.setInterval(() => {
-        if (!video.paused) write(`heartbeat at ${at()}`);
+        if (!video.paused) write('heartbeat', `at ${at()}`);
       }, HEARTBEAT_MS);
     },
     stop() {
-      write(`stop, session ${session ?? ''}`);
+      write('stop', `session ${session ?? ''}`);
       for (const off of offs) off();
       offs = [];
       clearInterval(beat);

@@ -31,10 +31,12 @@
       "@mattebox/player-cast": ["./packages/cast/src/index.ts"],
       "@mattebox/player-spatial-nav": ["./packages/spatial-nav/src/index.ts"],
       "@mattebox/player-preferences": ["./packages/preferences/src/index.ts"],
+      "@mattebox/player-ads": ["./packages/ads/src/index.ts"],
       "@mattebox/player-playlist": ["./packages/playlist/src/index.ts"],
       "@mattebox/player/locales/*": ["./packages/player/src/locales/*.ts"],
       "@mattebox/player-playlist/locales/*": ["./packages/playlist/src/locales/*.ts"],
       "@mattebox/player-cast/locales/*": ["./packages/cast/src/locales/*.ts"],
+      "@mattebox/player-ads/locales/*": ["./packages/ads/src/locales/*.ts"],
       "@mattebox/player-diagnostics/locales/*": ["./packages/diagnostics/src/locales/*.ts"]
     }
   },

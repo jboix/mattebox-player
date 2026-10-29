@@ -28,6 +28,7 @@ import type { StreamEntry } from './catalogue.js';
 import { STREAMS, tagsOf } from './catalogue.js';
 import type { DemoConnector, Example } from './connectors/index.js';
 import { CONNECTORS, DEMO_CONNECTORS } from './connectors/index.js';
+import { eventLog } from './event-log.js';
 import { LANGUAGES, registerLanguages, WORD_PACKAGES } from './languages.js';
 import { logTracker } from './log-tracker.js';
 import { wireTheme } from './theme.js';
@@ -485,22 +486,13 @@ function loadProgramme(
 
 // ---- the tracker: added to the player on the page, and moved with it ---------
 
-const trackerLog = byId<HTMLOListElement>('tracker-log');
-const tracker = logTracker((line) => {
-  const item = document.createElement('li');
-  item.textContent = `${new Date().toLocaleTimeString()} ${line}`;
-  trackerLog.append(item);
-  // The newest line stays in view, as a console does.
-  trackerLog.scrollTop = trackerLog.scrollHeight;
-});
+const trackerLog = eventLog(byId<HTMLElement>('tracker-log'), 'Tracker');
+const tracker = logTracker((kind, text, level) => trackerLog.write(kind, text, level));
 const logToggle = byId<HTMLInputElement>('log-tracker');
 if (logToggle.checked) player.trackers.add(tracker);
 logToggle.addEventListener('change', () => {
   if (logToggle.checked) player.trackers.add(tracker);
   else player.trackers.delete(tracker);
-});
-byId<HTMLButtonElement>('clear-log').addEventListener('click', () => {
-  trackerLog.replaceChildren();
 });
 
 // ---- the chooser: a dialog with the two routes ---------------------------------
