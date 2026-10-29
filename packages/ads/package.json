@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-ads",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Ads in <mattebox-player>: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST 4 and VMAP, with the ad controls and the beacons.",
   "author": "Josep Boix Requesens",
   "repository": {
