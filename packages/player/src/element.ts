@@ -40,10 +40,11 @@ import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import type { AttachEmeOptions } from 'mattebox/eme';
 import type { Announcer } from './announcer.js';
 import { announcer } from './announcer.js';
+import { type BreakMarks, createBreakMarks } from './controls/breaks.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { languageName } from './controls/track-names.js';
-import type { Block, PlayerHost } from './host.js';
+import type { Block, PlayerAddon, PlayerHost } from './host.js';
 import type { LocaleSource } from './locales.js';
 import { addLocale, load, onLocales, registered, wordsNow } from './locales.js';
 import type { Messages, Words } from './messages.js';
@@ -252,6 +253,13 @@ export interface MatteboxPlayerOptions {
    * plays. Kept with `handlers`.
    */
   readonly connectors?: readonly Connector[];
+  /**
+   * Packages that add to every player, such as `ads()` from
+   * `@mattebox/player-ads`: their stages join the stack, and each runs on
+   * every player that connects. Ignored with `handlers`, apart from what
+   * they run on the player.
+   */
+  readonly addons?: readonly PlayerAddon[];
 }
 
 /**
@@ -321,6 +329,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Stops listening to the current engine's track selection. */
   declare private offTracks: (() => void) | null;
   declare private readonly marks: Markers;
+  declare private readonly breakMarks: BreakMarks;
   /** The chapters track element, while the `chapters` attribute names one and the engine takes none. */
   declare private track: HTMLTrackElement | null;
   /** The chapters URL the current session's engine was given, or null. */
@@ -348,6 +357,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The video waits for data: `waiting`, set on `waiting`, cleared once it can play. */
   declare private waiting: boolean;
   declare private offs: Array<() => void>;
+  /** Where `interrupt` left the programme: its time, whether it played, its tracks. */
+  declare private interruption: { at: number | null; playing: boolean; had: Chosen | null } | null;
+  /** The add-ons attached to this player, with what each returned, run when it leaves the page. */
+  declare private attached: Map<PlayerAddon, (() => void) | undefined>;
   /** Everything the element does to the player runs here, so it runs in order. */
   declare private queue: Promise<void>;
   /** Whether a run is queued and not yet started, so a burst of changes loads once. */
@@ -381,6 +394,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.started = false;
     this.waiting = false;
     this.offs = [];
+    this.attached = new Map();
+    this.interruption = null;
     this.queue = Promise.resolve();
     this.pending = false;
     this.original = null;
@@ -427,6 +442,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.reflect();
     });
     this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
+    this.breakMarks = createBreakMarks((list) => this.emit('breakschange', list));
     this.tracking = createTrackers(this, () => this.emit('trackerschange', this.tracking.list));
     this.stage = document.createElement('div');
     this.stage.setAttribute('part', 'stage');
@@ -463,6 +479,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     return this.marks;
   }
 
+  /** Where the programme's ad breaks are, which the seek bar draws: each add-on gives its own. */
+  get breaks(): BreakMarks {
+    return this.breakMarks;
+  }
+
   /**
    * The sources to try in order, set from script. The `src` attribute wins
    * over them, and they win over the `<source>` children. Setting them
@@ -474,8 +495,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   set sources(value: readonly ProgrammeSource[] | null) {
     this.list = value;
-    // Markers and a block belong to a source, as for `src`.
+    // Markers, a block and an interruption belong to a source, as for `src`.
     if (this.marks.list.length > 0) this.marks.set([]);
+    this.interruption = null;
     this.unblock();
     this.reload();
   }
@@ -582,6 +604,62 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.version = null;
     if (was !== null) this.emit('videosourcechange', null);
     this.swap(clean, at, playing, had, true);
+  }
+
+  /**
+   * Plays `source` on the video in the programme's place, such as an ad of
+   * `@mattebox/player-ads`. The programme, its markers and its trackers
+   * stay, no `sourcechange` fires, and the controls drive the source as
+   * they drive the programme. An error of the source is not the
+   * programme's: listen to the video. `resume()` plays the programme again
+   * where it stopped. Resolves once the source is loaded; rejects when no
+   * handler plays it.
+   */
+  interrupt(source: Source): Promise<void> {
+    const media = this.media;
+    this.interruption ??= {
+      at: Number.isFinite(media.duration) ? media.currentTime : null,
+      playing: !media.paused,
+      had: chosen(this.current?.engine ?? null),
+    };
+    return this.queued(async () => {
+      const core = await this.ensure();
+      await core.interrupt(source);
+      this.current = core.session;
+      media.play().catch(() => undefined);
+    });
+  }
+
+  /**
+   * Plays the programme again where `interrupt` left it, in the play state
+   * it had, or as `options` says: `at` another position, such as its end
+   * after a post-roll, and `playing`.
+   */
+  resume(options: { readonly at?: number | null; readonly playing?: boolean } = {}): Promise<void> {
+    const left = this.interruption;
+    if (left === null) return Promise.resolve();
+    this.interruption = null;
+    const at = options.at === undefined ? left.at : options.at;
+    const playing = options.playing ?? left.playing;
+    return this.queued(async () => {
+      const core = await this.ensure();
+      await core.resume(at ?? undefined);
+      this.current = core.session;
+      restore(this.current?.engine ?? null, left.had);
+      if (playing) this.media.play().catch(() => undefined);
+    });
+  }
+
+  /** `interrupt` plays in the programme's place. */
+  get interrupted(): boolean {
+    return this.interruption !== null;
+  }
+
+  /** Runs `task` in the element's queue, and says how it went. */
+  private queued(task: () => Promise<void>): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.enqueue(() => task().then(resolve, reject));
+    });
   }
 
   /** The other versions of the picture the source names at their own URLs, for the video menu. */
@@ -791,7 +869,20 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     this.measure();
     this.watchLanguage();
+    this.attachAddons();
     this.reload();
+  }
+
+  /**
+   * Attaches each add-on of the options once. At connect, and again at each
+   * load: a page that imports the player registers it before its own
+   * `define()` gives the add-ons, and the players already on the page
+   * connected then.
+   */
+  private attachAddons(): void {
+    for (const addon of this.options.addons ?? []) {
+      if (!this.attached.has(addon)) this.attached.set(addon, addon.attach?.(this));
+    }
   }
 
   /** Sets `layout` from the element's box, unless the page fixed it. */
@@ -946,7 +1037,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // pauses, the teardown waits a microtask and runs only if the element is
     // still out of the document.
     queueMicrotask(() => {
-      if (!this.isConnected) this.enqueue(() => this.teardown());
+      if (this.isConnected) return;
+      for (const off of this.attached.values()) off?.();
+      this.attached.clear();
+      this.enqueue(() => this.teardown());
     });
   }
 
@@ -990,6 +1084,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Markers belong to a source. Cleared here, not on `emptied`, which
     // arrives later and would clear the ones the page sets right after.
     if (name === 'src' && this.marks.list.length > 0) this.marks.set([]);
+    if (name === 'src') this.interruption = null;
     if (name === 'src') this.unblock();
     this.reload();
   }
@@ -1241,14 +1336,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       nativeHandler({
         // Read on every load, so the attribute applies without a new chain.
         prefer: (source, env) =>
-          this.getAttribute(NATIVE_HLS) !== 'off' && preferNativeHls(source, env),
+          this.getAttribute(NATIVE_HLS) !== 'off' &&
+          !(this.options.addons ?? []).some((addon) => addon.engine === true) &&
+          preferNativeHls(source, env),
         drm: () => this.drm(stages),
       });
+    if (this.isConnected) this.attachAddons();
+    // The add-ons' stages, fresh for this chain, join whatever stack it builds.
+    const added = (this.options.addons ?? []).flatMap((addon) => addon.stages?.() ?? []);
     if (this.options.stages !== undefined) {
-      return [
-        matteboxHandler({ stages: this.options.stages, ...config }),
-        native(() => this.options.stages ?? []),
-      ];
+      const own = this.options.stages;
+      const stages = [...own, ...added.filter((stage) => !own.some((o) => o.name === stage.name))];
+      return [matteboxHandler({ stages, ...config }), native(() => stages)];
     }
     const name = this.getAttribute('preset') ?? DEFAULT_PRESET;
     const preset = await resolvePreset(name);
@@ -1263,7 +1362,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       });
       return [nativeHandler()];
     }
-    return [matteboxHandler({ preset, ...config, ...drmGuard() }), native(() => preset.stages())];
+    // With a preset, the handler merges these stages into its own by name.
+    const extra = added.length === 0 ? {} : { stages: added };
+    return [
+      matteboxHandler({ preset, ...extra, ...config, ...drmGuard() }),
+      native(() => preset.stages()),
+    ];
   }
 
   /**

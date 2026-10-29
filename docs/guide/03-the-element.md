@@ -102,21 +102,23 @@ version, with `<mbx-video-track>` children. See
 
 ## Properties
 
-| Property       | What it is                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------- |
-| `player`       | The `Player` of the core                                                                                |
-| `sources`      | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children |
-| `engine`       | The engine of the current session, or null                                                              |
-| `video`        | The `<video>` inside, in light DOM                                                                      |
-| `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                |
-| `markers`      | The ranges the page named in this source: see [Markers](#markers)                                       |
-| `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                      |
-| `programme`    | What the current load resolved: see [chapter 09](09-connectors.md#with-the-element)                     |
-| `trackers`     | The page's trackers: see [chapter 13](13-trackers.md)                                                   |
-| `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)   |
-| `videoSource`  | The version that plays, or null for the source itself                                                   |
-| `language`     | The `language` attribute, or empty. Setting it changes the words at once                                |
-| `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either         |
+| Property       | What it is                                                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `player`       | The `Player` of the core                                                                                                |
+| `sources`      | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children                 |
+| `engine`       | The engine of the current session, or null                                                                              |
+| `video`        | The `<video>` inside, in light DOM                                                                                      |
+| `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                                |
+| `markers`      | The ranges the page named in this source: see [Markers](#markers)                                                       |
+| `breaks`       | Where the programme's ad breaks are, which the seek bar draws as ticks. `breaks.set(owner, list)` sets one owner's list |
+| `interrupted`  | True while `interrupt()` plays a source in the programme's place                                                        |
+| `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                                      |
+| `programme`    | What the current load resolved: see [chapter 09](09-connectors.md#with-the-element)                                     |
+| `trackers`     | The page's trackers: see [chapter 13](13-trackers.md)                                                                   |
+| `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)                   |
+| `videoSource`  | The version that plays, or null for the source itself                                                                   |
+| `language`     | The `language` attribute, or empty. Setting it changes the words at once                                                |
+| `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either                         |
 
 `selectVideoSource(version)` plays a version of `videoSources`, or the
 source itself for null. It fires `videosourcechange`, whose `detail` is the
@@ -130,6 +132,18 @@ load replaces it.
 
 ```ts
 player.switchSource({ url: 'vod/manifest.mpd', type: 'application/dash+xml' });
+```
+
+`interrupt(source)` plays another source in the programme's place, such
+as an ad, on the same video, and `resume()` plays the programme again from
+where it stopped, in the play state it had. No `sourcechange` fires: the
+programme, its markers and its trackers stay. An error of the source is
+not the programme's, so the error screen stays away; listen to the video.
+`@mattebox/player-ads` plays its MP4 ads this way.
+
+```ts
+await player.interrupt({ url: 'https://ads.example.com/ad.mp4', type: 'video/mp4' });
+player.video.addEventListener('ended', () => player.resume(), { once: true });
 ```
 
 `message(id)` answers the word of `id` in the player's language, or
@@ -250,8 +264,10 @@ The player prefers native HLS when all of these hold:
 Android Chrome also answers `canPlayType` for HLS. The vendor check keeps it
 on the engine. DASH stays on the engine in every browser.
 
-`native-hls="off"` keeps HLS on the engine. A page with its own `handlers`
-decides the order itself.
+`native-hls="off"` keeps HLS on the engine. So does an add-on that sets
+`engine`, such as `ads()`: Safari's own HLS plays interstitials itself and
+reports nothing a page can read. A page with its own `handlers` decides the
+order itself.
 
 A native session has no engine, so `player.engine` is null. The controls
 read the video instead:
@@ -422,7 +438,7 @@ subtitles menus read the video's own track lists. See
 | `mbx-pip-button`        |                                                                              | `label-enter`, `label-exit`                                                                                                                                                                                                             | `icon-enter`, `icon-exit`                | Toggles picture in picture. Hidden without the API. Sets `pip` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `mbx-fullscreen-button` |                                                                              | `label-enter`, `label-exit`                                                                                                                                                                                                             | `icon-enter`, `icon-exit`                | Toggles fullscreen on the player. Hidden without the API. Sets `fullscreen` on the player                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `mbx-start-button`      |                                                                              | `label-play`, `label-replay`                                                                                                                                                                                                            | `icon-play`, `icon-replay`               | Shows a large play button over the picture while paused, and a replay after the end. Hidden while playing, behind an error, and in a box too short to keep it above the bar                                                                                                                                                                                                                                                                                                                                                                                   |
-| `mbx-marker-button`     |                                                                              | `label-opening-credits`, `label-closing-credits`, `label-skip`                                                                                                                                                                          |                                          | Shows a skip button over the picture inside a marker the page set, other than `blocked`. A press moves to the marker's end. It sits above the bar, and hides once the media has ended. While the player carries `upnext`, a card such as the playlist's `<mbx-up-next>` covers the closing credits, and the button leaves them to it                                                                                                                                                                                                                          |
+| `mbx-marker-button`     |                                                                              | `label-opening-credits`, `label-closing-credits`, `label-skip`                                                                                                                                                                          |                                          | Shows a skip button over the picture inside a marker the page set, other than `blocked`. A press moves to the marker's end. It sits above the bar, stays there when the bar hides, and hides once the media has ended. While the player carries `upnext`, a card such as the playlist's `<mbx-up-next>` covers the closing credits, and the button leaves them to it                                                                                                                                                                                          |
 | `mbx-error-screen`      |                                                                              | `label-title`, `label-retry`, `label-blocked`, `label-diagnostics`                                                                                                                                                                      |                                          | Shows a fatal error over the picture, with the category, the code and a retry that calls the player's `retry()`. With `mbx-diagnostics` in the player, a second button opens its panel. Shows the page's block, with its title and message and no retry                                                                                                                                                                                                                                                                                                       |
 | `mbx-spinner`           |                                                                              | `label`                                                                                                                                                                                                                                 | `icon`                                   | Shows a turning ring in the place of the start button while the player has `waiting`                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `mbx-title`             | `heading`, `subheading`, `artwork`                                           |                                                                                                                                                                                                                                         |                                          | Shows the artwork next to the heading and subheading, above the bar. Beside artwork, a long heading wraps to three lines, or two above a subheading; without artwork it keeps one line. Shown while the video is paused, including before the first play. Has `playing` for the page's own rule                                                                                                                                                                                                                                                               |

@@ -44,6 +44,7 @@ export type {
   Source,
   SourceDrm,
 } from '@mattebox/player-core';
+export type { BreakMark, BreakMarks } from './controls/breaks.js';
 export type { Marker, Markers } from './controls/markers.js';
 export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
@@ -75,7 +76,7 @@ export { MbxTitle } from './entries/title.js';
 export { MbxVideoMenu } from './entries/video-menu.js';
 export { MbxVolume } from './entries/volume.js';
 export { MbxVolumeSlider } from './entries/volume-slider.js';
-export type { Block, PlayerHost } from './host.js';
+export type { Block, PlayerAddon, PlayerHost } from './host.js';
 export type { DeviceIdOptions } from './ids.js';
 export { deviceId, sessionId } from './ids.js';
 export type { LocaleSource } from './locales.js';

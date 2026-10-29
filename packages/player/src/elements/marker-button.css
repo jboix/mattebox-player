@@ -7,31 +7,38 @@
   /* Over the bar: the bar's box, fade included, reaches up past the button,
      and comes later, so it would take the button's clicks. */
   z-index: 1;
-  transition: transform 0.3s ease;
-}
-/* The bar hidden, the button moves down into its place. */
-:host([idle]) {
-  transform: translateY(var(--mbx-marker-lift, 3.5em));
 }
 :host([hidden]) {
   display: none;
 }
+/* The player's surface, translucent over the picture and blurred behind. */
 [part~="button"] {
+  display: inline-flex;
+  align-items: center;
   width: auto;
-  height: 2.5em;
-  padding: 0 1.125em;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(0, 0, 0, 0.6);
+  height: 2.75em;
+  padding: 0 0.85em 0 1.1em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: rgba(28, 28, 32, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   color: var(--mbx-text);
   font: inherit;
+  font-size: 1.07em;
   font-weight: 600;
   white-space: nowrap;
 }
 [part~="button"]:hover {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(28, 28, 32, 0.9);
 }
-@media (prefers-reduced-motion: reduce) {
-  :host {
-    transition: none;
-  }
+[part~="icon"] {
+  width: 1.25em;
+  height: 1.25em;
+  margin-inline-start: 0.3em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

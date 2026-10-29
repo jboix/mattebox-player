@@ -17,7 +17,7 @@ export type {
 } from '@mattebox/player-core';
 export type { MatteboxPlayerOptions } from './element.js';
 export { MatteboxPlayerElement } from './element.js';
-export type { Block, PlayerHost } from './host.js';
+export type { Block, PlayerAddon, PlayerHost } from './host.js';
 export type { Text } from './text.js';
 export type { Tracker, Trackers } from './trackers.js';
 

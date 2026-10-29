@@ -550,6 +550,41 @@ describe('the config option', () => {
   });
 });
 
+describe('the addons option', () => {
+  it("adds an add-on's stages to the stack and runs it on the player while it is on the page", async () => {
+    const seen: string[] = [];
+    const probe = (): Stage => ({ name: 'addon-probe', provides: ['addon-probe'], install() {} });
+    const player = new MatteboxPlayerElement({
+      stages: [hlsCmaf()],
+      addons: [
+        {
+          name: 'probe',
+          stages: () => [probe()],
+          attach(host) {
+            seen.push(`attach ${host === player}`);
+            return () => {
+              seen.push('detach');
+            };
+          },
+        },
+      ],
+    });
+    player.setAttribute('muted', '');
+    player.setAttribute('src', new URL('./fixtures/hls/master.m3u8', import.meta.url).href);
+    document.body.append(player);
+    await expect.poll(() => player.engine, { timeout: 10_000 }).not.toBeNull();
+    expect([...(player.engine?.capabilities() ?? [])]).toContain('addon-probe');
+    expect(seen).toEqual(['attach true']);
+    // A move in the page is no removal; leaving it is.
+    document.body.append(player);
+    await Promise.resolve();
+    expect(seen).toEqual(['attach true']);
+    player.remove();
+    await Promise.resolve();
+    expect(seen).toEqual(['attach true', 'detach']);
+  });
+});
+
 describe('the layout attribute', () => {
   /** The real button inside a control's shadow root. */
   function inner(control: HTMLElement): HTMLElement {

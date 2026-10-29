@@ -33,6 +33,22 @@
   bottom: 0;
   background: var(--mbx-blocked, rgba(0, 0, 0, 0.75));
 }
+/* An ad break: a tick where it starts, a span where it replaces a part.
+   Faded once it played. */
+[part~="break"] {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0.25em;
+  margin-left: -0.125em;
+  background: var(--mbx-ad, #f5c518);
+}
+[part~="break"][part~="span"] {
+  margin-left: 0;
+}
+[part~="break"][part~="played"] {
+  opacity: 0.4;
+}
 [part~="buffered-range"] {
   position: absolute;
   top: 0;

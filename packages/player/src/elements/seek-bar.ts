@@ -155,6 +155,8 @@ export class MbxSeekBar extends Component {
   declare private readonly buffered: HTMLElement;
   /** The ranges the page marked blocked, drawn as a broken line: they never play. */
   declare private readonly blocked: HTMLElement;
+  /** The ad breaks, as ticks, and as spans where a break replaces a part. */
+  declare private readonly breaks: HTMLElement;
   declare private readonly hover: HTMLElement;
   declare private readonly edge: HTMLElement;
   declare private readonly preview: HTMLElement;
@@ -219,6 +221,7 @@ export class MbxSeekBar extends Component {
     });
     this.buffered = el('div', 'buffered');
     this.blocked = el('div', 'blocked');
+    this.breaks = el('div', 'breaks');
     this.hover = el('div', 'hover');
     this.edge = el('div', 'edge');
     this.hover.hidden = true;
@@ -226,7 +229,7 @@ export class MbxSeekBar extends Component {
     // Under the fill, so what is played reads over what is buffered.
     this.bar.track.prepend(this.buffered);
     // Over the fill, inside the track: the chapter gaps cut through it too.
-    this.bar.track.append(this.blocked, this.hover, this.edge);
+    this.bar.track.append(this.blocked, this.breaks, this.hover, this.edge);
     this.preview = el('div', 'preview');
     this.image = el('div', 'preview-image');
     this.tile = el('div', 'preview-tile');
@@ -575,6 +578,30 @@ export class MbxSeekBar extends Component {
     }
   }
 
+  /** The ad breaks inside the bar's range: a tick at each start, a span where one replaces a part. */
+  private paintBreaks(): void {
+    const { start, end } = this.range;
+    const marks = (this.player?.breaks.list ?? []).filter(
+      (mark) => mark.start >= start && mark.start <= end,
+    );
+    while (this.breaks.childElementCount > marks.length) this.breaks.lastElementChild?.remove();
+    while (this.breaks.childElementCount < marks.length) this.breaks.append(el('div', 'break'));
+    marks.forEach((mark, i) => {
+      const node = this.breaks.children[i] as HTMLElement;
+      const span = mark.end !== undefined && mark.end > mark.start;
+      node.setAttribute(
+        'part',
+        `break${span ? ' span' : ''}${mark.played === true ? ' played' : ''}`,
+      );
+      node.style.left = percent(fraction(mark.start, this.range));
+      node.style.width = span
+        ? percent(
+            fraction(Math.min(mark.end ?? end, end), this.range) - fraction(mark.start, this.range),
+          )
+        : '';
+    });
+  }
+
   /** Whether a live window is wide enough to be worth a bar. */
   private worthSeeking(): boolean {
     const goals = number(this, 'live-window', LIVE_WINDOW);
@@ -634,7 +661,7 @@ export class MbxSeekBar extends Component {
     };
     this.listen(player.video, EVENTS, tick);
     this.keep(followChapters(player, tick));
-    this.listen(player, ['markerschange'], tick);
+    this.listen(player, ['markerschange', 'breakschange'], tick);
     this.listen(player, ['sourcechange'], () => {
       this.drag = 'none';
       this.stopAiming();
@@ -689,6 +716,7 @@ export class MbxSeekBar extends Component {
     this.bar.range(this.range.start, this.range.end);
     this.paintRanges(this.buffered, spans(video.buffered), 'buffered-range');
     this.paintRanges(this.blocked, this.blockedRanges(), 'blocked-range');
+    this.paintBreaks();
     this.paintChapters();
     this.edge.hidden = !on;
     if (api !== undefined && api.edge !== null) {

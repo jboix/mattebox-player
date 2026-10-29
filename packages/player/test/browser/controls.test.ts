@@ -1235,14 +1235,17 @@ describe('markers', () => {
     await expect.poll(() => button.hidden).toBe(false);
   });
 
-  it('the skip button follows the bar down when the bar hides', async () => {
+  it('the skip button stays in place when the bar hides, under the pointer', async () => {
     const player = await loaded({}, 100);
     const button = control(player, 'mbx-marker-button');
     player.markers.set([{ start: 0, end: 20, kind: 'opening-credits' }]);
+    await expect.poll(() => button.hidden).toBe(false);
+    // The button measures the bar after a resize: it settles before the bar hides.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    const before = button.getBoundingClientRect().top;
     player.setAttribute('idle', '');
-    await expect.poll(() => button.hasAttribute('idle')).toBe(true);
-    player.removeAttribute('idle');
-    await expect.poll(() => button.hasAttribute('idle')).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(button.getBoundingClientRect().top).toBe(before);
   });
 
   it('the skip button leaves when playback ends inside the credits', async () => {
@@ -1274,6 +1277,27 @@ describe('markers', () => {
     // The markers belong to the source.
     player.setAttribute('src', `${SOURCE}/next`);
     expect(player.markers.list).toEqual([]);
+  });
+});
+
+describe('break marks', () => {
+  it('the seek bar draws a tick at each break, a span where one replaces a part, faded once played', async () => {
+    const player = await loaded({}, 100);
+    const bar = control(player, 'mbx-seek-bar');
+    player.breaks.set('ads', [{ start: 25 }, { start: 60, end: 70, played: true }]);
+    player.breaks.set('other', [{ start: 50 }]);
+    const marks = () => [
+      ...(bar.shadowRoot?.querySelectorAll<HTMLElement>('[part~="break"]') ?? []),
+    ];
+    await expect.poll(() => marks().length).toBe(3);
+    expect(marks().map((m) => [m.getAttribute('part'), m.style.left, m.style.width])).toEqual([
+      ['break', '25%', ''],
+      ['break', '50%', ''],
+      ['break span played', '60%', '10%'],
+    ]);
+    // One owner's list leaves the other's.
+    player.breaks.set('ads', []);
+    await expect.poll(() => marks().length).toBe(1);
   });
 });
 

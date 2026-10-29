@@ -28,6 +28,7 @@ export class MbxMarkerButton extends Component {
   }
 
   declare private readonly button: HTMLButtonElement;
+  declare private readonly text: HTMLSpanElement;
   /** The range the button skips, or null while playback is in none. */
   declare private marker: Marker | null;
   /** Watches the bar and the title: the button sits above whichever is taller. */
@@ -41,7 +42,16 @@ export class MbxMarkerButton extends Component {
     this.button = document.createElement('button');
     this.button.type = 'button';
     this.button.setAttribute('part', 'button');
-    this.button.textContent = 'Skip';
+    this.text = document.createElement('span');
+    this.text.textContent = 'Skip';
+    const chevron = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    chevron.setAttribute('viewBox', '0 0 32 32');
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.setAttribute('part', 'icon');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M12 8l8 8l-8 8');
+    chevron.append(path);
+    this.button.append(this.text, chevron);
     this.button.addEventListener('click', () => {
       const video = this.player?.video;
       if (video !== undefined && this.marker !== null) video.currentTime = this.marker.end;
@@ -66,12 +76,6 @@ export class MbxMarkerButton extends Component {
     this.observe(player, ['upnext'], () => {
       this.render();
     });
-    // With the bar hidden, the button slides down to where the bar was.
-    const idle = (): void => {
-      this.toggleAttribute('idle', player.hasAttribute('idle'));
-    };
-    this.observe(player, ['idle'], idle);
-    idle();
     if (typeof ResizeObserver !== 'undefined') {
       this.resizer = new ResizeObserver(() => {
         this.fit(player);
@@ -117,7 +121,7 @@ export class MbxMarkerButton extends Component {
     const kind = this.marker.kind;
     const skip = this.word('label-skip', 'skip', 'Skip');
     const known = WORDS[kind];
-    this.button.textContent =
+    this.text.textContent =
       known !== undefined
         ? this.word(`label-${kind}`, ...known)
         : (this.getAttribute(`label-${kind}`) ??

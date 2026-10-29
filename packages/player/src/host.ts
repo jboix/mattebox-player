@@ -17,7 +17,8 @@ import type {
   Source,
   SourceVideoTrack,
 } from '@mattebox/player-core';
-import type { Mattebox } from 'mattebox';
+import type { Mattebox, Stage } from 'mattebox';
+import type { BreakMarks } from './controls/breaks.js';
 import type { Markers } from './controls/markers.js';
 import type { Messages } from './messages.js';
 import { PLAYER } from './tags.js';
@@ -57,6 +58,8 @@ export interface PlayerHost extends HTMLElement {
   readonly blocked: Block | null;
   /** The ranges the page named: credits to skip, parts that must not play. */
   readonly markers: Markers;
+  /** Where the programme's ad breaks are, for the seek bar, by owner. */
+  readonly breaks: BreakMarks;
   /** What the current load resolved to, with what a connector said of the programme; null without one. */
   readonly programme: Programme | null;
   /** The sources to load when there is no `src` attribute; setting it loads them. */
@@ -72,6 +75,12 @@ export interface PlayerHost extends HTMLElement {
   selectVideoSource(track: SourceVideoTrack | null): void;
   /** Loads another source of the same programme in place, holding the frame and the controls. */
   switchSource(source: Source): void;
+  /** Plays a source in the programme's place, such as an ad; no `sourcechange` fires. */
+  interrupt(source: Source): Promise<void>;
+  /** Plays the programme again where `interrupt` left it. */
+  resume(options?: { readonly at?: number | null; readonly playing?: boolean }): Promise<void>;
+  /** `interrupt` plays in the programme's place. */
+  readonly interrupted: boolean;
   /** The language tag the words come from, or empty for English. */
   readonly locale: string;
   /**
@@ -80,6 +89,25 @@ export interface PlayerHost extends HTMLElement {
    * the words change.
    */
   message(id: keyof Messages): string | undefined;
+}
+
+/**
+ * A package that adds to every player: the engine stages it needs, which
+ * join whatever stack the player builds, and what it does on each player.
+ * `@mattebox/player-ads` is one: it adds the `interstitials` stage and
+ * draws the ad controls.
+ */
+export interface PlayerAddon {
+  readonly name: string;
+  /** Fresh stages for each engine. A stage the stack has already, by name, is not added twice. */
+  stages?(): readonly Stage[];
+  /**
+   * The add-on needs the engine: where MediaSource plays HLS, Safari's own
+   * HLS is not preferred, since it reports nothing the add-on reads.
+   */
+  readonly engine?: boolean;
+  /** Runs when a player connects, and the function it returns when it leaves the page. */
+  attach?(player: PlayerHost): (() => void) | undefined;
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */
