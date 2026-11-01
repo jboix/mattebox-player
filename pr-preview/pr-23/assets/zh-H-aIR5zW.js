@@ -1,0 +1,1 @@
+var e={diagnostics:`诊断`,diagnosticsCopy:`复制报告`,diagnosticsCopied:`已复制`,diagnosticsClose:`关闭`};export{e as default};
