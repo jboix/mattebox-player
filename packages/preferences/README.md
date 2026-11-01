@@ -15,6 +15,8 @@ The viewer's preferences for the
 npm install @mattebox/player-preferences @mattebox/player mattebox
 ```
 
+The package needs mattebox 0.17.
+
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8" controls="custom">
   <mbx-preferences storage-key="my-site"></mbx-preferences>

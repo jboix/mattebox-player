@@ -17,6 +17,8 @@ The import registers the element.
 npm install @mattebox/player-diagnostics @mattebox/player mattebox
 ```
 
+The package needs mattebox 0.17.
+
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8" controls="custom">
   <mbx-control-bar>
