@@ -1,1 +1,0 @@
-var e={castStart:`Transmitir para a TV`,castStop:`Parar a transmissão`,castingTo:`A transmitir para {device}`};export{e as default};

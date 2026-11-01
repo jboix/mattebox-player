@@ -1,1 +1,0 @@
-var e={playlist:`قائمة التشغيل`,playlistPrevious:`السابق`,playlistNext:`التالي`,playlistClose:`إغلاق`,playlistShuffle:`عشوائي`,playlistRepeatAll:`تكرار الكل`,playlistRepeatOne:`تكرار واحد`,playlistRepeatOff:`إيقاف التكرار`,upNext:`يُعرض تاليًا`,upNextPlay:`الحلقة التالية`,upNextDismiss:`إغلاق`,upNextCountdown:`خلال {seconds} ث`};export{e as default};

@@ -1,1 +1,0 @@
-var e={castStart:`投放到电视`,castStop:`停止投放`,castingTo:`正在投放到 {device}`};export{e as default};
