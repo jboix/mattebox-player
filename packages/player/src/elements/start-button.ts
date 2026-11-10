@@ -1,13 +1,13 @@
 /**
  * <mbx-start-button>: the large play in the middle of the picture, shown
  * while the video is paused, a replay once it has ended, gone while it
- * plays, while a fatal error is on screen, and while the seek bar holds
- * the video paused for a drag (the player carries `scrubbing`). Through a
- * switch to another source it keeps the state from before. It sits in the player
- * beside the video, not in the bar, so it is over the poster and inside
- * fullscreen, and gone while the player waits for data, where the spinner
- * takes the centre. The glyph is `icon-play` or `icon-replay`, the name
- * `label-play` or `label-replay`.
+ * plays and while a fatal error is on screen. A drag on the seek bar (the
+ * player carries `scrubbing`) and a switch to another source keep the
+ * state from before, so a seek while paused keeps it in place, and a seek
+ * while playing never shows it. It sits in the player beside the video,
+ * not in the bar, so it is over the poster and inside fullscreen. While the
+ * video plays and waits for data, the spinner takes the centre. The glyph
+ * is `icon-play` or `icon-replay`, the name `label-play` or `label-replay`.
  */
 import type { PlayerError } from '@mattebox/player-core';
 import { icon } from '../controls/icons.js';
@@ -142,12 +142,9 @@ export class MbxStartButton extends Component {
         ? this.word('label-play', 'play', 'Play')
         : this.word('label-replay', 'replay', 'Replay'),
     );
-    // The player reflects `waiting` first: it listens from its constructor.
+    // A wait while paused, such as a seek, keeps the button: the spinner
+    // shows only while the video plays.
     const player = this.player;
-    this.hidden =
-      this.failed ||
-      (player !== null && !shownPaused(player, ['switching'])) ||
-      player?.hasAttribute('waiting') === true ||
-      player?.hasAttribute('scrubbing') === true;
+    this.hidden = this.failed || (player !== null && !shownPaused(player));
   }
 }

@@ -1,21 +1,23 @@
 /**
- * <mbx-spinner>: shows while the video waits for data, and nothing else. It
- * sits in the player beside the video, centred over the picture, so it is
- * over the poster and inside fullscreen. It reads the video's `waiting`,
- * `playing`, `canplay` and `emptied`, the same events the
- * player's `waiting` attribute comes from, and carries `waiting` on itself
- * so its stylesheet shows it. It takes the start button's place: a thin
- * ring turns there, a white head on a faint track, in the same monochrome
- * as the controls. The glyph is the `icon` slot, for a page's own; the
- * name comes from `label`.
+ * <mbx-spinner>: shows while the video plays and waits for data. A wait
+ * while paused, such as a seek, leaves the start button in place. A drag on
+ * the seek bar and a switch to another source count as the state from
+ * before, as they do for the play buttons. It sits in the player beside the
+ * video, centred over the picture, so it is over the poster and inside
+ * fullscreen. It reads the video's `waiting`, `playing`, `canplay`,
+ * `emptied`, `play` and `pause`, and carries `waiting` on itself so its
+ * stylesheet shows it. It takes the start button's place: a thin ring
+ * turns there, a white head on a faint track, in the same monochrome as the
+ * controls. The glyph is the `icon` slot, for a page's own; the name comes
+ * from `label`.
  */
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
-import { style } from './shared.js';
+import { HELD, shownPaused, style } from './shared.js';
 import STYLE from './spinner.css?inline';
 
 /** What the video fires as it waits and as it goes on. */
-const EVENTS = ['waiting', 'playing', 'canplay', 'emptied'];
+const EVENTS = ['waiting', 'playing', 'canplay', 'emptied', 'play', 'pause'];
 
 export class MbxSpinner extends Component {
   static get observedAttributes(): readonly string[] {
@@ -50,6 +52,9 @@ export class MbxSpinner extends Component {
     this.listen(video, EVENTS, () => {
       this.render();
     });
+    this.observe(player, HELD, () => {
+      this.render();
+    });
     this.render();
   }
 
@@ -63,6 +68,6 @@ export class MbxSpinner extends Component {
     this.setAttribute('aria-label', this.word('label', 'loading', 'Loading'));
     // The player reflects the same events, and reads them first: it listens
     // from its constructor, before any control attaches.
-    this.toggleAttribute('waiting', player.hasAttribute('waiting'));
+    this.toggleAttribute('waiting', player.hasAttribute('waiting') && !shownPaused(player));
   }
 }

@@ -12,7 +12,9 @@
  * the element draws nothing.
  *
  * Shown while the video is paused, which includes before the first play,
- * and hidden while it plays. The element carries `playing` for that rule,
+ * and hidden while it plays. A drag on the seek bar and a switch to another
+ * source keep the state from before, so a seek while playing never shows
+ * it. The element carries `playing` for that rule,
  * so a page changes it in CSS: `mattebox-player[started] mbx-title
  * { display: none }` keeps it to the time before the first play, like the
  * poster, and `mattebox-player:hover mbx-title { display: flex }` brings it
@@ -26,7 +28,7 @@
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { Component } from './component.js';
-import { shownPaused, style } from './shared.js';
+import { HELD, shownPaused, style } from './shared.js';
 import STYLE from './title.css?inline';
 
 export class MbxTitle extends Component {
@@ -58,7 +60,7 @@ export class MbxTitle extends Component {
     this.listen(player.video, ['play', 'pause', 'ended', 'emptied'], () => {
       this.state(player);
     });
-    this.observe(player, ['switching'], () => {
+    this.observe(player, HELD, () => {
       this.state(player);
     });
     this.listen(player, ['programmechange'], () => {
@@ -88,8 +90,8 @@ export class MbxTitle extends Component {
 
   /** `playing` on the element, for its own stylesheet and the page's. */
   private state(player: PlayerHost): void {
-    // A switch to another source of the same programme is no pause.
-    this.toggleAttribute('playing', !shownPaused(player, ['switching']));
+    // The pause of a drag or of a switch to another source is no pause.
+    this.toggleAttribute('playing', !shownPaused(player));
   }
 
   /** The height of the bar's rows: its box less the padding above them, which is its fade. Zero without a bar. */

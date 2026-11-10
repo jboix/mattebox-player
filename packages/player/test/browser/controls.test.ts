@@ -1770,6 +1770,53 @@ describe('the seek bar', () => {
     expect(player.video.currentTime).toBeCloseTo(6, 0);
   });
 
+  it('never shows the title or the start button for a seek while playing', async () => {
+    const player = await ready(10);
+    const title = document.createElement('mbx-title');
+    title.setAttribute('heading', 'The rodents');
+    player.append(title);
+    await player.video.play();
+    await expect.poll(() => title.hasAttribute('playing')).toBe(true);
+    const start = control(player, 'mbx-start-button');
+    const seen: string[] = [];
+    const watch = new MutationObserver(() => {
+      if (!title.hasAttribute('playing')) seen.push('title');
+      if (!start.hidden) seen.push('start');
+    });
+    watch.observe(title, { attributes: true });
+    watch.observe(start, { attributes: true });
+    const element = control(player, 'mbx-seek-bar');
+    const seeked = once(player.video, 'seeked');
+    pointer(element, 'pointerdown', 0.2);
+    pointer(element, 'pointerup', 0.2, 0);
+    await seeked;
+    expect(player.video.paused).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    watch.disconnect();
+    expect(seen).toEqual([]);
+  });
+
+  it('keeps the start button for a seek while paused', async () => {
+    const player = await ready(10);
+    const start = control(player, 'mbx-start-button');
+    expect(start.hidden).toBe(false);
+    let hidden = false;
+    const watch = new MutationObserver(() => {
+      if (start.hidden) hidden = true;
+    });
+    watch.observe(start, { attributes: true });
+    const element = control(player, 'mbx-seek-bar');
+    const seeked = once(player.video, 'seeked');
+    pointer(element, 'pointerdown', 0.5);
+    expect(player.getAttribute('scrubbing')).toBe('paused');
+    pointer(element, 'pointerup', 0.5, 0);
+    await seeked;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    watch.disconnect();
+    expect(hidden).toBe(false);
+    expect(player.video.paused).toBe(true);
+  });
+
   it('seeks once for a click, which writes on the press and again on the release', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');

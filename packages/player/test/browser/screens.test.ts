@@ -92,11 +92,12 @@ describe('<mbx-title>', () => {
 });
 
 describe('<mbx-spinner>', () => {
-  it('shows while the video waits for data, and names itself', async () => {
+  it('shows while the video plays and waits for data, and names itself', async () => {
     const { player, spinner } = await mount();
     const video = player.video;
     expect(spinner.getAttribute('aria-label')).toBe('Loading');
     expect(getComputedStyle(spinner).display).toBe('none');
+    await video.play();
 
     video.dispatchEvent(new Event('waiting'));
     expect(player.hasAttribute('waiting')).toBe(true);
@@ -115,16 +116,24 @@ describe('<mbx-spinner>', () => {
     expect(spinner.hasAttribute('waiting')).toBe(false);
   });
 
-  it('takes the centre from the start button while the video waits', async () => {
-    const { player } = await mount();
+  it('leaves the centre to the start button while a paused video waits, as for a seek', async () => {
+    const { player, spinner } = await mount();
     const start = document.createElement('mbx-start-button');
     player.append(start);
     await settled();
     expect(start.hidden).toBe(false);
     player.video.dispatchEvent(new Event('waiting'));
-    expect(start.hidden).toBe(true);
-    player.video.dispatchEvent(new Event('canplay'));
+    expect(player.hasAttribute('waiting')).toBe(true);
     expect(start.hidden).toBe(false);
+    expect(spinner.hasAttribute('waiting')).toBe(false);
+
+    // Playing, a wait gives the centre to the spinner.
+    await player.video.play();
+    player.video.dispatchEvent(new Event('waiting'));
+    expect(start.hidden).toBe(true);
+    expect(spinner.hasAttribute('waiting')).toBe(true);
+    player.video.dispatchEvent(new Event('playing'));
+    expect(spinner.hasAttribute('waiting')).toBe(false);
   });
 
   it('takes the words and the glyph the page gives', async () => {
@@ -136,6 +145,7 @@ describe('<mbx-spinner>', () => {
     spinner.append(glyph);
     await settled();
     expect(spinner.shadowRoot?.querySelector<HTMLElement>('[part~="ring"]')?.hidden).toBe(true);
+    await player.video.play();
     player.video.dispatchEvent(new Event('waiting'));
     expect(getComputedStyle(spinner).display).toBe('block');
   });
