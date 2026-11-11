@@ -51,6 +51,9 @@ export class MbxQualityMenu extends MenuElement {
       const offs = [
         () => player.video.removeEventListener('timeupdate', clock),
         engine.on('tracks:changed', tick),
+        // A switch of the video track, such as to the I-frame track for a
+        // scrub and back, changes the renditions without changing the list.
+        engine.on('tracks:selected', tick),
         engine.on('quality:constraints-unsatisfiable', tick),
         engine.on('quality:pin-unsatisfiable', tick),
       ];

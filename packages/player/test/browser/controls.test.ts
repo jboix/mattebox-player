@@ -2472,7 +2472,7 @@ describe('tooltips', () => {
   });
 });
 
-describe('the quality menu under Auto', () => {
+describe('the quality menu', () => {
   it('names what plays in the Auto row, and stops once a quality is pinned', async () => {
     const rendition = (id: string, height: number) => ({
       id,
@@ -2513,6 +2513,45 @@ describe('the quality menu under Auto', () => {
     quality.pinned = 'v-1080';
     player.video.dispatchEvent(new Event('timeupdate'));
     expect(auto()).toBeNull();
+  });
+
+  it('comes back after a switch of the video track, such as a scrub, under a pin', async () => {
+    const rendition = (id: string, height: number) => ({
+      id,
+      bitrate: height * 5000,
+      width: Math.round((height * 16) / 9),
+      height,
+      codecs: 'avc1.640028',
+      mimeType: 'video/mp4',
+      segments: [],
+    });
+    const high = rendition('v-1080', 1080);
+    const low = rendition('v-720', 720);
+    const quality = {
+      renditions: [high, low],
+      selectable: [high, low] as (typeof high)[],
+      pinned: 'v-720' as string | null,
+      playing: null,
+      auto() {},
+      pin() {},
+    };
+    const events = new Map<string, Set<() => void>>();
+    const engine = { ...fakeEngine({ events }), quality } as unknown as Mattebox;
+    const player = await over([fakeHandler(engine)], { muted: '' });
+    await media(player.video).metadata(10);
+    const menu = control(player, 'mbx-quality-menu');
+    const selected = (): void => {
+      for (const fn of events.get('tracks:selected') ?? []) fn();
+    };
+    expect(menu.hidden).toBe(false);
+    // To the I-frame track: no rendition of the main track is selectable.
+    quality.selectable = [];
+    selected();
+    expect(menu.hidden).toBe(true);
+    // Back to the main track. Under a pin the clock draws nothing new.
+    quality.selectable = [high, low];
+    selected();
+    expect(menu.hidden).toBe(false);
   });
 });
 
