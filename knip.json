@@ -10,7 +10,8 @@
         "demo/src/ads.ts",
         "scripts/*.mjs",
         "scripts/lib/inline-css.mjs",
-        "test/e2e/**/*.ts"
+        "test/e2e/**/*.ts",
+        "test/stuck-reporter.ts"
       ],
       "project": ["demo/src/**/*.ts", "scripts/**/*.mjs", "test/**/*.ts", "*.ts"],
       "ignoreDependencies": [

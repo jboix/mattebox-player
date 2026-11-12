@@ -36,6 +36,12 @@ function browserProject(browser: Browser, order: number, exclude: string[] = [])
 export default defineConfig({
   resolve: { alias },
   test: {
+    // On the runner, a test that never ends is named and fails the run in
+    // a minute, where the step's own timeout would say nothing.
+    reporters:
+      process.env.GITHUB_ACTIONS === 'true'
+        ? ['default', 'github-actions', './test/stuck-reporter.ts']
+        : ['default'],
     coverage: {
       provider: 'v8',
       include: ['packages/*/src/**'],
