@@ -1,1 +1,0 @@
-import{t as e}from"./define-DkRB0O_1.js";var t=e(`kernel`,()=>[]);export{t as default};
