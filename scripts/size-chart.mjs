@@ -1,14 +1,19 @@
 #!/usr/bin/env node
-// Renders docs/size-chart-{dark,light}.svg: the player over the engine's full
-// preset against the other player stacks with the same reach (a UI, HLS and
-// DASH). Every stack is bundled the same way, from its npm packages by
-// rolldown, one entry per stack, then min+gzip. A stack's stylesheets
-// count too, as its package ships them: a page cannot show the player
-// without them. Mattebox and Media Chrome keep their styles inside their
-// JavaScript, so their rows always held them. The Mattebox row is the workspace build; the
-// other stacks are pinned npm versions, installed at run time into
-// scripts/size-chart/, whose lockfile pins their dependencies too. Bump a
-// version here to move its bar; the lockfile follows on the next run.
+// Renders two charts, each in a dark and a light SVG, from the same method.
+// Every stack is bundled from its npm packages by rolldown, one entry per
+// stack, then min+gzip at level 9. A stack's stylesheets count too, as its
+// package ships them: a page cannot show the player without them. Mattebox
+// and video.js 10 keep their styles inside their JavaScript.
+//
+// - docs/size-chart-*.svg: a UI with HLS and DASH, MPEG-TS and DRM. The
+//   player runs the engine's full preset.
+// - docs/hls-chart-*.svg: a UI with HLS and fMP4 segments only, the reach of
+//   SPF, video.js 10's own engine. The player runs the `hls` preset.
+//
+// The Mattebox rows are the workspace build. The other stacks are pinned npm
+// versions, installed at run time into scripts/size-chart/, whose lockfile
+// pins their dependencies too. Bump a version here to move its bar; the
+// lockfile follows on the next run.
 //
 //   npm run build && npm run size-chart
 //   npm run size-chart -- --verbose   # lists the chunks each row counts
@@ -36,7 +41,26 @@ const VERBOSE = process.argv.includes('--verbose');
  * versions. `styles` names the stylesheets a page links for the stack,
  * as paths under its node_modules.
  */
-const STACKS = [
+/**
+ * The video.js 10 packages every row of it installs. One version for all,
+ * because the packages release together.
+ */
+const VIDEOJS = '10.4.0';
+
+/** The video.js 10 player and its default skin. The skin carries its CSS inline. */
+const VIDEOJS_PLAYER = [
+  "import '@videojs/html/video/player';",
+  "import '@videojs/html/video/skin';",
+];
+
+/** One lazy chunk per locale; a page loads at most the browser's. */
+const VIDEOJS_LOCALES = /[\\/]@videojs[\\/](core|html)[\\/].*[\\/]i18n[\\/]locales[\\/]/;
+
+/**
+ * The full chart: one row per stack with a UI, HLS and DASH, MPEG-TS and
+ * DRM. The Mattebox row is the full preset, the same reach.
+ */
+const FULL = [
   {
     label: 'mattebox player',
     detail: (version) => `+ mattebox v${version('mattebox')}, full preset`,
@@ -47,36 +71,22 @@ const STACKS = [
     skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!full[\\/])/,
   },
   {
-    // VHS is built into video.js 8 and covers both protocols.
-    label: 'video.js 8 + vhs',
-    detail: 'VHS built in',
-    version: 'video.js',
-    install: { 'video.js': '8.24.0' },
-    entry: "import 'video.js';",
-    styles: ['video.js/dist/video-js.min.css'],
-  },
-  {
-    // Video.js 10 is custom elements over hls.js and dash.js: the video
-    // player, its skin and the two media elements, each from the `define`
-    // entry that registers it (the preset root only exports the classes).
-    // A release candidate until its GA.
+    // Video.js 10 plays DASH, MPEG-TS and DRM through hls.js and dash.js,
+    // each behind a media element of its own.
     label: 'video.js 10 + hls.js + dash.js',
     detail: 'skin, hlsjs- and dash-video',
     version: '@videojs/html',
     install: {
-      '@videojs/html': '10.0.0-rc.2',
-      '@videojs/hlsjs-video': '10.0.0-rc.2',
-      '@videojs/dash-video': '10.0.0-rc.2',
+      '@videojs/html': VIDEOJS,
+      '@videojs/hlsjs-video': VIDEOJS,
+      '@videojs/dash-video': VIDEOJS,
     },
     entry: [
-      "import '@videojs/html/video/player';",
-      "import '@videojs/html/video/skin';",
+      ...VIDEOJS_PLAYER,
       "import '@videojs/html/media/hlsjs-video';",
       "import '@videojs/html/media/dash-video';",
     ].join('\n'),
-    // One lazy chunk per locale; a page loads at most the browser's.
-    skip: /[\\/]@videojs[\\/]core[\\/].*[\\/]i18n[\\/]locales[\\/]/,
-    styles: ['@videojs/html/dist/default/define/video/skin.css'],
+    skip: VIDEOJS_LOCALES,
   },
   {
     // The ui build carries the engine and the controls in one file. The
@@ -87,45 +97,6 @@ const STACKS = [
     install: { 'shaka-player': '5.2.10' },
     entry: "import 'shaka-player/dist/shaka-player.ui.js';",
     styles: ['shaka-player/dist/controls.css'],
-  },
-  {
-    // Vidstack loads hls.js and dash.js from a CDN at run time; a bundled
-    // page passes the imported libraries instead. Their bytes count either
-    // way. Its captions renderer is a lazy chunk and counts.
-    label: 'vidstack + hls.js + dash.js',
-    detail: 'default layout',
-    version: 'vidstack',
-    install: { vidstack: '1.15.6', 'hls.js': '1.7.3', dashjs: '5.2.1' },
-    entry: [
-      "import 'vidstack/player';",
-      "import 'vidstack/player/layouts/default';",
-      "import 'vidstack/player/ui';",
-      "import 'hls.js';",
-      "import 'dashjs';",
-    ].join('\n'),
-    // The providers an HLS or DASH page never loads.
-    skip: /[\\/]vidstack[\\/].*[\\/]providers[\\/]vidstack-(youtube|vimeo|google-cast|audio)\.js$/,
-    styles: [
-      'vidstack/player/styles/default/theme.css',
-      'vidstack/player/styles/default/layouts/video.css',
-    ],
-  },
-  {
-    // The controls, and the two elements that put hls.js and dash.js
-    // behind a <video>.
-    label: 'media chrome + hls.js + dash.js',
-    detail: 'hls- and dash-video-element',
-    version: 'media-chrome',
-    install: {
-      'media-chrome': '4.19.2',
-      'hls-video-element': '1.5.11',
-      'dash-video-element': '0.3.2',
-    },
-    entry: [
-      "import 'media-chrome';",
-      "import 'hls-video-element';",
-      "import 'dash-video-element';",
-    ].join('\n'),
   },
   {
     // A commercial player. Its package is one prebuilt file with every
@@ -156,12 +127,37 @@ const STACKS = [
 ];
 
 /**
+ * The HLS chart: a UI and HLS with fMP4 segments, without MPEG-TS, DRM or
+ * DASH. That is what SPF, video.js 10's own engine, plays. The Mattebox
+ * row is the `hls` preset, the same reach.
+ */
+const HLS = [
+  {
+    label: 'mattebox player',
+    detail: (version) => `+ mattebox v${version('mattebox')}, hls preset`,
+    highlight: true,
+    entry: "import '@mattebox/player';",
+    skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!hls[\\/])/,
+  },
+  {
+    // `hls-video` is the media element over SPF. It plays no MPEG-TS and
+    // no DRM: video.js points those sources to `hlsjs-video`.
+    label: 'video.js 10 + spf',
+    detail: 'skin, hls-video',
+    version: '@videojs/html',
+    install: { '@videojs/html': VIDEOJS },
+    entry: [...VIDEOJS_PLAYER, "import '@videojs/html/media/hls-video';"].join('\n'),
+    skip: VIDEOJS_LOCALES,
+  },
+];
+
+/**
  * Installs the pinned packages. The lockfile holds their dependencies still
  * between runs; npm rewrites it only when a version here moves.
  */
 function installOthers() {
   const dependencies = {};
-  for (const stack of STACKS) Object.assign(dependencies, stack.install);
+  for (const stack of [...FULL, ...HLS]) Object.assign(dependencies, stack.install);
   mkdirSync(STACKS_DIR, { recursive: true });
   writeFileSync(
     join(STACKS_DIR, 'package.json'),
@@ -246,9 +242,10 @@ async function stackBytes(stack) {
   return bytes;
 }
 
-async function rows() {
+/** Measures each stack of a chart, in the order given. */
+async function rows(stacks) {
   const out = [];
-  for (const stack of STACKS) {
+  for (const stack of stacks) {
     const version = (pkg) => installedVersion(stack.install === undefined ? ROOT : STACKS_DIR, pkg);
     out.push({
       label: stack.label,
@@ -336,24 +333,40 @@ function render(rows, theme, { title, subtitle, ariaLabel, tick }) {
 }
 
 installOthers();
-const all = await rows();
-const chart = {
-  file: 'size-chart',
-  rows: [all[0], ...all.slice(1).sort((a, b) => a.bytes - b.bytes)],
-  title: 'Video player size, HLS and DASH',
-  subtitle:
-    'min+gzip · KB · each stack bundled from npm the same way, with its styles (lower is better)',
-  ariaLabel: 'Bundle size of video players with HLS and DASH playback, min+gzip, lower is better',
-  tick: 100,
-};
+const SUBTITLE =
+  'min+gzip · KB · each stack bundled from npm the same way, with its styles (lower is better)';
+const CHARTS = [
+  {
+    file: 'size-chart',
+    stacks: FULL,
+    title: 'Video player size, HLS and DASH',
+    subtitle: SUBTITLE,
+    ariaLabel: 'Bundle size of video players with HLS and DASH playback, min+gzip, lower is better',
+    tick: 100,
+  },
+  {
+    file: 'hls-chart',
+    stacks: HLS,
+    title: 'Video player size, HLS with fMP4 segments',
+    subtitle: SUBTITLE,
+    ariaLabel:
+      'Bundle size of video players with HLS playback of fMP4 segments, min+gzip, lower is better',
+    tick: 25,
+  },
+];
 mkdirSync(OUT, { recursive: true });
-for (const theme of Object.keys(THEMES)) {
-  const path = join(OUT, `${chart.file}-${theme}.svg`);
-  writeFileSync(path, render(chart.rows, theme, chart));
-  console.log(`wrote ${path}`);
-}
-for (const row of chart.rows) {
-  console.log(
-    `${row.label.padEnd(32)} ${row.version.padEnd(9)} ${fmt(row.bytes).padStart(10)}  (${row.detail})`,
-  );
+for (const chart of CHARTS) {
+  const all = await rows(chart.stacks);
+  // Mattebox first, the others from the smallest up.
+  const sorted = [all[0], ...all.slice(1).sort((a, b) => a.bytes - b.bytes)];
+  for (const theme of Object.keys(THEMES)) {
+    const path = join(OUT, `${chart.file}-${theme}.svg`);
+    writeFileSync(path, render(sorted, theme, chart));
+    console.log(`wrote ${path}`);
+  }
+  for (const row of sorted) {
+    console.log(
+      `${row.label.padEnd(32)} ${row.version.padEnd(9)} ${fmt(row.bytes).padStart(10)}  (${row.detail})`,
+    );
+  }
 }

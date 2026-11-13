@@ -48,14 +48,35 @@ elements.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">
-  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript and styles. Mattebox player with the engine's full preset is 107.9 KB, video.js 8 with VHS 211.6 KB, Shaka Player with its UI 329.9 KB, Media Chrome with hls.js and dash.js 449.3 KB, video.js 10 with hls.js and dash.js 474.1 KB, Vidstack with hls.js and dash.js 524.3 KB, Bitmovin Player 662.6 KB, THEOplayer 721.1 KB." src="docs/size-chart-light.svg">
+  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript and styles. Mattebox player with the engine's full preset is 124.3 KB, Shaka Player with its UI 329.9 KB, video.js 10 with hls.js and dash.js 501.7 KB, Bitmovin Player 662.5 KB, THEOplayer 721.1 KB." src="docs/size-chart-light.svg">
 </picture>
 
-The chart bundles every stack from its npm packages in the same way, and
-counts the stylesheets a page links for it. Bitmovin Player and THEOplayer
-are commercial: their rows are the full bundle each package ships, and both
-vendors also sell a smaller modular build. `npm run size-chart` regenerates
-the chart, and `--verbose` lists what each row counts.
+The chart bundles every stack from its npm packages in the same way:
+rolldown minifies it, and gzip compresses it at level 9. It counts the
+stylesheets a page links for a stack. Every row plays HLS and DASH, MPEG-TS
+and DRM. Video.js 10 does this through hls.js and dash.js. Bitmovin Player
+and THEOplayer are commercial: their rows are the full bundle each package
+ships, and both vendors also sell a smaller modular build.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hls-chart-dark.svg">
+  <img alt="Bundle size of video players with HLS playback of fMP4 segments, min+gzip, JavaScript and styles. Mattebox player with the engine's hls preset is 108.1 KB, video.js 10 with SPF 119.7 KB." src="docs/hls-chart-light.svg">
+</picture>
+
+The second chart compares the reach of SPF, video.js 10's own engine: HLS
+with fMP4 segments, without MPEG-TS, DRM or DASH. The player runs the
+engine's `hls` preset, and video.js 10 its `hls-video` element. Both rows
+are the HTML player with its default skin, measured as above.
+
+[videojs.org](https://videojs.org) states a smaller figure. Its
+[snapshot script](https://github.com/videojs/video.js/blob/main/site/scripts/snapshot-bundle-sizes.mjs)
+measures the React preset with a plain `<video>`, so the figure plays no
+HLS and no DASH. The
+[measurement](https://github.com/videojs/video.js/blob/main/.github/scripts/bundle-size.js)
+leaves out React, a peer dependency, and compresses with brotli at quality 11.
+
+`npm run size-chart` regenerates both charts, and `--verbose` lists what
+each row counts.
 
 ## Quick start
 

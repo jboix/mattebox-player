@@ -50,7 +50,7 @@
     "check:emit": "node scripts/check-emit.mjs",
     "check:side-effects": "node scripts/side-effect-audit.mjs",
     "check:package": "npm run check:package --workspaces",
-    "check:size-chart": "npm run size-chart && git diff --exit-code --stat -- docs/size-chart-*.svg",
+    "check:size-chart": "npm run size-chart && git diff --exit-code --stat -- docs/size-chart-*.svg docs/hls-chart-*.svg",
     "size-chart": "node scripts/size-chart.mjs",
     "demo": "vite demo",
     "demo:build": "vite build demo",
