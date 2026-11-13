@@ -75,8 +75,12 @@ import {
  */
 const NATIVE_HLS = 'native-hls';
 
-/** Attributes forwarded onto the video as attributes, never as properties. */
-const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin'];
+/**
+ * Attributes forwarded onto the video as attributes, never as properties.
+ * `disablepictureinpicture` also hides the browser's own picture-in-picture
+ * toggle, which Firefox draws over every video that lacks it.
+ */
+const FORWARDED = ['autoplay', 'muted', 'poster', 'crossorigin', 'disablepictureinpicture'];
 
 const LICENSE_URL = 'license-url';
 

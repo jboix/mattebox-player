@@ -1,6 +1,7 @@
 /**
  * <mbx-pip-button>: picture in picture, through whichever API the browser
- * has, and hidden where there is none. The glyph is `icon-enter` or
+ * has, and hidden where there is none or the player has
+ * `disablepictureinpicture`. The glyph is `icon-enter` or
  * `icon-exit`, the name `label-enter` or `label-exit`, and the element
  * sets `pip` on the player while the video is in the floating window.
  */
@@ -43,7 +44,6 @@ export class MbxPipButton extends Component {
   protected override attach(player: PlayerHost): void {
     const api = pictureInPicture(player.video);
     this.api = api;
-    this.hidden = !api.supported;
     this.keep(
       api.watch(() => {
         this.render();
@@ -61,6 +61,8 @@ export class MbxPipButton extends Component {
     const player = this.player;
     if (player === null || this.api === null) return;
     const active = this.api.active();
+    // While the video floats the button stays, so the viewer can bring it back.
+    this.hidden = !this.api.supported || (!this.api.allowed() && !active);
     show(this.slots, active ? 'exit' : 'enter');
     this.button.setAttribute(
       'aria-label',

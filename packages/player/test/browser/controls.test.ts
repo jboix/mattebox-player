@@ -1184,6 +1184,23 @@ describe('the picture-in-picture button', () => {
     expect(player.hasAttribute('pip')).toBe(true);
     delete (document as { pictureInPictureElement?: unknown }).pictureInPictureElement;
   });
+
+  it('hides while the player has disablepictureinpicture, and shows again without it', async () => {
+    const player = await custom();
+    const button = control(player, 'mbx-pip-button');
+    const video: object = player.video;
+    const supported =
+      ('requestPictureInPicture' in video && document.pictureInPictureEnabled) ||
+      'webkitSetPresentationMode' in video;
+    if (!supported) return;
+    player.setAttribute('disablepictureinpicture', '');
+    // The attribute reaches the button through a mutation observer, a microtask later.
+    await Promise.resolve();
+    expect(button.hidden).toBe(true);
+    player.removeAttribute('disablepictureinpicture');
+    await Promise.resolve();
+    expect(button.hidden).toBe(false);
+  });
 });
 
 describe('markers', () => {

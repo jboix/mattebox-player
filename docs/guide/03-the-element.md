@@ -6,28 +6,29 @@ over the picture under `controls="custom"`.
 
 ## Attributes
 
-| Attribute             | What it does                                                                                                                                                                 |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src`                 | Sets the source URL. A new value loads the new source. The same value again loads it again                                                                                   |
-| `type`                | Sets the MIME type of the source. Optional when the extension is known                                                                                                       |
-| `preset`              | Names the engine preset. The default is `full`                                                                                                                               |
-| `license-url`         | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
-| `certificate-url`     | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
-| `native-hls`          | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
-| `tooltips`            | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
-| `announce`            | `off` silences the live region, for a page that announces changes itself. See [Labels](#labels)                                                                              |
-| `language`            | Names the language of the words, over the nearest `lang`. See [Languages](#languages). Changing it never reloads                                                             |
-| `thumbnails`          | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
-| `chapters`            | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
-| `controls`            | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
-| `subtitle-size`       | Sets the subtitle size: `small`, `medium`, `large` or `xlarge`. The subtitles menu writes it. The default is `medium`                                                        |
-| `subtitle-background` | Sets the subtitle background: `none`, `dark` or `solid`. The default is `dark`                                                                                               |
-| `layout`              | The size tier the controls draw for: `compact`, `regular` or `wide`. The player sets it from its own size. A value you write stays. See [Size tiers](#size-tiers)            |
-| `playsinline`         | Plays inline on an iPhone. On by default. `playsinline="false"` lets the iPhone go to fullscreen on play. Changing it never reloads                                          |
-| `autoplay`            | Copied onto the video as an attribute                                                                                                                                        |
-| `muted`               | Copied onto the video, as an attribute and as the muted state. The player also writes the video's muted state back to it                                                     |
-| `poster`              | Copied onto the video as an attribute                                                                                                                                        |
-| `crossorigin`         | Copied onto the video as an attribute. A chapters track from another origin needs it                                                                                         |
+| Attribute                 | What it does                                                                                                                                                                 |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src`                     | Sets the source URL. A new value loads the new source. The same value again loads it again                                                                                   |
+| `type`                    | Sets the MIME type of the source. Optional when the extension is known                                                                                                       |
+| `preset`                  | Names the engine preset. The default is `full`                                                                                                                               |
+| `license-url`             | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
+| `certificate-url`         | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
+| `native-hls`              | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
+| `tooltips`                | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
+| `announce`                | `off` silences the live region, for a page that announces changes itself. See [Labels](#labels)                                                                              |
+| `language`                | Names the language of the words, over the nearest `lang`. See [Languages](#languages). Changing it never reloads                                                             |
+| `thumbnails`              | Sets a thumbnail track URL. The player gives it to `engine.thumbnails.load`                                                                                                  |
+| `chapters`                | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
+| `controls`                | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
+| `subtitle-size`           | Sets the subtitle size: `small`, `medium`, `large` or `xlarge`. The subtitles menu writes it. The default is `medium`                                                        |
+| `subtitle-background`     | Sets the subtitle background: `none`, `dark` or `solid`. The default is `dark`                                                                                               |
+| `layout`                  | The size tier the controls draw for: `compact`, `regular` or `wide`. The player sets it from its own size. A value you write stays. See [Size tiers](#size-tiers)            |
+| `playsinline`             | Plays inline on an iPhone. On by default. `playsinline="false"` lets the iPhone go to fullscreen on play. Changing it never reloads                                          |
+| `autoplay`                | Copied onto the video as an attribute                                                                                                                                        |
+| `muted`                   | Copied onto the video, as an attribute and as the muted state. The player also writes the video's muted state back to it                                                     |
+| `poster`                  | Copied onto the video as an attribute                                                                                                                                        |
+| `crossorigin`             | Copied onto the video as an attribute. A chapters track from another origin needs it                                                                                         |
+| `disablepictureinpicture` | Copied onto the video as an attribute. The browser's own picture-in-picture toggle, which Firefox draws over the video, goes away, and so does `<mbx-pip-button>`            |
 
 The player reports its state as attributes on itself, for the page's
 stylesheet and for the controls. `mattebox-player[playing]` matches while

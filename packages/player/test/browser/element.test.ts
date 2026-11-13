@@ -188,6 +188,14 @@ describe('<mattebox-player>', () => {
     expect(player.video.hasAttribute('poster')).toBe(false);
   });
 
+  it("forwards disablepictureinpicture, which hides the browser's own toggle", () => {
+    document.body.innerHTML = '<mattebox-player disablepictureinpicture></mattebox-player>';
+    const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
+    expect(player.video.hasAttribute('disablepictureinpicture')).toBe(true);
+    player.removeAttribute('disablepictureinpicture');
+    expect(player.video.hasAttribute('disablepictureinpicture')).toBe(false);
+  });
+
   it('reflects started after the first play, and waiting while data is awaited', () => {
     document.body.innerHTML =
       '<mattebox-player muted src="https://cdn.test/show.mp4"></mattebox-player>';
