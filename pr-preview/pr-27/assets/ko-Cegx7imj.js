@@ -1,1 +1,0 @@
-var e={diagnostics:`진단`,diagnosticsCopy:`보고서 복사`,diagnosticsCopied:`복사됨`,diagnosticsClose:`닫기`};export{e as default};

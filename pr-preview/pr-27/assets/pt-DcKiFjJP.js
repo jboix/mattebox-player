@@ -1,1 +1,0 @@
-var e={diagnostics:`Diagnóstico`,diagnosticsCopy:`Copiar o relatório`,diagnosticsCopied:`Copiado`,diagnosticsClose:`Fechar`};export{e as default};
