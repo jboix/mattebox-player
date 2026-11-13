@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A demo ad of the player demo. The beacons point at the demo itself,
+     and the demo logs them instead of sending them. -->
+<VAST version="4.2">
+  <Ad id="mp4">
+    <InLine>
+      <AdSystem>Mattebox demo</AdSystem>
+      <AdTitle>An MP4 ad, Google's IMA sample</AdTitle>
+      <Impression><![CDATA[https://demo.mattebox.invalid/beacon/mp4/impression?cb=[CACHEBUSTING]]]></Impression>
+      <Error><![CDATA[https://demo.mattebox.invalid/beacon/mp4/error?code=[ERRORCODE]]]></Error>
+      <ViewableImpression>
+        <Viewable><![CDATA[https://demo.mattebox.invalid/beacon/mp4/viewable]]></Viewable>
+        <NotViewable><![CDATA[https://demo.mattebox.invalid/beacon/mp4/not-viewable]]></NotViewable>
+      </ViewableImpression>
+      <Creatives>
+        <Creative id="mp4-video">
+          <Linear skipoffset="00:00:05.000">
+            <Duration>00:00:10.000</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/complete]]></Tracking>
+              <Tracking event="skip"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/skip]]></Tracking>
+              <Tracking event="pause"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/pause]]></Tracking>
+              <Tracking event="resume"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/resume]]></Tracking>
+              <Tracking event="mute"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/mute]]></Tracking>
+              <Tracking event="unmute"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/unmute]]></Tracking>
+              <Tracking event="progress" offset="00:00:02.000"><![CDATA[https://demo.mattebox.invalid/beacon/mp4/progress-2s?ad=[ADPLAYHEAD]]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://github.com/jboix/mattebox-player]]></ClickThrough>
+              <ClickTracking><![CDATA[https://demo.mattebox.invalid/beacon/mp4/click]]></ClickTracking>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="progressive" type="video/mp4" width="1280" height="720"><![CDATA[https://storage.googleapis.com/gvabox/media/samples/stock.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

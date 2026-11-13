@@ -1,0 +1,1 @@
+var e={playlist:`Playlist`,playlistPrevious:`Precedente`,playlistNext:`Successivo`,playlistClose:`Chiudi`,playlistShuffle:`Casuale`,playlistRepeatAll:`Ripeti tutto`,playlistRepeatOne:`Ripeti uno`,playlistRepeatOff:`Ripetizione disattivata`,upNext:`Prossimo`,upNextPlay:`Prossimo episodio`,upNextDismiss:`Chiudi`,upNextCountdown:`tra {seconds} s`};export{e as default};
