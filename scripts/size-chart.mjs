@@ -7,8 +7,8 @@
 //
 // - docs/size-chart-*.svg: a UI with HLS and DASH, MPEG-TS and DRM. The
 //   player runs the engine's full preset.
-// - docs/hls-chart-*.svg: a UI with HLS and fMP4 segments only, the reach of
-//   SPF, video.js 10's own engine. The player runs the `hls` preset.
+// - docs/hls-chart-*.svg: a UI with HLS of fMP4 segments and DRM, the reach
+//   of SPF, video.js 10's own engine. The player runs the `hls-drm` preset.
 //
 // The Mattebox rows are the workspace build. The other stacks are pinned npm
 // versions, installed at run time into scripts/size-chart/, whose lockfile
@@ -68,7 +68,7 @@ const FULL = [
     entry: "import '@mattebox/player';",
     // The element lazy-loads the preset the page names, one chunk each.
     // The `full` chunk is the one on the page's path.
-    skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!full[\\/])/,
+    skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!full[\\/])[^\\/]+[\\/]index\.js$/,
   },
   {
     // Video.js 10 plays DASH, MPEG-TS and DRM through hls.js and dash.js,
@@ -127,21 +127,22 @@ const FULL = [
 ];
 
 /**
- * The HLS chart: a UI and HLS with fMP4 segments, without MPEG-TS, DRM or
- * DASH. That is what SPF, video.js 10's own engine, plays. The Mattebox
- * row is the `hls` preset, the same reach.
+ * The HLS chart: a UI and HLS of fMP4 segments, on demand and live, with
+ * DRM, without MPEG-TS or DASH. That is what SPF, video.js 10's own engine,
+ * plays: its hls-video engine composes a DRM feature (Widevine, PlayReady,
+ * FairPlay). The Mattebox row is the `hls-drm` preset, the same reach.
  */
 const HLS = [
   {
     label: 'mattebox player',
-    detail: (version) => `+ mattebox v${version('mattebox')}, hls preset`,
+    detail: (version) => `+ mattebox v${version('mattebox')}, hls-drm preset`,
     highlight: true,
     entry: "import '@mattebox/player';",
-    skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!hls[\\/])/,
+    skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!hls-drm[\\/])[^\\/]+[\\/]index\.js$/,
   },
   {
-    // `hls-video` is the media element over SPF. It plays no MPEG-TS and
-    // no DRM: video.js points those sources to `hlsjs-video`.
+    // `hls-video` is the media element over SPF. It plays no MPEG-TS:
+    // video.js points those sources to `hlsjs-video`.
     label: 'video.js 10 + spf',
     detail: 'skin, hls-video',
     version: '@videojs/html',

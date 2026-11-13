@@ -60,12 +60,14 @@ ships, and both vendors also sell a smaller modular build.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hls-chart-dark.svg">
-  <img alt="Bundle size of video players with HLS playback of fMP4 segments, min+gzip, JavaScript and styles. Mattebox player with the engine's hls preset is 108.1 KB, video.js 10 with SPF 119.7 KB." src="docs/hls-chart-light.svg">
+  <img alt="Bundle size of video players with HLS playback of fMP4 segments and DRM, min+gzip, JavaScript and styles. Mattebox player with the engine's hls-drm preset is 108.1 KB, video.js 10 with SPF 119.7 KB." src="docs/hls-chart-light.svg">
 </picture>
 
 The second chart compares the reach of SPF, video.js 10's own engine: HLS
-with fMP4 segments, without MPEG-TS, DRM or DASH. The player runs the
-engine's `hls` preset, and video.js 10 its `hls-video` element. Both rows
+with fMP4 segments, on demand and live, and
+[DRM](https://github.com/videojs/video.js/blob/main/packages/spf/src/playback/engines/hls-video.ts),
+without MPEG-TS or DASH. The player runs the engine's `hls-drm` preset, and
+video.js 10 its `hls-video` element. Both rows
 are the HTML player with its default skin, measured as above.
 
 [videojs.org](https://videojs.org) states a smaller figure. Its
