@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A demo ad of the player demo. The beacons point at the demo itself,
+     and the demo logs them instead of sending them. -->
+<VAST version="4.2">
+  <Ad id="stream">
+    <InLine>
+      <AdSystem>Mattebox demo</AdSystem>
+      <AdTitle>A DASH ad from DASH-IF livesim2</AdTitle>
+      <Impression><![CDATA[https://demo.mattebox.invalid/beacon/stream/impression?cb=[CACHEBUSTING]]]></Impression>
+      <Error><![CDATA[https://demo.mattebox.invalid/beacon/stream/error?code=[ERRORCODE]]]></Error>
+      <ViewableImpression>
+        <Viewable><![CDATA[https://demo.mattebox.invalid/beacon/stream/viewable]]></Viewable>
+        <NotViewable><![CDATA[https://demo.mattebox.invalid/beacon/stream/not-viewable]]></NotViewable>
+      </ViewableImpression>
+      <Creatives>
+        <Creative id="stream-video">
+          <Linear>
+            <Duration>00:00:10.000</Duration>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[https://demo.mattebox.invalid/beacon/stream/start]]></Tracking>
+              <Tracking event="firstQuartile"><![CDATA[https://demo.mattebox.invalid/beacon/stream/first-quartile]]></Tracking>
+              <Tracking event="midpoint"><![CDATA[https://demo.mattebox.invalid/beacon/stream/midpoint]]></Tracking>
+              <Tracking event="thirdQuartile"><![CDATA[https://demo.mattebox.invalid/beacon/stream/third-quartile]]></Tracking>
+              <Tracking event="complete"><![CDATA[https://demo.mattebox.invalid/beacon/stream/complete]]></Tracking>
+              <Tracking event="skip"><![CDATA[https://demo.mattebox.invalid/beacon/stream/skip]]></Tracking>
+              <Tracking event="pause"><![CDATA[https://demo.mattebox.invalid/beacon/stream/pause]]></Tracking>
+              <Tracking event="resume"><![CDATA[https://demo.mattebox.invalid/beacon/stream/resume]]></Tracking>
+              <Tracking event="mute"><![CDATA[https://demo.mattebox.invalid/beacon/stream/mute]]></Tracking>
+              <Tracking event="unmute"><![CDATA[https://demo.mattebox.invalid/beacon/stream/unmute]]></Tracking>
+              <Tracking event="progress" offset="00:00:02.000"><![CDATA[https://demo.mattebox.invalid/beacon/stream/progress-2s?ad=[ADPLAYHEAD]]]></Tracking>
+            </TrackingEvents>
+            <VideoClicks>
+              <ClickThrough><![CDATA[https://github.com/jboix/mattebox-player]]></ClickThrough>
+              <ClickTracking><![CDATA[https://demo.mattebox.invalid/beacon/stream/click]]></ClickTracking>
+            </VideoClicks>
+            <MediaFiles>
+              <MediaFile delivery="streaming" type="application/dash+xml" width="1280" height="720"><![CDATA[https://livesim2.dashif.org/vod/ads/namibia_ad/manifest.mpd]]></MediaFile>
+              <MediaFile delivery="progressive" type="video/mp4" width="1280" height="720"><![CDATA[https://storage.googleapis.com/gvabox/media/samples/stock.mp4]]></MediaFile>
+            </MediaFiles>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

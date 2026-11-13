@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The demo's schedule: a DASH pre-roll, an MP4 mid-roll at 30 s, and a DASH post-roll. -->
+<vmap:VMAP xmlns:vmap="http://www.iab.net/videosuite/vmap" version="1.0">
+  <vmap:AdBreak timeOffset="start" breakType="linear" breakId="preroll">
+    <vmap:AdSource id="preroll" allowMultipleAds="false" followRedirects="true">
+      <vmap:AdTagURI templateType="vast4"><![CDATA[vast-stream.xml]]></vmap:AdTagURI>
+    </vmap:AdSource>
+    <vmap:TrackingEvents>
+      <vmap:Tracking event="breakStart"><![CDATA[https://demo.mattebox.invalid/beacon/vmap/preroll-start]]></vmap:Tracking>
+      <vmap:Tracking event="breakEnd"><![CDATA[https://demo.mattebox.invalid/beacon/vmap/preroll-end]]></vmap:Tracking>
+    </vmap:TrackingEvents>
+  </vmap:AdBreak>
+  <vmap:AdBreak timeOffset="00:00:30.000" breakType="linear" breakId="midroll">
+    <vmap:AdSource id="midroll" allowMultipleAds="false" followRedirects="true">
+      <vmap:AdTagURI templateType="vast4"><![CDATA[vast-mp4.xml]]></vmap:AdTagURI>
+    </vmap:AdSource>
+  </vmap:AdBreak>
+  <vmap:AdBreak timeOffset="end" breakType="linear" breakId="postroll">
+    <vmap:AdSource id="postroll" allowMultipleAds="false" followRedirects="true">
+      <vmap:AdTagURI templateType="vast4"><![CDATA[vast-stream.xml]]></vmap:AdTagURI>
+    </vmap:AdSource>
+  </vmap:AdBreak>
+</vmap:VMAP>
