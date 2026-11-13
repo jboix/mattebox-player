@@ -2,9 +2,8 @@
  * The trackers of one player: what the page added, started at each
  * programme and stopped at its end. The page decides which trackers run,
  * and when it adds or removes them; the player only starts and stops them.
- * The lifecycle is pillarbox-apple's `PlayerItemTracker`, enable at the
- * start of an item and disable at its end, without its tracking switch:
- * consent is the page's to decide.
+ * A tracker is enabled at the start of a programme and disabled at its
+ * end. The player has no tracking switch: consent is the page's to decide.
  */
 import type { Programme } from '@mattebox/player-core';
 import type { PlayerHost, Tracker, Trackers } from './host.js';

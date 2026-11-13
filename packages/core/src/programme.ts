@@ -2,9 +2,8 @@
  * The connector step of a load. Each connector source of the list becomes
  * the sources its connector resolves it to, in its place, and a plain
  * source stays as it is. The routing by type is video.js middleware's
- * (`videojs.use(type, …)`); the split between fetching the data and
- * resolving it is pillarbox-apple's asset loader, with one change: data
- * the page already has skips the fetch.
+ * (`videojs.use(type, …)`). Fetching the data and resolving it are two
+ * steps, so data the page already has skips the fetch.
  */
 import type {
   Block,

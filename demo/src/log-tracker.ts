@@ -1,8 +1,8 @@
 /**
  * A tracker that sends nothing: it writes to a list on the page what a
- * media analytics tracker would send, at the moments pillarbox-apple's
- * Commanders Act tracker sends it: play, pause, seek, end, stop, and a
- * heartbeat every 30 seconds of playback. It also shows the mapping a real
+ * media analytics tracker would send, at the moments such a tracker
+ * sends it: play, pause, seek, end, stop, and a heartbeat every 30 seconds
+ * of playback. It also shows the mapping a real
  * tracker does, from each connector's data to its own labels.
  */
 import type { Programme, Tracker } from '@mattebox/player';

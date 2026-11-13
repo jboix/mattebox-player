@@ -207,8 +207,9 @@ its broadcaster's data to a resolution, and its block reasons to words.
 "Show the data" fetches the data and lets you edit it, and "Play this
 data" plays it without a second fetch.
 
-The SRG SSR connector probes the browser's key systems the way
-pillarbox-web does, and sends them to the IL as `drmPlayerCapabilities`.
+The SRG SSR connector probes the browser's key systems, each at the
+highest robustness it grants, and sends them to the IL as
+`drmPlayerCapabilities`.
 The IL then lists only the resources this browser can decrypt.
 
 The connectors live in `demo/src/connectors/`. They are examples, not

@@ -110,7 +110,7 @@ From there, a tracker listens to what it needs: the video's own events
 
 The demo's log tracker lists what a media analytics tracker would send,
 and sends nothing: play, pause, seek, end, stop, and a heartbeat every 30
-seconds, as pillarbox-apple's Commanders Act tracker sends them. It also
+seconds of playback. It also
 shows the labels it would map from the SRG SSR and SVT data.
 
 ## Example

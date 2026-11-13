@@ -4,7 +4,7 @@
  * turns it into sources, with the Akamai token each resource needs, and
  * the title, chapters, credits and block reason. Demo code only: the
  * element never knows where a URL came from. Adapted from the engine's
- * playground, itself adapted from pillarbox-web.
+ * playground.
  */
 
 import type { Block, Connector, Marker, ProgrammeMetadata, Source, Text } from '@mattebox/player';
@@ -82,7 +82,7 @@ export interface IlChapter {
 }
 
 /**
- * The chapters of the main chapter, the way pillarbox-web reads them: only
+ * The chapters of the main chapter: only
  * a video episode has any, and they are the chapters that point into it
  * with the same media type. The IL times are milliseconds into the
  * full-length media; the engine takes seconds.
@@ -286,8 +286,8 @@ async function sourceOf(
 
 export const srgssr: Connector<IlComposition> = {
   type: 'srgssr/urn',
-  // The browser's key systems go with the request, as pillarbox-web sends
-  // them: the IL then lists the resource this browser can decrypt.
+  // The browser's key systems go with the request: the IL then lists the
+  // resource this browser can decrypt.
   async fetch(urn, signal) {
     const params = new URLSearchParams({ onlyChapters: 'true', vector: 'portalplay' });
     const capabilities = capabilityParameter(await drmCapabilities());
@@ -299,7 +299,7 @@ export const srgssr: Connector<IlComposition> = {
     if (!response.ok) throw new Error(`media composition failed: HTTP ${response.status}`);
     return (await response.json()) as IlComposition;
   },
-  // The resources in the IL's order, which the player tries in turn, as pillarbox-web does.
+  // The resources in the IL's order, which the player tries in turn.
   async resolve(data, signal) {
     const list = data.chapterList ?? [];
     const chapter = mainChapter(data);

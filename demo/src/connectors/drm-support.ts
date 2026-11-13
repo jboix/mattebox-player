@@ -1,7 +1,6 @@
 /**
  * The key systems this browser grants, at the highest robustness each one
- * grants, the way pillarbox-web's DrmSupport component finds them: one
- * `requestMediaKeySystemAccess` per level, the highest first. The SRG SSR
+ * grants: one `requestMediaKeySystemAccess` per level, the highest first. The SRG SSR
  * connector sends them to the IL, which then returns the resource this
  * browser can decrypt.
  */
@@ -24,7 +23,7 @@ interface Probe {
   readonly levels: ReadonlyArray<readonly [robustness: string, label: string]>;
 }
 
-/** pillarbox-web's `DrmSupport.DRM_CONFIG` and `Drm.vendors`, in the same order. */
+/** The key systems and robustness levels to probe, in the order the IL expects. */
 const PROBES: readonly Probe[] = [
   {
     vendor: 'WIDEVINE',
