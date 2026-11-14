@@ -1,3 +1,14 @@
+/*
+ * Dark, which is also the look with no attribute: lighter than Solid, where
+ * the browser's own 80% black was hard to tell from it. None and Solid win
+ * by their attribute.
+ */
+mattebox-player > video::cue {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+mattebox-player > video::-webkit-media-text-track-display-backdrop {
+  background-color: transparent;
+}
 mattebox-player[subtitle-size="small"] > video::cue {
   font-size: 75%;
 }

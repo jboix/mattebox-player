@@ -837,6 +837,12 @@ describe('the subtitles and the bar', () => {
       'mattebox-player[subtitle-background="none"] > video::-webkit-media-text-track-display-backdrop',
     );
     expect(text).toContain('mattebox-player[subtitle-background="none"] > video::cue');
+    // Dark, the default too, has a value of its own, lighter than Solid's black.
+    expect(text).toMatch(
+      /mattebox-player > video::cue \{\s*background-color: rgba\(0, 0, 0, 0\.6\);/,
+    );
+    // First in the head, so a page's own rule of the same weight wins.
+    expect(document.head.firstElementChild).toBe(styles[0]);
     expect(text).not.toContain('@supports');
     // Percentages of the browser's own cue size, which follows the video's height.
     expect(text).toMatch(/subtitle-size="large"[^}]*font-size: 150%/);

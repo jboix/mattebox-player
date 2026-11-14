@@ -21,7 +21,7 @@ over the picture under `controls="custom"`.
 | `chapters`                | Sets a chapters file URL. A session with `engine.chapters` loads it there. Any other session gets a hidden `<track kind="chapters">` on the video. Changing it never reloads |
 | `controls`                | Selects the controls: `native` (the default), `custom` for the control elements inside the player, or `none` to hide every child but the video. Changing it never reloads    |
 | `subtitle-size`           | Sets the subtitle size: `small`, `medium`, `large` or `xlarge`. The subtitles menu writes it. The default is `medium`                                                        |
-| `subtitle-background`     | Sets the subtitle background: `none`, `dark` or `solid`. The default is `dark`                                                                                               |
+| `subtitle-background`     | Sets the subtitle background: `none` (transparent), `dark` (60% black) or `solid` (black). The default is `dark`                                                             |
 | `layout`                  | The size tier the controls draw for: `compact`, `regular` or `wide`. The player sets it from its own size. A value you write stays. See [Size tiers](#size-tiers)            |
 | `playsinline`             | Plays inline on an iPhone. On by default. `playsinline="false"` lets the iPhone go to fullscreen on play. Changing it never reloads                                          |
 | `autoplay`                | Copied onto the video as an attribute                                                                                                                                        |

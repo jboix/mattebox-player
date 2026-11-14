@@ -55,7 +55,8 @@ export function cueStyle(): void {
   const style = document.createElement('style');
   style.setAttribute(MARK, '');
   style.textContent = CUE_RULES;
-  document.head.append(style);
+  // First in the head: a page's own rule of the same weight comes later and wins.
+  document.head.prepend(style);
 }
 
 /** What a lifted cue looked like before, to put back. */
