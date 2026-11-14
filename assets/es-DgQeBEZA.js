@@ -1,0 +1,1 @@
+var e={castStart:`Enviar a la tele`,castStop:`Detener el envío`};export{e as default};

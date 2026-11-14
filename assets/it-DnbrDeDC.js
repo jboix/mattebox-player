@@ -1,0 +1,1 @@
+var e={castStart:`Trasmetti alla TV`,castStop:`Interrompi la trasmissione`};export{e as default};

@@ -1,1 +1,0 @@
-var e={castStart:`テレビにキャスト`,castStop:`キャストを停止`,castingTo:`{device} にキャスト中`};export{e as default};

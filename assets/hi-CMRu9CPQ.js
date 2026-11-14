@@ -1,0 +1,1 @@
+var e={castStart:`टीवी पर कास्ट करें`,castStop:`कास्ट बंद करें`};export{e as default};

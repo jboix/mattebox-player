@@ -1,0 +1,1 @@
+var e={castStart:`TV로 전송`,castStop:`전송 중지`};export{e as default};
