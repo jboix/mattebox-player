@@ -25,6 +25,7 @@ export type {
   AdState,
   AdsApi,
   AdsOptions,
+  AdsRemoteData,
 } from './controller.js';
 export type { AdsMessages } from './messages.js';
 export type {
@@ -93,6 +94,7 @@ export function ads(options: AdsOptions = {}): PlayerAddon {
       addStyle();
       return controllerFor(player, options).attach();
     },
+    remoteData: (player) => controllerFor(player).remoteData(),
   };
 }
 

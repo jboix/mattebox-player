@@ -32,10 +32,10 @@ describe('<mbx-playlist>', () => {
     expect(playlist?.repeat).toBe('all');
     expect(player.querySelector('mbx-title')?.getAttribute('heading')).toBe('One');
 
-    await once(player.video, 'loadedmetadata');
-    await player.video.play();
+    await once(player.media, 'loadedmetadata');
+    await player.media.play();
     await expect.poll(() => player.getAttribute('src'), { timeout: 4000 }).toBe(clips[1]);
-    await expect.poll(() => player.video.paused, { timeout: 4000 }).toBe(false);
+    await expect.poll(() => player.media.paused, { timeout: 4000 }).toBe(false);
     expect(player.querySelector('mbx-title')?.getAttribute('heading')).toBe('Two');
 
     const third = document.createElement('mbx-playlist-item');
@@ -163,14 +163,14 @@ describe('the playlist controls', () => {
     const opener = player.querySelector('mbx-playlist-button') as HTMLElement;
     const panel = player.querySelector('mbx-playlist') as HTMLElement;
     await expect.poll(() => opener.hidden).toBe(false);
-    await once(player.video, 'loadedmetadata');
-    await player.video.play();
+    await once(player.media, 'loadedmetadata');
+    await player.media.play();
     inner(opener).click();
     expect(panel.getBoundingClientRect().height).toBe(player.getBoundingClientRect().height);
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
     inner(opener).click();
     expect(panel.hasAttribute('open')).toBe(false);
-    await expect.poll(() => player.video.paused).toBe(false);
+    await expect.poll(() => player.media.paused).toBe(false);
   });
 
   it('offer the next item over the closing credits, play it, or stay on this one', async () => {
@@ -284,8 +284,8 @@ seg1.m4s
     expect(fetched).not.toContain('/b/master.m3u8');
 
     // The last seconds of the first item, without playing it.
-    Object.defineProperty(player.video, 'duration', { configurable: true, value: 4 });
-    player.video.dispatchEvent(new Event('timeupdate'));
+    Object.defineProperty(player.media, 'duration', { configurable: true, value: 4 });
+    player.media.dispatchEvent(new Event('timeupdate'));
     await expect.poll(() => fetched).toContain('/b/master.m3u8');
     // The engine keeps the bytes once it has read them.
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -355,8 +355,8 @@ seg1.m4s
     await expect.poll(() => fetched).toContain('/a/v1.m3u8');
     expect(asked).toEqual(['a']);
 
-    Object.defineProperty(player.video, 'duration', { configurable: true, value: 4 });
-    player.video.dispatchEvent(new Event('timeupdate'));
+    Object.defineProperty(player.media, 'duration', { configurable: true, value: 4 });
+    player.media.dispatchEvent(new Event('timeupdate'));
     await expect.poll(() => fetched).toContain('/b/master.m3u8');
     expect(asked).toEqual(['a', 'b']);
     // What the up next card and the system's controls show of the next item.

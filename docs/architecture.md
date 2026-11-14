@@ -11,7 +11,7 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player-core`        | Source resolution and connectors, the handler chain, the two handlers, the errors | The engine (peer)                                |
 | `@mattebox/player`             | `<mattebox-player>`, the controls over the engine's namespaces                    | The core, the engine (peer)                      |
 | `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report  | The player (peer, types only), the engine (peer) |
-| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`, Chromecast over Google's sender SDK  | The player (peer, types only), the engine (peer) |
+| `@mattebox/player-cast`        | `<mbx-cast-button>`, Chromecast over Google's sender SDK                          | The player (peer, types only), the engine (peer) |
 | `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back              | The player (peer, types only)                    |
 | `@mattebox/player-playlist`    | The playlist, its controls and the up next card                                   | The player (peer, types only)                    |
 | `@mattebox/player-preferences` | `<mbx-preferences>` and the store of the viewer's preferences                     | The player (peer, types only), the engine (peer) |
@@ -85,20 +85,20 @@ player. Each package ships its own words as `locales/<language>` entries, so
 the extensions need no runtime import of the player. A control renders again
 on `localechange`.
 
-| Control                                                               | What it reads                                                                                               |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `mbx-quality-menu`                                                    | `engine.quality`                                                                                            |
-| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`, or `video.audioTracks` and `video.textTracks` in a native session                          |
-| `mbx-video-menu`                                                      | `engine.tracks`, or `video.videoTracks` in a native session, and the player's `videoSources`                |
-| `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt`                                                                                 |
-| `mbx-drm-badge`                                                       | `engine.drm`, or `session.eme.drm` in a native session                                                      |
-| `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                         |
-| `mbx-seek-bar`, `mbx-chapters-menu`                                   | The chapters track of the video. No namespace                                                               |
-| `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm`     |
-| `mbx-airplay-button`                                                  | The WebKit AirPlay API of the video. No namespace                                                           |
-| `mbx-cast-button`, `mbx-cast-screen` (`@mattebox/player-cast`)        | The Cast sender SDK on the page, and `engine.suspend()` and `engine.resume()` for the handoff. No namespace |
-| `mbx-error-screen`, the error surface                                 | The `error` event of the core                                                                               |
-| `mbx-title`, `mbx-spinner`                                            | The events of the video. No namespace                                                                       |
+| Control                                                               | What it reads                                                                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `mbx-quality-menu`                                                    | `engine.quality`                                                                                        |
+| `mbx-audio-menu`, `mbx-subtitles-menu`                                | `engine.tracks`, or `video.audioTracks` and `video.textTracks` in a native session                      |
+| `mbx-video-menu`                                                      | `engine.tracks`, or `video.videoTracks` in a native session, and the player's `videoSources`            |
+| `mbx-live-button`, `mbx-seek-bar`, `mbx-current-time`, `mbx-duration` | `engine.live`, `engine.pdt`                                                                             |
+| `mbx-drm-badge`                                                       | `engine.drm`, or `session.eme.drm` in a native session                                                  |
+| `mbx-seek-bar`                                                        | `engine.thumbnails`                                                                                     |
+| `mbx-seek-bar`, `mbx-chapters-menu`                                   | The chapters track of the video. No namespace                                                           |
+| `mbx-diagnostics`                                                     | `engine.stats`, `engine.quality`, `engine.tracks`, `engine.capabilities()`, `engine.live`, `engine.drm` |
+| `mbx-airplay-button`                                                  | The WebKit AirPlay API of the video. No namespace                                                       |
+| `mbx-cast-button` (`@mattebox/player-cast`)                           | The Cast sender SDK on the page, and `player.cast()` for the handoff. No namespace                      |
+| `mbx-error-screen`, the error surface                                 | The `error` event of the core                                                                           |
+| `mbx-title`, `mbx-spinner`                                            | The events of the video. No namespace                                                                   |
 
 ## Builds
 

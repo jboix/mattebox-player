@@ -24,7 +24,7 @@ async function ready(seconds: number): Promise<MatteboxPlayerElement> {
   player.setAttribute('src', silence(seconds));
   player.append(...compose());
   document.body.append(player);
-  await expect.poll(() => player.video.readyState, ROOM).toBeGreaterThan(0);
+  await expect.poll(() => player.media.readyState, ROOM).toBeGreaterThan(0);
   return player;
 }
 
@@ -78,12 +78,12 @@ describe('the controls over a real video', () => {
     const player = await ready(1);
     const seen: string[] = [];
     for (const name of ['play', 'pause', 'ended']) {
-      player.video.addEventListener(name, () => seen.push(name));
+      player.media.addEventListener(name, () => seen.push(name));
     }
     inner(control(player, 'mbx-play-button')).click();
     // WebKit reports `ended` a moment before it fires the events for it.
     await expect.poll(() => seen, ROOM).toEqual(['play', 'pause', 'ended']);
-    expect(player.video.ended).toBe(true);
+    expect(player.media.ended).toBe(true);
     expect(player.hasAttribute('ended')).toBe(true);
     expect(player.hasAttribute('playing')).toBe(false);
     expect(inner(control(player, 'mbx-play-button')).getAttribute('aria-label')).toBe('Replay');
@@ -99,15 +99,15 @@ describe('the controls over a real video', () => {
     // and a small file can finish between two of the bar's reads: the poll
     // ticks the clock the way playback would, and the bar reads again.
     const buffered = (): string => {
-      player.video.dispatchEvent(new Event('timeupdate'));
+      player.media.dispatchEvent(new Event('timeupdate'));
       return inside(bar, 'buffered-range')?.style.width ?? '';
     };
     await expect.poll(buffered, ROOM).toMatch(/^(100|9\d(\.\d+)?)%$/);
     const knob = inside(bar, 'slider') as HTMLElement;
     press(knob, 'ArrowRight');
-    await expect.poll(() => player.video.currentTime, ROOM).toBeCloseTo(5, 1);
+    await expect.poll(() => player.media.currentTime, ROOM).toBeCloseTo(5, 1);
     press(knob, 'Home');
-    await expect.poll(() => player.video.currentTime, ROOM).toBeCloseTo(0, 1);
+    await expect.poll(() => player.media.currentTime, ROOM).toBeCloseTo(0, 1);
   });
 
   it('lift an unpositioned active cue above the bar while it shows, and a line off the edge while it hides', async () => {

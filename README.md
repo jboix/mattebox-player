@@ -19,16 +19,16 @@ The Mattebox player is seven packages over the
 MediaSource and never sets the `src` of the video. The player decides which
 handler to use, and adds a custom UI on top of it.
 
-| Package                        | What it is                                                                                                                       | Side effects                     |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `@mattebox/player-core`        | The layer without a UI. It resolves a source through your connectors and runs the handler chain. About three kilobytes           | None                             |
-| `@mattebox/player`             | The `<mattebox-player>` custom element over the core. No framework                                                               | Registers the element on import  |
-| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                     | Registers the element on import  |
-| `@mattebox/player-cast`        | `<mbx-cast-button>` and `<mbx-cast-screen>`. Chromecast from the player, over Google's sender SDK                                | Registers the elements on import |
-| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player             | Registers the element on import  |
-| `@mattebox/player-playlist`    | The playlist from markup or a script, its controls, and the up next card                                                         | Registers the elements on import |
-| `@mattebox/player-preferences` | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits | Registers the element on import  |
-| `@mattebox/player-ads`         | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                   | Registers the elements on import |
+| Package                        | What it is                                                                                                                       | Side effects                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `@mattebox/player-core`        | The layer without a UI. It resolves a source through your connectors and runs the handler chain. About three kilobytes           | None                            |
+| `@mattebox/player`             | The `<mattebox-player>` custom element over the core. No framework                                                               | Registers the element on import |
+| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                     | Registers the element on import |
+| `@mattebox/player-cast`        | `<mbx-cast-button>`. Chromecast from the player, over Google's sender SDK                                                        | Registers the element on import |
+| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player             | Registers the element on import |
+| `@mattebox/player-playlist`    | The playlist from markup or a script, its controls, and the up next card                                                         | Registers the element on import |
+| `@mattebox/player-preferences` | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits | Registers the element on import |
+| `@mattebox/player-ads`         | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                   | Registers the element on import |
 
 A page with its own UI has two options:
 

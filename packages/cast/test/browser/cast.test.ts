@@ -1,9 +1,9 @@
 /**
- * <mbx-cast-button> and <mbx-cast-screen> from outside the player package,
- * the way a page gets them, over a faked sender SDK, so every browser runs
- * the suite and nothing reaches gstatic. The device picker is
- * Chrome's own dialog and is only testable on a device; what is asserted
- * here is presence, the handoff, the request, and the screen's controls.
+ * <mbx-cast-button> from outside the player package, the way a page gets
+ * it, over a faked sender SDK, so every browser runs the suite and nothing
+ * reaches gstatic. The device picker is Chrome's own dialog and is only
+ * testable on a device; what is asserted here is presence, the handoff,
+ * the request, and the player's own controls driving the device.
  *
  * The helper keeps the SDK and its context once per page, so the fake is
  * installed once for the file and its state reset between tests.
@@ -247,14 +247,14 @@ async function mount(
   const bar = document.createElement('mbx-control-bar');
   const button = document.createElement('mbx-cast-button');
   bar.append(button);
-  const screen = document.createElement('mbx-cast-screen');
+  const screen = document.createElement('mbx-casting');
   player.append(screen, bar);
   const loaded = src === null ? Promise.resolve() : once(player, 'sourcechange');
   if (src !== null) player.setAttribute('src', src);
   document.body.append(player);
   await loaded;
-  if (src !== null && player.video.readyState < HTMLMediaElement.HAVE_METADATA) {
-    await once(player.video, 'loadedmetadata');
+  if (src !== null && player.media.readyState < HTMLMediaElement.HAVE_METADATA) {
+    await once(player.media, 'loadedmetadata');
   }
   // The SDK resolves on a microtask; the context follows.
   await tick();
@@ -336,7 +336,7 @@ describe('<mbx-cast-button>', () => {
   it('asks for a session on a click, then pauses the video and sends the source at its time', async () => {
     const { player, inner } = await mount([nativeHandler()]);
     devices(true);
-    const video = player.video;
+    const video = player.media;
     video.currentTime = 1;
     await once(video, 'seeked');
 
@@ -384,7 +384,7 @@ describe('<mbx-cast-button>', () => {
     const { handler, engine } = engineHandler();
     const { player, inner } = await mount([handler]);
     devices(true);
-    const video = player.video;
+    const video = player.media;
     const play = vi.spyOn(video, 'play').mockResolvedValue();
 
     inner.click();
@@ -404,7 +404,7 @@ describe('<mbx-cast-button>', () => {
     const { handler } = engineHandler(true);
     const { player, inner } = await mount([handler]);
     devices(true);
-    const video = player.video;
+    const video = player.media;
     const play = vi.spyOn(video, 'play').mockResolvedValue();
 
     inner.click();
@@ -425,11 +425,11 @@ describe('<mbx-cast-button>', () => {
     track.src = 'https://cdn.example/de.vtt';
     track.srclang = 'de';
     track.label = 'Deutsch';
-    player.video.append(track);
+    player.media.append(track);
     const chapters = document.createElement('track');
     chapters.kind = 'chapters';
     chapters.src = 'https://cdn.example/chapters.vtt';
-    player.video.append(chapters);
+    player.media.append(chapters);
 
     inner.click();
     const session = startSession();
@@ -536,64 +536,142 @@ describe('DRM on the receiver', () => {
   });
 });
 
-describe('<mbx-cast-screen>', () => {
-  it("shows the receiver's name while casting and drives it", async () => {
-    const { player, screen, inner } = await mount([nativeHandler()]);
+describe('the player during a cast', () => {
+  it('names the device, and drives it with its own media', async () => {
+    const { player, inner, screen } = await mount([nativeHandler()]);
     devices(true);
-    expect(screen.hidden).toBe(true);
-
     inner.click();
     startSession('Kitchen');
-    expect(screen.hidden).toBe(false);
-    const root = screen.shadowRoot;
-    expect(root?.querySelector('[part~="title"]')?.textContent).toBe('Casting to Kitchen');
-    const play = root?.querySelector<HTMLButtonElement>('[part~="play"]');
-    // Nothing loaded yet: the slider and the time wait for the receiver.
-    expect(play?.disabled).toBe(true);
-    expect(root?.querySelector<HTMLElement>('[part~="slider"]')?.hidden).toBe(true);
+    await tick();
+    expect(player.getAttribute('casting')).toBe('chromecast');
+    expect(player.casting).toEqual({ kind: 'chromecast', name: 'Kitchen' });
+    expect(screen.getAttribute('casting')).toBe('chromecast');
+    expect(screen.shadowRoot?.querySelector('[part~="label"]')?.textContent).toBe(
+      'Casting to Kitchen',
+    );
 
-    report({ currentTime: 30, duration: 120, isPaused: false, playerState: 'PLAYING' });
-    expect(play?.disabled).toBe(false);
-    expect(play?.getAttribute('aria-label')).toBe('Pause');
-    expect(root?.querySelector('[part~="time"]')?.textContent).toBe('0:30 / 2:00');
-    const slider = root?.querySelector<HTMLElement>('[part~="slider"]');
-    expect(slider?.hidden).toBe(false);
-    expect(slider?.getAttribute('aria-valuenow')).toBe('30');
-    expect(slider?.getAttribute('aria-valuemax')).toBe('120');
+    report({ isPaused: true, currentTime: 12, duration: 600, playerState: 'PAUSED' });
+    expect(player.media.currentTime).toBe(12);
+    expect(player.media.duration).toBe(600);
+    expect(player.hasAttribute('paused')).toBe(true);
 
-    play?.click();
+    await player.media.play();
     expect(ctx.playPauses).toBe(1);
-    slider?.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
-    expect(ctx.seeks).toEqual([35]);
+    report({ isPaused: false, playerState: 'PLAYING' });
+    expect(player.hasAttribute('playing')).toBe(true);
 
-    root?.querySelector<HTMLButtonElement>('[part~="stop"]')?.click();
-    expect(ctx.ended).toBe(1);
-    expect(screen.hidden).toBe(true);
+    player.media.currentTime = 90;
+    expect(ctx.seeks).toEqual([90]);
+    // The video of the page stays where it was, and paused.
+    const video = player.querySelector('video') as HTMLVideoElement;
+    expect(video.paused).toBe(true);
+    expect(video.currentTime).not.toBe(90);
+
+    endSession();
     expect(player.hasAttribute('casting')).toBe(false);
+    expect(screen.hasAttribute('casting')).toBe(false);
   });
 
-  it('passes axe-core with the button, and on the screen while casting', async () => {
+  it('says the end of the media on the device, and plays it again from the start', async () => {
+    const { player, inner } = await mount([nativeHandler()]);
+    devices(true);
+    inner.click();
+    const session = startSession();
+    await tick();
+    report({ isPaused: false, currentTime: 599.5, duration: 600, playerState: 'PLAYING' });
+    let ended = 0;
+    player.media.addEventListener('ended', () => {
+      ended += 1;
+    });
+    report({ isMediaLoaded: false, playerState: 'IDLE' });
+    expect(ended).toBe(1);
+    expect(player.media.ended).toBe(true);
+    expect(player.hasAttribute('ended')).toBe(true);
+    await player.media.play();
+    expect(session.loads).toHaveLength(2);
+    expect(session.loads[1]?.autoplay).toBe(true);
+  });
+
+  it('sends a load during the cast to the receiver', async () => {
+    const { player, inner } = await mount([nativeHandler()]);
+    devices(true);
+    inner.click();
+    const session = startSession();
+    await tick();
+    expect(session.loads).toHaveLength(1);
+    const next = silence(1);
+    const changed = once(player, 'sourcechange');
+    player.setAttribute('src', next);
+    await changed;
+    await tick();
+    expect(session.loads).toHaveLength(2);
+    expect(session.loads[1]?.media.contentId).toBe(next);
+    expect(session.loads[1]?.autoplay).toBe(true);
+  });
+
+  it("sends the programme: the title in Cast's field, the connector and the markers in customData", async () => {
+    const url = silence(2);
+    const player = new MatteboxPlayerElement({
+      handlers: [nativeHandler()],
+      connectors: [
+        {
+          type: 'test/id',
+          fetch: async () => ({}),
+          resolve: () => ({
+            sources: [{ url, type: 'audio/wav' }],
+            metadata: {
+              title: 'The title',
+              subtitle: 'The subtitle',
+              image: 'https://example.com/image.jpg',
+              chapters: [{ start: 0, title: 'One' }],
+              markers: [{ start: 0, end: 1, kind: 'opening-credits' }],
+            },
+          }),
+        },
+      ],
+    });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('muted', '');
+    const button = document.createElement('mbx-cast-button');
+    player.append(button);
+    const loaded = once(player, 'sourcechange');
+    player.sources = [{ type: 'test/id', id: 'programme-1' }];
+    document.body.append(player);
+    await loaded;
+    await tick();
+    await tick();
+    // The page's own markers win over the ones the programme came with.
+    player.markers.set([{ start: 1, end: 2, kind: 'blocked' }]);
+    devices(true);
+    button.shadowRoot?.querySelector('button')?.click();
+    const session = startSession();
+    await tick();
+    const request = session.loads[0] as CastLoadRequest;
+    expect(request.media.metadata).toEqual({
+      metadataType: 0,
+      title: 'The title',
+      subtitle: 'The subtitle',
+      images: [{ url: 'https://example.com/image.jpg' }],
+    });
+    expect((request.customData as { mattebox: unknown }).mattebox).toEqual({
+      programme: { type: 'test/id', id: 'programme-1' },
+      metadata: {
+        title: 'The title',
+        subtitle: 'The subtitle',
+        image: 'https://example.com/image.jpg',
+        chapters: [{ start: 0, title: 'One' }],
+        markers: [{ start: 1, end: 2, kind: 'blocked' }],
+      },
+    });
+  });
+
+  it('passes axe-core with the button, and with the casting line while casting', async () => {
     const { player, inner } = await mount([nativeHandler()]);
     devices(true);
     expect(await violations(player)).toEqual([]);
     inner.click();
-    startSession('Kitchen');
-    report({ currentTime: 30, duration: 120, isPaused: false, playerState: 'PLAYING' });
+    startSession();
+    await tick();
     expect(await violations(player)).toEqual([]);
-  });
-
-  it('hides the slider and the time for a live stream, and takes the words the page gives', async () => {
-    const { screen, inner } = await mount([nativeHandler()]);
-    screen.setAttribute('label', 'Enviant a {device}');
-    screen.setAttribute('label-stop', 'Atura');
-    devices(true);
-    inner.click();
-    startSession('Sala');
-    report({ currentTime: 5, duration: 0, isPaused: false, playerState: 'PLAYING' });
-    const root = screen.shadowRoot;
-    expect(root?.querySelector('[part~="title"]')?.textContent).toBe('Enviant a Sala');
-    expect(root?.querySelector('[part~="stop"]')?.textContent).toBe('Atura');
-    expect(root?.querySelector<HTMLElement>('[part~="slider"]')?.hidden).toBe(true);
-    expect(root?.querySelector<HTMLElement>('[part~="time"]')?.hidden).toBe(true);
   });
 });

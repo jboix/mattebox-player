@@ -30,7 +30,7 @@ export class MbxVolumeSlider extends Component {
       step: () => number(this, 'step', STEP),
       page: () => number(this, 'page', PAGE),
       onInput: (value) => {
-        const video = this.player?.video;
+        const video = this.player?.media;
         if (video === undefined) return;
         video.volume = value;
         if (value > 0) video.muted = false;
@@ -44,14 +44,14 @@ export class MbxVolumeSlider extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['volumechange', 'emptied'], () => {
+    this.listen(player.media, ['volumechange', 'emptied'], () => {
       this.render();
     });
     this.render();
   }
 
   protected override render(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     this.bar.label(this.word('label', 'volume', 'Volume'));
     const level = video.muted ? 0 : video.volume;

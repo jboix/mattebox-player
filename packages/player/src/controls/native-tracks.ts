@@ -32,7 +32,7 @@ export function nativeTracks<T extends NativeTrack>(
 ): T[] | undefined {
   const session = player.player?.session;
   if (session == null || session.engine !== null) return undefined;
-  const list = (player.video as unknown as Record<string, NativeTrackList<T> | undefined>)[name];
+  const list = (player.media as unknown as Record<string, NativeTrackList<T> | undefined>)[name];
   return list === undefined ? undefined : Array.from(list);
 }
 

@@ -45,7 +45,7 @@ const shows: Connector<Show> = {
 
 function mount(): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers: [stub], connectors: [shows] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', 'custom');
   player.append(...compose());
   document.body.append(player);
@@ -87,7 +87,7 @@ describe('a connector source', () => {
     expect(seen).toHaveLength(1);
     expect(player.programme?.id).toBe('show:1');
     expect(player.programme?.metadata?.title).toBe('First');
-    expect(player.video.getAttribute('poster')).toBe('https://cdn.example/poster.jpg');
+    expect(player.media.getAttribute('poster')).toBe('https://cdn.example/poster.jpg');
     expect(player.markers.list).toEqual([{ start: 0, end: 30, kind: 'opening-credits' }]);
     const title = player.querySelector('mbx-title');
     expect(title?.shadowRoot?.querySelector('[part~="heading"]')?.textContent).toBe('First');
@@ -110,7 +110,7 @@ describe('a connector source', () => {
 
     await expect.poll(() => player.player?.session?.source.url).toBe('https://cdn.example/i.mpd');
     expect(player.programme?.data).toEqual({ title: 'Injected', url: 'https://cdn.example/i.mpd' });
-    expect(player.video.getAttribute('poster')).toBe('https://page.example/own.jpg');
+    expect(player.media.getAttribute('poster')).toBe('https://page.example/own.jpg');
     const title = player.querySelector('mbx-title');
     expect(title?.shadowRoot?.querySelector('[part~="heading"]')?.textContent).toBe('Page heading');
   });

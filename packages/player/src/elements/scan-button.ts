@@ -46,6 +46,8 @@ export class MbxScanButton extends Component {
 
   constructor() {
     super();
+    // The device picks its own: nothing here reaches it.
+    this.leaves = 'device';
     const root = this.attachShadow({ mode: 'open' });
     this.button = el('button', 'button');
     this.button.type = 'button';
@@ -96,7 +98,7 @@ export class MbxScanButton extends Component {
     const tick = (): void => {
       this.render();
     };
-    this.listen(player.video, ['emptied'], tick);
+    this.listen(player.media, ['emptied'], tick);
     this.observe(player, ['live', 'seekable'], tick);
     this.follow(player, (engine) => {
       tick();

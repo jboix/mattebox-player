@@ -48,7 +48,7 @@ export class MbxLiveButton extends Component {
     const tick = (): void => {
       this.render();
     };
-    this.listen(player.video, ['timeupdate', 'emptied'], tick);
+    this.listen(player.media, ['timeupdate', 'emptied'], tick);
     this.listen(player, ['sourcechange'], tick);
     this.observe(player, ['live', 'seekable'], tick);
     this.render();

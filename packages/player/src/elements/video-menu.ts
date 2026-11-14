@@ -51,6 +51,8 @@ export class MbxVideoMenu extends MenuElement {
 
   constructor() {
     super(...single('video'));
+    // The device picks its own: nothing here reaches it.
+    this.leaves = 'device';
     this.engine = null;
     show(this.slots, 'default');
   }
@@ -70,7 +72,7 @@ export class MbxVideoMenu extends MenuElement {
         this.render();
       };
       return engine === null
-        ? onNativeTracks(player.video, 'videoTracks', tick)
+        ? onNativeTracks(player.media, 'videoTracks', tick)
         : onTracks(engine, tick);
     });
   }

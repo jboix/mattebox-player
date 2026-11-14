@@ -3,14 +3,15 @@
   @mattebox/player-cast
 </h1>
 
-`<mbx-cast-button>` and `<mbx-cast-screen>` for the
+`<mbx-cast-button>` for the
 [Mattebox player](https://github.com/jboix/mattebox-player): Chromecast
 from the page, over Google's sender SDK.
 
 - The button starts and ends a session.
-- The screen covers the picture while the receiver plays. It shows the name of the receiver, play and pause, the seek slider, the time and a stop button.
+- During the session the player's own controls drive the receiver: play, pause, the seek bar, the volume, the chapters.
+- `<mbx-casting>` of the player covers the picture with the poster and names the receiver.
 
-The import registers both elements.
+The import registers the button.
 
 The cast is a package of its own because the button loads Google's script
 onto the page. The player never loads third-party code for a page. The
@@ -24,7 +25,7 @@ The package needs mattebox 0.17.
 
 ```html
 <mattebox-player src="https://example.com/vod/master.m3u8" controls="custom">
-  <mbx-cast-screen></mbx-cast-screen>
+  <mbx-casting></mbx-casting>
   <mbx-control-bar>
     <mbx-play-button></mbx-play-button>
     <mbx-seek-bar></mbx-seek-bar>
@@ -41,14 +42,35 @@ The package needs mattebox 0.17.
 
 When a session starts, the player pauses the video and suspends the engine,
 so the engine requests nothing during the cast. It then sends the source of
-the session to the receiver, at the video's current time. When the session
-ends, the engine resumes and the video continues from the time where the
-receiver stopped.
+the session to the receiver, at the video's current time. Every load during
+the session goes to the receiver too, such as the next item of a playlist.
+When the session ends, the engine resumes and the video continues from the
+time where the receiver stopped.
 
-The receiver plays the URL by itself. A signed URL goes as it is, since it
-is the source's URL. The source's DRM servers go in `customData.mattebox`:
-`licenseUrl`, `licenseUrls` and `certificateUrl`. `@mattebox/cast-receiver`
-reads them.
+## What the receiver gets
+
+The request carries the programme with the source.
+
+| What                                            | Where                                                  |
+| ----------------------------------------------- | ------------------------------------------------------ |
+| The URL and the type                            | `media.contentId`, `media.contentType`                 |
+| Live or on demand                               | `media.streamType`                                     |
+| The subtitle files of the video                 | `media.tracks`                                         |
+| The title, the subtitle and the image           | `media.metadata`                                       |
+| The time, and playing or paused                 | `currentTime`, `autoplay`                              |
+| The DRM servers                                 | `customData.mattebox.licenseUrl` and the two beside it |
+| The connector's type, with its id or its data   | `customData.mattebox.programme`                        |
+| The metadata, with the chapters and the markers | `customData.mattebox.metadata`                         |
+| The chapters file and the thumbnail track       | `customData.mattebox.chapters`, `.thumbnails`          |
+| The other versions of the picture               | `customData.mattebox.videoTracks`                      |
+| The clock time a live viewer watches            | `customData.mattebox.date`                             |
+| What each add-on sends, under its name          | `customData.mattebox.addons`                           |
+
+- `@mattebox/cast-receiver` reads `customData.mattebox`. The Default Media Receiver reads Cast's own fields only.
+- A receiver page with the same connector loads the programme by its type and id, with its own token. Without it, the receiver plays the URL with the metadata sent.
+- No preference is sent: the receiver picks its own audio, subtitles and quality.
+- A request holds 64 kB. The connector's data is left out of a larger one.
+- A signed URL goes as it is, since it is the source's URL.
 
 The `castload` event carries the load request before the button sends it.
 Add the license headers there:

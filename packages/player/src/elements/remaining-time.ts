@@ -17,7 +17,7 @@ export class MbxRemainingTime extends TimeElement {
   protected override render(): void {
     const player = this.player;
     if (player === null) return;
-    const video = player.video;
+    const video = player.media;
     const engine = player.engine;
     const on = live(engine) !== undefined;
     this.hidden = on;

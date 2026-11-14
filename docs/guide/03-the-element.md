@@ -46,8 +46,8 @@ the video plays.
 | `diagnostics`                | `@mattebox/player-diagnostics` | The diagnostics panel is open. The bar shows over an error or a block meanwhile                                                                               |
 | `fullscreen`                 | The bar, the button            | The player is the fullscreen element                                                                                                                          |
 | `pip`                        | The picture-in-picture button  | The video is in the floating window                                                                                                                           |
-| `airplay`                    | The AirPlay button             | The video plays on an AirPlay target                                                                                                                          |
-| `casting`                    | `@mattebox/player-cast`        | A Chromecast receiver plays the source, and the video is paused                                                                                               |
+| `casting`                    | The player                     | A device plays in the video's place. The value is its kind: `chromecast` or `airplay`                                                                         |
+| `airplay`                    | The AirPlay button             | The video plays on an AirPlay target. Kept for one minor version: read `casting`                                                                              |
 | `idle`                       | The bar                        | The bar is hidden after a time without input                                                                                                                  |
 | `live`                       | The seek bar                   | The stream has an availability window                                                                                                                         |
 | `seekable`                   | The seek bar                   | The viewer can seek: VOD, or a live window that is wide enough                                                                                                |
@@ -144,7 +144,7 @@ not the programme's, so the error screen stays away; listen to the video.
 
 ```ts
 await player.interrupt({ url: 'https://ads.example.com/ad.mp4', type: 'video/mp4' });
-player.video.addEventListener('ended', () => player.resume(), { once: true });
+player.media.addEventListener('ended', () => player.resume(), { once: true });
 ```
 
 `message(id)` answers the word of `id` in the player's language, or
@@ -462,19 +462,36 @@ height, and scrolls when it needs more.
 
 ### Casting
 
-Chromecast is `@mattebox/player-cast`, a package of its own. Its button
-loads Google's sender SDK onto the page, and the player never loads
-third-party code for a page. The AirPlay button uses Safari's own API, so
-it is part of the player.
+While a device plays in the video's place, the player keeps its own
+controls. They drive the device: play, pause, the seek bar, the volume, the
+chapters and the skip buttons. The video on the page stays paused.
 
-Install the package and place its two elements, the way `<mbx-diagnostics>`
-is placed.
+- The player has `casting` with the kind of the device: `chromecast` or
+  `airplay`. It fires `castingchange`, and `player.casting` reads the kind
+  and the name of the device, or null.
+- `<mbx-casting>` covers the picture with the programme's poster and names
+  the device: "Casting to Living room". Place it before the other screens.
+- The quality menu, the video menu, the scan buttons, fullscreen and
+  picture in picture hide during a cast. The device picks its own quality.
+- The audio, subtitles and speed menus hide during a Chromecast session.
+  They stay under AirPlay.
+- A drag on the seek bar shows the preview and seeks once, on the release.
+- A load during the cast goes to the device, such as the next item of a
+  playlist.
+
+A hidden control carries `away`.
+
+AirPlay needs nothing more than its button: Safari plays the video on the
+device. Chromecast is `@mattebox/player-cast`, a package of its own. Its
+button loads Google's sender SDK onto the page, and the player never loads
+third-party code for a page.
 
 ```html
 <mattebox-player src="…" controls="custom">
-  <mbx-cast-screen></mbx-cast-screen>
+  <mbx-casting></mbx-casting>
   <mbx-control-bar>
     …
+    <mbx-airplay-button></mbx-airplay-button>
     <mbx-cast-button></mbx-cast-button>
   </mbx-control-bar>
 </mattebox-player>
@@ -486,7 +503,6 @@ is placed.
 ```
 
 `<mbx-cast-button>` starts and ends a Chromecast session.
-`<mbx-cast-screen>` controls the receiver during the session.
 
 The button loads the SDK from gstatic the first time it connects. It does
 not load the SDK when the page already has it, or when the button has
@@ -496,32 +512,41 @@ not load the SDK when the page already has it, or when the button has
 uses the Default Media Receiver. The first button on the page decides the
 receiver, because the SDK keeps one context per page.
 
-| Element           | Attributes        | Labels                                                                           | Icon slots                |
-| ----------------- | ----------------- | -------------------------------------------------------------------------------- | ------------------------- |
-| `mbx-cast-button` | `receiver`, `sdk` | `label-start`, `label-stop`                                                      | `icon`, `icon-active`     |
-| `mbx-cast-screen` |                   | `label` with `{device}`, `label-stop`, `label-play`, `label-pause`, `label-seek` | `icon-play`, `icon-pause` |
+| Element           | Attributes        | Labels                      | Icon slots            |
+| ----------------- | ----------------- | --------------------------- | --------------------- |
+| `mbx-cast-button` | `receiver`, `sdk` | `label-start`, `label-stop` | `icon`, `icon-active` |
+| `mbx-casting`     |                   | `label` with `{device}`     |                       |
 
 When a session starts, the player does this:
 
 - It pauses the video.
-- It suspends the engine, so the engine requests nothing during the cast.
-- It sends the source of the session at the video's current time, with the subtitle tracks of the video, and `LIVE` for a live stream.
-- It sets `casting` on itself. The default stylesheet then hides the bar and the start button, and the cast screen shows the receiver's controls.
+- It suspends the engine, so the engine requests nothing during the cast. The source stays loaded, so the chapters, the markers and the thumbnails keep working.
+- It sends the source of the session at the video's current time, and `LIVE` for a live stream. A live viewer behind the edge continues at the same moment, when the stream carries a clock.
+- It sends the programme with the source: the title, the image, the chapters, the markers, the subtitle files of the video, the thumbnail track, and the connector's type and id.
+- It sets `casting="chromecast"` on itself.
 
 When the session ends, the engine resumes. The video seeks to the time
 where the receiver stopped, and plays if the receiver was playing. A live
 stream returns to the live edge instead.
 
-The receiver plays the URL by itself, so DRM and signed URLs are the page's
-to arrange, in `castload`. The Default Media Receiver plays clear HLS and
-DASH. A protected stream needs a receiver of the page's own, which reads
-what the page put in `customData`.
+The Default Media Receiver plays clear HLS and DASH and shows the title.
+It reads nothing else: no marker, no chapter and no DRM server. A receiver
+built on `@mattebox/cast-receiver` reads them all, in
+`customData.mattebox`. A receiver page with the same connector loads the
+programme by its type and id, with its own token.
+
+License headers and other secrets are the page's to add, in `castload`:
 
 ```ts
-button.addEventListener('castload', (event) => {
-  event.detail.customData = { licenseUrl: 'https://drm.example/widevine' };
+player.addEventListener('castload', (event) => {
+  event.detail.customData.mattebox.licenseHeaders = { Authorization: `Bearer ${token}` };
 });
 ```
+
+`player.media` is what the controls read and call. It behaves as the
+`<video>`, and during a cast its playback members are the device's. It is
+not a DOM node. For an API that takes the element itself, such as an
+observer, read the `<video>` child of the player.
 
 ### Languages
 
@@ -631,7 +656,7 @@ Any element inside the bar is a control. It shows in the row where the page
 put it. It finds its player the way the player's own controls do:
 
 - The nearest `mattebox-player` above it, through shadow hosts. Wait for `customElements.whenDefined('mattebox-player')` before reading it.
-- `player.video` for playback, `player.engine` for the namespaces (null for a native session), `player.player` for the core, and `player.error`.
+- `player.media` for playback, `player.engine` for the namespaces (null for a native session), `player.player` for the core, and `player.error`.
 - `sourcechange` on the player for a new session, `error` for a failure.
 - `open` on itself while it shows a popup, so the bar does not fade.
 - A real `<button>` for anything Space must activate. The bar leaves Space to a focused button.

@@ -48,7 +48,7 @@ export class MbxSpinner extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    const video = player.video;
+    const video = player.media;
     this.listen(video, EVENTS, () => {
       this.render();
     });

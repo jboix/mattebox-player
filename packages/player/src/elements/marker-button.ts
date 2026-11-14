@@ -53,7 +53,7 @@ export class MbxMarkerButton extends Component {
     chevron.append(path);
     this.button.append(this.text, chevron);
     this.button.addEventListener('click', () => {
-      const video = this.player?.video;
+      const video = this.player?.media;
       if (video !== undefined && this.marker !== null) video.currentTime = this.marker.end;
     });
     root.append(style(BUTTON_STYLE + STYLE_CSS), this.button);
@@ -66,7 +66,7 @@ export class MbxMarkerButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['timeupdate', 'seeking', 'emptied'], () => {
+    this.listen(player.media, ['timeupdate', 'seeking', 'emptied'], () => {
       this.render();
     });
     this.listen(player, ['markerschange'], () => {
@@ -109,7 +109,7 @@ export class MbxMarkerButton extends Component {
     const player = this.player;
     this.marker =
       player?.markers
-        .within(player.video.currentTime)
+        .within(player.media.currentTime)
         .find((marker) => marker.kind !== 'blocked') ?? null;
     // A playlist's up next card offers the next item over the closing
     // credits, so this button steps aside while the player carries `upnext`.

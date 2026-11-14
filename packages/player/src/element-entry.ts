@@ -18,6 +18,15 @@ export type {
 export type { MatteboxPlayerOptions } from './element.js';
 export { MatteboxPlayerElement } from './element.js';
 export type { Block, PlayerAddon, PlayerHost } from './host.js';
+export type {
+  CastOptions,
+  CastTarget,
+  Ranges,
+  Remote,
+  RemoteLoad,
+  RemoteMedia,
+  TextFile,
+} from './remote.js';
 export type { Text } from './text.js';
 export type { Tracker, Trackers } from './trackers.js';
 

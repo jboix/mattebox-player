@@ -6,7 +6,7 @@ import { compose, fakeMedia } from './helpers.js';
 
 function mount(controls: string): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', controls);
   if (controls === 'custom') player.append(...compose());
   document.body.append(player);
@@ -100,7 +100,9 @@ describe('a block', () => {
     expect(player.hasAttribute('blocked')).toBe(true);
     expect(getComputedStyle(bar).display).toBe('none');
     expect(getComputedStyle(screenOf(player)).display).not.toBe('none');
-    expect(getComputedStyle(player.video).display).not.toBe('none');
+    expect(getComputedStyle(player.querySelector('video') as HTMLVideoElement).display).not.toBe(
+      'none',
+    );
     player.unblock();
     expect(player.hasAttribute('blocked')).toBe(false);
     expect(getComputedStyle(bar).display).not.toBe('none');
@@ -108,15 +110,15 @@ describe('a block', () => {
     (player as unknown as { report(error: unknown): void }).report(fatal);
     expect(player.hasAttribute('error')).toBe(true);
     expect(getComputedStyle(bar).display).toBe('none');
-    player.video.dispatchEvent(new Event('playing'));
+    player.media.dispatchEvent(new Event('playing'));
     expect(player.hasAttribute('error')).toBe(false);
   });
 
   it('stops the video', () => {
     const player = mount('custom');
-    player.video.play().catch(() => undefined);
+    player.media.play().catch(() => undefined);
     player.block(geo);
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
   });
 
   it('shows on the row under the video under native controls, and says it', async () => {

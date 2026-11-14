@@ -78,7 +78,7 @@ export class MbxUpNext extends PlaylistControl {
       this.render();
     };
     for (const name of ['timeupdate', 'seeking', 'ended', 'emptied']) {
-      player.video.addEventListener(name, render);
+      player.media.addEventListener(name, render);
     }
     player.addEventListener('markerschange', render);
     if (typeof ResizeObserver !== 'undefined') {
@@ -93,7 +93,7 @@ export class MbxUpNext extends PlaylistControl {
     this.fit(player);
     this.keep(() => {
       for (const name of ['timeupdate', 'seeking', 'ended', 'emptied']) {
-        player.video.removeEventListener(name, render);
+        player.media.removeEventListener(name, render);
       }
       player.removeEventListener('markerschange', render);
       this.resizer?.disconnect();
@@ -116,7 +116,7 @@ export class MbxUpNext extends PlaylistControl {
     if (player === null) return;
     // A close holds for its item only.
     if (this.closed !== (playlist?.index ?? -1)) this.closed = -1;
-    const video = player.video;
+    const video = player.media;
     const next = playlist?.upcoming ?? null;
     const left = video.duration - video.currentTime;
     const credits = player.markers

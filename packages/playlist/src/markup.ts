@@ -178,7 +178,7 @@ export class MbxPlaylist extends PlaylistControl {
 
   private opened(): void {
     // `pause-on-open`: the list holds the viewer's attention, so playback waits.
-    const video = this.player?.video;
+    const video = this.player?.media;
     this.paused = this.hasAttribute('pause-on-open') && video !== undefined && !video.paused;
     if (this.paused) video?.pause();
     const current = this.list.querySelector<HTMLButtonElement>('[aria-current="true"]');
@@ -187,7 +187,7 @@ export class MbxPlaylist extends PlaylistControl {
 
   /** Playback that the list paused plays again, however the list closed. */
   private closed(): void {
-    if (this.paused) this.player?.video.play().catch(() => undefined);
+    if (this.paused) this.player?.media.play().catch(() => undefined);
     this.paused = false;
   }
 

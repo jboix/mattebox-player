@@ -147,6 +147,8 @@ export interface PlayerMessages {
   readonly saidSubtitles: string;
   /** "Subtitles off". */
   readonly saidSubtitlesOff: string;
+  /** "Casting to {device}": the line over the picture while a device plays. */
+  readonly castingTo: string;
 }
 
 /**

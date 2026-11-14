@@ -77,5 +77,5 @@ export function shownPaused(player: PlayerHost, names: readonly string[] = HELD)
     const held = player.getAttribute(name);
     if (held !== null) return held === 'paused';
   }
-  return player.video.paused;
+  return player.media.paused;
 }

@@ -26,6 +26,8 @@ export class MbxFullscreenButton extends Component {
 
   constructor() {
     super();
+    // The device picks its own: nothing here reaches it.
+    this.leaves = 'device';
     this.api = null;
     const root = this.attachShadow({ mode: 'open' });
     this.button = document.createElement('button');
@@ -42,7 +44,7 @@ export class MbxFullscreenButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    const api = fullscreen(player, player.video);
+    const api = fullscreen(player, player.media);
     this.api = api;
     this.hidden = !api.supported;
     this.keep(

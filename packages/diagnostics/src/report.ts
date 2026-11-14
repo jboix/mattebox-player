@@ -303,7 +303,7 @@ export function buildReport(sources: ReportSources): DiagnosticsReport {
       type: player.getAttribute('type'),
       handler: player.player?.session?.handler ?? null,
     },
-    playback: playbackFacts(player.video),
+    playback: playbackFacts(player.media),
     error: player.error,
     engine: engine === null ? null : engineFacts(engine),
     counters: sources.counters,

@@ -38,7 +38,7 @@ export class MbxMuteButton extends Component {
   }
 
   private toggle(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     if (video.muted) {
       video.muted = false;
@@ -49,14 +49,14 @@ export class MbxMuteButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['volumechange', 'emptied'], () => {
+    this.listen(player.media, ['volumechange', 'emptied'], () => {
       this.render();
     });
     this.render();
   }
 
   protected override render(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     const silent = video.muted || video.volume === 0;
     show(this.slots, silent ? 'mute' : video.volume <= 0.5 ? 'low' : 'high');

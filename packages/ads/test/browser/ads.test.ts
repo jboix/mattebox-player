@@ -89,8 +89,8 @@ describe('@mattebox/player-ads', () => {
     const player = mount(preroll(silence(1)));
     const started = once(player, 'adstart');
     await once(player, 'sourcechange');
-    player.video.muted = true;
-    void player.video.play().catch(() => {});
+    player.media.muted = true;
+    void player.media.play().catch(() => {});
     await started;
     expect(player.getAttribute('ad')).toBe('');
     expect(player.interrupted).toBe(true);
@@ -110,8 +110,8 @@ describe('@mattebox/player-ads', () => {
     expect(sent).toContain('https://t.example/complete');
     // The programme again, from where it stopped, playing.
     await expect.poll(() => player.interrupted).toBe(false);
-    await expect.poll(() => player.video.currentSrc).toBe(player.getAttribute('src'));
-    await expect.poll(() => player.video.paused).toBe(false);
+    await expect.poll(() => player.media.currentSrc).toBe(player.getAttribute('src'));
+    await expect.poll(() => player.media.paused).toBe(false);
     expect(adsOf(player).state).toBeNull();
   });
 
@@ -127,7 +127,7 @@ describe('@mattebox/player-ads', () => {
     player.setAttribute('type', 'audio/wav');
     player.setAttribute('src', silence(3));
     await once(player, 'sourcechange');
-    void player.video.play().catch(() => {});
+    void player.media.play().catch(() => {});
     await started;
     expect(player.getAttribute('ad')).toBe('');
     expect(player.interrupted).toBe(true);
@@ -141,7 +141,7 @@ describe('@mattebox/player-ads', () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(player.hasAttribute('ad')).toBe(false);
     const started = once(player, 'adstart');
-    void player.video.play().catch(() => {});
+    void player.media.play().catch(() => {});
     await started;
     expect(player.getAttribute('ad')).toBe('');
     expect(player.interrupted).toBe(true);
@@ -176,7 +176,7 @@ describe('@mattebox/player-ads', () => {
     player.setAttribute('src', silence(3));
     const started = once(player, 'adstart');
     await once(player, 'sourcechange');
-    void player.video.play().catch(() => {});
+    void player.media.play().catch(() => {});
     await started;
     expect(player.getAttribute('ad')).toBe('');
     expect(player.interrupted).toBe(true);
@@ -188,7 +188,7 @@ describe('@mattebox/player-ads', () => {
     player.append(progress);
     const started = once(player, 'adstart');
     await once(player, 'sourcechange');
-    void player.video.play().catch(() => {});
+    void player.media.play().catch(() => {});
     await started;
     expect(progress.hidden).toBe(false);
     const fill = progress.shadowRoot?.querySelector<HTMLElement>('[part~="fill"]');
@@ -197,7 +197,7 @@ describe('@mattebox/player-ads', () => {
     expect(link?.getAttribute('aria-label')).toBe('Learn more');
     expect(link?.querySelector('svg')).not.toBeNull();
     // ArrowRight would seek the bar's step: during the ad it goes nowhere.
-    const before = player.video.currentTime;
+    const before = player.media.currentTime;
     const key = new KeyboardEvent('keydown', {
       key: 'ArrowRight',
       bubbles: true,
@@ -205,14 +205,14 @@ describe('@mattebox/player-ads', () => {
     });
     player.dispatchEvent(key);
     expect(key.defaultPrevented).toBe(true);
-    expect(player.video.currentTime).toBeCloseTo(before, 0);
+    expect(player.media.currentTime).toBeCloseTo(before, 0);
   });
 
   it('skips the ad from its skip offset, and reports the skip', async () => {
     const player = mount(preroll(silence(5), '00:00:00.000'));
     const started = once(player, 'adstart');
     await once(player, 'sourcechange');
-    void player.video.play().catch(() => {});
+    void player.media.play().catch(() => {});
     await started;
     const button = player.querySelector('mbx-ad-skip-button');
     expect(button?.hidden).toBe(false);

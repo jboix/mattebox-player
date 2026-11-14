@@ -40,7 +40,7 @@ export class MbxPlayButton extends Component {
   }
 
   private toggle(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     if (video.paused) {
       // Rejected outside a user gesture on an unmuted video, which the
@@ -52,7 +52,7 @@ export class MbxPlayButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['play', 'pause', 'ended', 'emptied'], () => {
+    this.listen(player.media, ['play', 'pause', 'ended', 'emptied'], () => {
       this.render();
     });
     this.observe(player, HELD, () => {
@@ -64,7 +64,7 @@ export class MbxPlayButton extends Component {
   protected override render(): void {
     const player = this.player;
     if (player === null) return;
-    const state: State = player.video.ended ? 'replay' : shownPaused(player) ? 'play' : 'pause';
+    const state: State = player.media.ended ? 'replay' : shownPaused(player) ? 'play' : 'pause';
     show(this.slots, state);
     this.button.setAttribute('aria-label', this.word(`label-${state}`, state, LABELS[state]));
   }

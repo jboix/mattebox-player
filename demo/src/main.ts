@@ -68,7 +68,7 @@ let playing = '';
 const contentDialog = byId<HTMLDialogElement>('content-dialog');
 
 function wire(element: MatteboxPlayerElement): void {
-  element.video.setAttribute('aria-label', 'Mattebox player');
+  element.media.setAttribute('aria-label', 'Mattebox player');
   element.addEventListener('sourcechange', (event) => {
     if (event.detail === null) return;
     const won = event.detail.handler;
@@ -91,7 +91,7 @@ function wire(element: MatteboxPlayerElement): void {
   });
   // A fatal error the engine reports and then plays through is the engine's
   // to explain; the status follows what the picture does.
-  element.video.addEventListener('playing', () => {
+  element.media.addEventListener('playing', () => {
     if (status.classList.contains('bad'))
       say(`${playing}, playing after an error the engine reported`, 'ok');
   });
@@ -800,8 +800,8 @@ function composition(): string {
           : {};
     lines.push(tag(tagName, own));
   }
-  // The cast screen comes with the cast button: one package, one toggle.
-  if (enabled.has('cast')) lines.push(tag('mbx-cast-screen', {}));
+  // The line that names the device, with either cast button.
+  if (enabled.has('cast') || enabled.has('airplay')) lines.unshift(tag('mbx-casting', {}));
   const on = (row: Row) => rows[row].filter((name) => enabled.has(name));
   const inner = [
     ...on('seek').map((name) => controlMarkup(name, 'seek')),

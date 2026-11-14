@@ -29,7 +29,7 @@ export abstract class TimeElement extends Component {
     const tick = (): void => {
       this.render();
     };
-    this.listen(player.video, EVENTS, tick);
+    this.listen(player.media, EVENTS, tick);
     this.listen(player, ['sourcechange'], tick);
     this.observe(player, ['live', 'seekable'], tick);
     this.render();

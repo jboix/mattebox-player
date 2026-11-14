@@ -76,4 +76,5 @@ export default {
   saidAudio: '音声: {track}',
   saidSubtitles: '字幕: {track}',
   saidSubtitlesOff: '字幕オフ',
+  castingTo: '{device} にキャスト中',
 } satisfies PlayerMessages;

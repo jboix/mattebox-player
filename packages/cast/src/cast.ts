@@ -1,34 +1,36 @@
 /**
- * Chromecast from the page, over Google's Cast sender framework. The SDK is
- * a script the page loads, never a dependency (rule 2): the helper puts it
- * on the page the first time a cast button connects, unless it is already
- * there or the button says `sdk="none"`. Its context is one per page by
- * Google's design, so the receiver id the first button gives is the one
- * the page keeps.
+ * The Cast sender for one player, over Google's Cast Web Sender SDK. The
+ * helper loads the SDK from Google's CDN unless the page already has it,
+ * holds the one session the SDK allows, and hands the player a remote
+ * while it runs: the player then reads the device through `player.media`,
+ * keeps its video paused, and sends every load here.
  *
- * One `Cast` per player. It owns the handoff and nothing on the video is
- * wrapped (rule 3): on start it pauses the video, freezes the engine, and
- * sends the session's source to the receiver at the video's time; on end
- * it thaws the engine, seeks the video to the receiver's last time, and
- * plays if the receiver was playing. The cast screen drives the receiver
- * through the SDK's remote player meanwhile.
+ * Module state and not a controller on the player: the SDK is a singleton
+ * with one session per page, so the helper is one too. The cast button
+ * finds the same helper through its player.
  *
- * The receiver plays the URL by itself. The request's
- * `customData.mattebox` carries the source's DRM servers, the convention
- * `@mattebox/cast-receiver` reads. The button dispatches `castload` with the
- * request before it goes out, so the page adds license headers there, or
- * cancels. A receiver that gets a 401 or 403 from the license server asks
- * the sender for a new token on the `urn:x-cast:ch.mattebox.license`
- * namespace; the player dispatches `castunauthorized`, and the page replies.
+ * Chromium only. Safari and Firefox never load the SDK, and the button
+ * hides there; AirPlay is the player's own AirPlay button.
+ *
+ * The request carries the programme with the source. Cast's own fields
+ * take what Cast has a field for: the URL, the type, the title and the
+ * subtitle files. `customData.mattebox` takes the rest, the convention
+ * `@mattebox/cast-receiver` reads: the DRM servers, the connector's type
+ * and id, the metadata with the chapters and the markers, and what each
+ * add-on sends. The helper dispatches `castload` with the request before
+ * it goes out, so the page adds license headers there, or cancels. A
+ * receiver that gets a 401 or 403 from the license server asks the sender
+ * for a new token on the `urn:x-cast:ch.mattebox.license` namespace; the
+ * player dispatches `castunauthorized`, and the page replies.
  */
-import type { Source } from '@mattebox/player-core';
+import type { Remote, RemoteLoad, RemoteMedia } from '@mattebox/player';
+import type {
+  ConnectorSource,
+  ProgrammeMetadata,
+  Source,
+  SourceVideoTrack,
+} from '@mattebox/player-core';
 import type { PlayerHost } from './host.js';
-
-/** Whether the session is live: the engine's `live` namespace, once it has an edge. */
-function live(engine: PlayerHost['engine']): boolean {
-  const api = (engine as { live?: { edge: number | null } } | null)?.live;
-  return api !== undefined && api.edge !== null;
-}
 
 // The slice of the sender SDK the helper reads. No `@types/chromecast`:
 // the SDK is not a dependency, and these names are what the page's script
@@ -45,6 +47,7 @@ interface SdkDevice {
 
 interface SdkMediaSession {
   readonly media?: { readonly contentId?: string } | null;
+  readonly idleReason?: string | null;
 }
 
 interface SdkSession {
@@ -74,13 +77,30 @@ export interface UnauthorizedDetail {
   reply(reply: LicenseReply | Promise<LicenseReply>): void;
 }
 
-/** `customData.mattebox`: the source's DRM servers, as `@mattebox/cast-receiver` reads them. */
+/**
+ * `customData.mattebox`, as `@mattebox/cast-receiver` reads it. Every
+ * member is optional, and a receiver ignores the ones it does not know.
+ */
 export interface MatteboxCustomData {
   licenseUrl?: string;
   licenseUrls?: Readonly<Record<string, string>>;
   certificateUrl?: string;
   /** Headers for the license requests. The player has none of its own; a `castload` listener adds them. */
   licenseHeaders?: Record<string, string>;
+  /** The URL of the thumbnail track. */
+  thumbnails?: string;
+  /** The connector the programme came from: its type, with its id or its data. */
+  programme?: ConnectorSource;
+  /** The title, the subtitle, the description, the image, the poster, the chapters and the markers. */
+  metadata?: ProgrammeMetadata;
+  /** The URL of a chapters file. */
+  chapters?: string;
+  /** The other versions of the picture, such as sign language. */
+  videoTracks?: readonly SourceVideoTrack[];
+  /** The clock time a live viewer watches, in epoch seconds. Absent at the live edge. */
+  date?: number;
+  /** What each add-on of the page sends, under its name. */
+  addons?: { readonly [name: string]: unknown };
 }
 
 interface SdkContext {
@@ -99,6 +119,9 @@ interface SdkRemotePlayer {
   currentTime: number;
   duration: number;
   playerState: string | null;
+  volumeLevel?: number;
+  isMuted?: boolean;
+  liveSeekableRange?: { readonly start?: number; readonly end?: number } | null;
 }
 
 interface SdkRemoteController {
@@ -106,6 +129,16 @@ interface SdkRemoteController {
   playOrPause(): void;
   seek(): void;
   stop(): void;
+  setVolumeLevel?(): void;
+  muteOrUnmute?(): void;
+}
+
+/** The title, the subtitle and the image, where Google's own screens read them. */
+export interface CastMetadata {
+  metadataType: number;
+  title?: string;
+  subtitle?: string;
+  images?: { url: string }[];
 }
 
 /** What the receiver plays. The page sees it as `castload`'s `detail`. */
@@ -114,6 +147,7 @@ export interface MediaInfo {
   contentType: string;
   streamType: string;
   tracks: Track[] | null;
+  metadata?: CastMetadata | null;
   hlsSegmentFormat?: string;
   hlsVideoSegmentFormat?: string;
 }
@@ -128,7 +162,7 @@ export interface Track {
 
 export interface LoadRequest {
   media: MediaInfo;
-  currentTime: number;
+  currentTime?: number;
   autoplay: boolean;
   customData: unknown;
 }
@@ -170,16 +204,17 @@ interface Globals {
 const DEFAULT_RECEIVER = 'CC1AD845';
 const SDK_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
 
-export type CastState = 'unavailable' | 'idle' | 'connecting' | 'casting';
+/**
+ * A Cast transport message holds 64 kB (Cast media messages, "Message
+ * size"). The request's JSON stays under this, which leaves room for the
+ * envelope around it.
+ */
+const MAX_REQUEST = 60000;
 
-/** What the cast screen shows of the receiver. */
-export interface Remote {
-  readonly loaded: boolean;
-  readonly paused: boolean;
-  readonly time: number;
-  /** Infinity for a live stream, the way the video reports it. */
-  readonly duration: number;
-}
+/** The kind the player carries in `casting` while this package's device plays. */
+const KIND = 'chromecast';
+
+export type CastState = 'unavailable' | 'idle' | 'connecting' | 'casting';
 
 export interface Cast {
   /**
@@ -192,22 +227,12 @@ export interface Cast {
   /** The button left the player: a rejoined session no longer looks here. */
   disconnect(): void;
   state(): CastState;
-  /** The receiver's name while casting, or null. */
-  device(): string | null;
-  remote(): Remote;
-  /** Opens the device picker. `castload` goes out on `target` once a session starts. */
+  /** Opens the device picker. `castload` goes out on `target` with each load of the session. */
   start(target: HTMLElement): void;
   /** Ends the session and stops the receiver. */
   stop(): void;
-  playPause(): void;
-  seek(time: number): void;
-  /** Runs `fn` on every change: devices, session, and the receiver's playback. Returns the unsubscribe. */
+  /** Runs `fn` on every change: devices and session. Returns the unsubscribe. */
   watch(fn: () => void): () => void;
-}
-
-/** What the video is doing at the start of a cast, to give back at the end. */
-interface Handoff {
-  readonly live: boolean;
 }
 
 // The page-wide part: one SDK, one context, one remote player. Held in the
@@ -220,9 +245,6 @@ let remoteController: SdkRemoteController | null = null;
 const watchers = new Set<() => void>();
 /** The player whose session this is, so two players on a page do not both take a session. */
 let owner: CastOf | null = null;
-/** The receiver's last known playback, read while it reports and kept once it stops. */
-const NOTHING: Remote = { loaded: false, paused: true, time: 0, duration: Number.NaN };
-let last: Remote = NOTHING;
 
 function globals(): Globals {
   return globalThis as Globals;
@@ -231,6 +253,191 @@ function globals(): Globals {
 function notify(): void {
   for (const fn of [...watchers]) fn();
 }
+
+/** What the device last reported, kept once it stops reporting. */
+interface Seen {
+  loaded: boolean;
+  paused: boolean;
+  time: number;
+  duration: number;
+  volume: number;
+  muted: boolean;
+  state: string | null;
+  start: number;
+  end: number;
+}
+
+/**
+ * The device's playback, as the player's `media` reads it: the SDK's
+ * remote player behind the members of a video, and its reports as the
+ * video's events. The values are the last the device reported, so the end
+ * of the session still says where it stopped.
+ */
+class DeviceMedia extends EventTarget implements RemoteMedia {
+  declare private seen: Seen;
+  /** The media ran to its end on the device. */
+  declare private finished: boolean;
+  /** A seek went out, and the device has not answered it. */
+  declare private seeking: boolean;
+  /** Loads the last request again from its start, for a play after the end. */
+  declare replay: (() => void) | null;
+
+  constructor() {
+    super();
+    this.seen = {
+      loaded: false,
+      paused: true,
+      time: 0,
+      duration: Number.NaN,
+      volume: 1,
+      muted: false,
+      state: null,
+      start: 0,
+      end: 0,
+    };
+    this.finished = false;
+    this.seeking = false;
+    this.replay = null;
+  }
+
+  /** A new load: what the last one reported is no longer true. */
+  reset(time: number, playing: boolean): void {
+    this.seen.loaded = false;
+    this.seen.time = time;
+    this.seen.paused = !playing;
+    this.finished = false;
+    this.seeking = false;
+    this.say('timeupdate');
+  }
+
+  /** Reads the SDK's remote player after one of its changes, and says what changed. */
+  report(remote: SdkRemotePlayer, session: SdkSession | null): void {
+    if (!remote.isConnected) return;
+    const was = this.seen;
+    if (!remote.isMediaLoaded) {
+      if (!was.loaded) return;
+      // The media left the device: it ended, or a sender stopped it.
+      const ended =
+        session?.getMediaSession()?.idleReason === 'FINISHED' ||
+        (Number.isFinite(was.duration) && was.duration - was.time < 1);
+      this.seen = { ...was, loaded: false, paused: true, state: null };
+      if (ended) {
+        this.finished = true;
+        this.seen.time = Number.isFinite(was.duration) ? was.duration : was.time;
+        this.say('timeupdate');
+      }
+      if (!was.paused) this.say('pause');
+      if (ended) this.say('ended');
+      return;
+    }
+    const range = remote.liveSeekableRange ?? null;
+    const duration = remote.duration > 0 ? remote.duration : Number.POSITIVE_INFINITY;
+    const next: Seen = {
+      loaded: true,
+      paused: remote.isPaused,
+      time: remote.currentTime,
+      duration,
+      volume: remote.volumeLevel ?? was.volume,
+      muted: remote.isMuted ?? was.muted,
+      state: remote.playerState,
+      start: range?.start ?? 0,
+      end: range?.end ?? (Number.isFinite(duration) ? duration : 0),
+    };
+    this.seen = next;
+    this.finished = false;
+    if (
+      next.duration !== was.duration &&
+      !(Number.isNaN(next.duration) && Number.isNaN(was.duration))
+    ) {
+      this.say('durationchange');
+    }
+    if (next.time !== was.time) {
+      this.say('timeupdate');
+      if (this.seeking) {
+        this.seeking = false;
+        this.say('seeked');
+      }
+    }
+    if (next.paused !== was.paused || !was.loaded) this.say(next.paused ? 'pause' : 'play');
+    if (next.state !== was.state) {
+      if (next.state === 'BUFFERING') this.say('waiting');
+      else if (next.state === 'PLAYING') this.say('playing');
+    }
+    if (next.volume !== was.volume || next.muted !== was.muted) this.say('volumechange');
+  }
+
+  private say(name: string): void {
+    this.dispatchEvent(new Event(name));
+  }
+
+  get currentTime(): number {
+    return this.seen.time;
+  }
+
+  set currentTime(value: number) {
+    const remote = remotePlayer;
+    if (remote === null || !this.seen.loaded) return;
+    this.seen.time = value;
+    this.seeking = true;
+    remote.currentTime = value;
+    remoteController?.seek();
+    this.say('seeking');
+    this.say('timeupdate');
+  }
+
+  get duration(): number {
+    return this.seen.duration;
+  }
+
+  get paused(): boolean {
+    return this.seen.paused;
+  }
+
+  get ended(): boolean {
+    return this.finished;
+  }
+
+  get seekable(): RemoteMedia['seekable'] {
+    const { start, end } = this.seen;
+    return {
+      length: end > start ? 1 : 0,
+      start: () => start,
+      end: () => end,
+    };
+  }
+
+  get volume(): number {
+    return this.seen.volume;
+  }
+
+  set volume(value: number) {
+    const remote = remotePlayer;
+    if (remote === null) return;
+    remote.volumeLevel = value;
+    remoteController?.setVolumeLevel?.();
+  }
+
+  get muted(): boolean {
+    return this.seen.muted;
+  }
+
+  set muted(value: boolean) {
+    if (remotePlayer !== null && this.seen.muted !== value) remoteController?.muteOrUnmute?.();
+  }
+
+  play(): Promise<void> {
+    if (!this.seen.loaded) this.replay?.();
+    else if (this.seen.paused) remoteController?.playOrPause();
+    return Promise.resolve();
+  }
+
+  pause(): void {
+    if (this.seen.loaded && !this.seen.paused) remoteController?.playOrPause();
+  }
+}
+
+/** The device's playback for the session that runs. One per session: a new session reports from nothing. */
+let device: DeviceMedia | null = null;
 
 /**
  * The framework, once the page has it. Resolves null where the SDK never
@@ -279,19 +486,11 @@ function context(fw: Framework, receiver: string | null): SdkContext {
     ctx.addEventListener(fw.CastContextEventType.SESSION_STATE_CHANGED, (event) => {
       onSession(fw, ctx, event.sessionState ?? '');
     });
-    remotePlayer = new fw.RemotePlayer();
-    remoteController = new fw.RemotePlayerController(remotePlayer);
+    const remote = new fw.RemotePlayer();
+    remotePlayer = remote;
+    remoteController = new fw.RemotePlayerController(remote);
     remoteController.addEventListener(fw.RemotePlayerEventType.ANY_CHANGE, () => {
-      const remote = remotePlayer;
-      if (remote?.isConnected === true && remote.isMediaLoaded) {
-        last = {
-          loaded: true,
-          paused: remote.isPaused,
-          time: remote.currentTime,
-          duration: remote.duration > 0 ? remote.duration : Number.POSITIVE_INFINITY,
-        };
-      }
-      notify();
+      device?.report(remote, ctx.getCurrentSession());
     });
   } else if (receiver !== null && receiver !== configured) {
     console.error(`mattebox-player: the Cast context already uses receiver ${configured}`);
@@ -302,9 +501,7 @@ function context(fw: Framework, receiver: string | null): SdkContext {
 function onSession(fw: Framework, ctx: SdkContext, state: string): void {
   const states = fw.SessionState;
   if (state === states.SESSION_STARTED && owner !== null && owner.pending) {
-    // A new session has loaded nothing yet, whatever the last one played.
-    last = NOTHING;
-    owner.begin(ctx);
+    owner.begin(ctx, false);
   } else if (state === states.SESSION_RESUMED) {
     // Chrome rejoins a session of this origin on load. It is this player's
     // when the receiver plays what the player has.
@@ -312,17 +509,17 @@ function onSession(fw: Framework, ctx: SdkContext, state: string): void {
     const found = [...connected].find((cast) => cast.plays(playing));
     if (found !== undefined && owner === null) {
       owner = found;
-      found.adopt(ctx);
+      found.begin(ctx, true);
     }
   } else if (state === states.SESSION_ENDED || state === states.SESSION_START_FAILED) {
     const ended = owner;
     owner = null;
-    ended?.end(state === states.SESSION_ENDED);
+    ended?.end();
   }
   notify();
 }
 
-/** One per player, found again by its button and its screen. Weak, so a player that leaves is not held. */
+/** One per player, found again by its button. Weak, so a player that leaves is not held. */
 const players = new WeakMap<PlayerHost, CastOf>();
 /** The players with a cast button attached, for a session Chrome rejoins on load. */
 const connected = new Set<CastOf>();
@@ -334,8 +531,8 @@ class CastOf implements Cast {
   declare private fw: Framework | null;
   /** This player asked for a session and waits for it to start. */
   declare pending: boolean;
-  declare private casting: boolean;
-  declare private handoff: Handoff | null;
+  /** Ends the cast on the player, while a session of this player runs. */
+  declare private uncast: (() => void) | null;
   /** The session this player listens on for license token requests, and its listener. */
   declare private listening: {
     readonly session: SdkSession;
@@ -348,8 +545,7 @@ class CastOf implements Cast {
     this.ctx = null;
     this.fw = null;
     this.pending = false;
-    this.casting = false;
-    this.handoff = null;
+    this.uncast = null;
     this.listening = null;
   }
 
@@ -371,25 +567,16 @@ class CastOf implements Cast {
     const ctx = this.ctx;
     const fw = this.fw;
     if (ctx === null || fw === null) return 'unavailable';
-    if (this.casting) return 'casting';
+    if (this.uncast !== null) return 'casting';
     const cast = ctx.getCastState();
     if (cast === fw.CastState.NO_DEVICES_AVAILABLE) return 'unavailable';
     if (cast === fw.CastState.CONNECTING || this.pending) return 'connecting';
     return 'idle';
   }
 
-  device(): string | null {
-    if (!this.casting) return null;
-    return this.ctx?.getCurrentSession()?.getCastDevice().friendlyName ?? null;
-  }
-
-  remote(): Remote {
-    return last;
-  }
-
   start(target: HTMLElement): void {
     const ctx = this.ctx;
-    if (ctx === null || this.casting) return;
+    if (ctx === null || this.uncast !== null) return;
     // Another player on the page holds the session. The SDK has one, so
     // this click ends it, the way Chrome's own dialog offers to.
     if (owner !== null && owner !== this) {
@@ -410,17 +597,7 @@ class CastOf implements Cast {
   }
 
   stop(): void {
-    if (this.casting) this.ctx?.endCurrentSession(true);
-  }
-
-  playPause(): void {
-    if (this.casting) remoteController?.playOrPause();
-  }
-
-  seek(time: number): void {
-    if (!this.casting || remotePlayer === null) return;
-    remotePlayer.currentTime = time;
-    remoteController?.seek();
+    if (this.uncast !== null) this.ctx?.endCurrentSession(true);
   }
 
   watch(fn: () => void): () => void {
@@ -435,47 +612,74 @@ class CastOf implements Cast {
     return url !== undefined && this.player.player?.session?.source.url === url;
   }
 
-  /** A session started for this player: freeze the picture and send the source. */
-  begin(ctx: SdkContext): void {
+  /**
+   * A session started for this player, or Chrome rejoined one that already
+   * plays its source: the device plays in the video's place from here.
+   */
+  begin(ctx: SdkContext, adopted: boolean): void {
     this.pending = false;
-    const session = this.player.player?.session ?? null;
-    const video = this.player.video;
-    const time = video.currentTime;
-    const autoplay = !video.paused;
-    this.freeze();
+    const session = ctx.getCurrentSession();
     if (session === null) return;
-    const request = this.request(session.source, time, autoplay);
-    if (request === null) return;
-    this.listen(ctx.getCurrentSession());
+    this.listen(session);
+    const media = new DeviceMedia();
+    device = media;
+    const remote: Remote = {
+      target: { kind: KIND, name: session.getCastDevice().friendlyName },
+      media,
+      load: (source, load) => this.send(session, media, source, load),
+      stop: () => remoteController?.stop(),
+    };
+    // A session that already plays reports its state at once.
+    if (adopted && remotePlayer !== null) media.report(remotePlayer, session);
+    this.uncast = this.player.cast(remote, { adopted });
+  }
+
+  /** The session ended: the video takes the device's position back. */
+  end(): void {
+    this.pending = false;
+    this.unlisten();
+    const uncast = this.uncast;
+    this.uncast = null;
+    uncast?.();
+    device = null;
+  }
+
+  /** Sends one load of the player to the receiver. Rejects when the receiver refuses it. */
+  private send(
+    session: SdkSession,
+    media: DeviceMedia,
+    source: Source,
+    load: RemoteLoad,
+  ): Promise<void> {
+    const request = this.request(source, load);
+    if (request === null) return Promise.reject(new Error('the Cast SDK is gone'));
+    if (JSON.stringify(request).length > MAX_REQUEST) {
+      return Promise.reject(new Error('the load is larger than a Cast message'));
+    }
     const event = new CustomEvent<LoadRequest>('castload', {
       detail: request,
       bubbles: true,
       composed: true,
       cancelable: true,
     });
-    if (this.target?.dispatchEvent(event) === false) return;
-    void ctx
-      .getCurrentSession()
-      ?.loadMedia(request)
-      .catch(() => {
-        // The receiver refused the media. The session stays, so the viewer
-        // can stop it; the screen shows no time.
-      });
-  }
-
-  /** A session Chrome rejoined, already playing this player's source. */
-  adopt(ctx: SdkContext): void {
-    this.freeze();
-    this.listen(ctx.getCurrentSession());
+    // The page said no: nothing goes out, and that is no failure.
+    if (!(this.target ?? this.player).dispatchEvent(event)) return Promise.resolve();
+    media.reset(request.currentTime ?? 0, request.autoplay);
+    media.replay = (): void => {
+      const again: LoadRequest = { ...request, autoplay: true };
+      delete again.currentTime;
+      media.reset(0, true);
+      void session.loadMedia(again).catch(() => undefined);
+    };
+    return session.loadMedia(request).then(() => undefined);
   }
 
   /**
    * Answers the receiver's token requests for this session: a
    * `castunauthorized` event on the player, and the page's reply sent back.
    */
-  private listen(session: SdkSession | null): void {
+  private listen(session: SdkSession): void {
     this.unlisten();
-    if (session === null) return;
     const fn = (_namespace: string, message: string): void => {
       let data: { type?: unknown; id?: unknown; keySystem?: unknown; status?: unknown };
       try {
@@ -515,45 +719,14 @@ class CastOf implements Cast {
     held?.session.removeMessageListener(LICENSE_NAMESPACE, held.fn);
   }
 
-  private freeze(): void {
-    const engine = this.player.engine;
-    this.handoff = { live: live(engine) };
-    this.player.video.pause();
-    // The engine keeps its buffers and makes no request while the receiver
-    // plays (engine guide 01, suspend and resume).
-    engine?.suspend();
-    this.casting = true;
-    this.player.toggleAttribute('casting', true);
-    notify();
-  }
-
-  /** The session ended: give the video back where the receiver left it. */
-  end(cleanly: boolean): void {
-    this.pending = false;
-    this.unlisten();
-    if (!this.casting) return;
-    this.casting = false;
-    const handoff = this.handoff;
-    this.handoff = null;
-    const video = this.player.video;
-    const engine = this.player.engine;
-    engine?.resume();
-    this.player.removeAttribute('casting');
-    if (!cleanly || !last.loaded) return;
-    // Live rejoins at the edge on its own; the receiver's time is on the
-    // receiver's own timeline and means nothing here.
-    if (handoff?.live !== true && Number.isFinite(last.time)) video.currentTime = last.time;
-    if (!last.paused) video.play().catch(() => undefined);
-  }
-
-  /** The load request: the source, the time, the stream type, and the video's own text tracks. */
-  private request(source: Source, time: number, autoplay: boolean): LoadRequest | null {
+  /** The load request: Cast's own fields, and `customData.mattebox` for what Cast has no field for. */
+  private request(source: Source, load: RemoteLoad): LoadRequest | null {
     const media = globals().chrome?.cast?.media;
     if (media === undefined) return null;
     const engine = this.player.engine;
     const type = source.type ?? '';
     const info = new media.MediaInfo(source.url, type);
-    info.streamType = live(engine) ? media.StreamType.LIVE : media.StreamType.BUFFERED;
+    info.streamType = load.live ? media.StreamType.LIVE : media.StreamType.BUFFERED;
     if (/mpegurl/i.test(type)) {
       // The receiver assumes MPEG-TS segments for HLS unless told. The
       // engine's presentation says which the stream has; a native session
@@ -563,33 +736,78 @@ class CastOf implements Cast {
       info.hlsVideoSegmentFormat = ts ? 'mpeg2_ts' : 'fmp4';
     }
     const tracks: Track[] = [];
-    for (const node of this.player.video.querySelectorAll('track[src]')) {
-      const track = node as HTMLTrackElement;
-      if (track.kind !== 'subtitles' && track.kind !== 'captions') continue;
+    for (const file of load.textTracks) {
       const out = new media.Track(tracks.length + 1, media.TrackType.TEXT);
-      out.trackContentId = track.src;
+      out.trackContentId = file.url;
       out.trackContentType = 'text/vtt';
       out.subtype =
-        track.kind === 'captions' ? media.TextTrackType.CAPTIONS : media.TextTrackType.SUBTITLES;
-      out.name = track.label;
-      out.language = track.srclang;
+        file.kind === 'captions' ? media.TextTrackType.CAPTIONS : media.TextTrackType.SUBTITLES;
+      out.name = file.label;
+      out.language = file.language;
       tracks.push(out);
     }
     info.tracks = tracks.length > 0 ? tracks : null;
-    const request = new media.LoadRequest(info);
-    request.currentTime = time;
-    request.autoplay = autoplay;
-    const drm = source.drm;
-    if (drm !== undefined) {
-      const mattebox: MatteboxCustomData = {
-        ...(drm.licenseUrl === undefined ? {} : { licenseUrl: drm.licenseUrl }),
-        ...(drm.licenseUrls === undefined ? {} : { licenseUrls: drm.licenseUrls }),
-        ...(drm.certificateUrl === undefined ? {} : { certificateUrl: drm.certificateUrl }),
+    const programme = load.programme;
+    const known = programme?.metadata;
+    // Google's own screens show these: the Home app, and the other senders of the session.
+    if (known?.title !== undefined || known?.subtitle !== undefined || known?.image !== undefined) {
+      info.metadata = {
+        metadataType: 0,
+        ...(known.title === undefined ? {} : { title: known.title }),
+        ...(known.subtitle === undefined ? {} : { subtitle: known.subtitle }),
+        ...(known.image === undefined ? {} : { images: [{ url: known.image }] }),
       };
-      request.customData = { mattebox };
+    }
+    const request = new media.LoadRequest(info);
+    if (typeof load.at === 'number') request.currentTime = load.at;
+    request.autoplay = load.playing;
+    const mattebox = customData(source, load);
+    if (Object.keys(mattebox).length > 0) request.customData = { mattebox };
+    // The connector's data goes first when the request is too large: with
+    // its id, the receiver's connector fetches it again.
+    if (JSON.stringify(request).length > MAX_REQUEST && mattebox.programme?.data !== undefined) {
+      const { type: connector, id } = mattebox.programme;
+      if (id === undefined) delete mattebox.programme;
+      else mattebox.programme = { type: connector, id };
     }
     return request;
   }
+}
+
+/** `customData.mattebox` of one load: what Cast has no field for. */
+function customData(source: Source, load: RemoteLoad): MatteboxCustomData {
+  const out: MatteboxCustomData = {};
+  const drm = source.drm;
+  if (drm?.licenseUrl !== undefined) out.licenseUrl = drm.licenseUrl;
+  if (drm?.licenseUrls !== undefined) out.licenseUrls = drm.licenseUrls;
+  if (drm?.certificateUrl !== undefined) out.certificateUrl = drm.certificateUrl;
+  if (load.thumbnails !== undefined) out.thumbnails = load.thumbnails;
+  if (load.chapters !== undefined) out.chapters = load.chapters;
+  if (source.videoTracks !== undefined && source.videoTracks.length > 0) {
+    out.videoTracks = source.videoTracks;
+  }
+  if (typeof load.at === 'object' && load.at !== null) out.date = load.at.date;
+  const programme = load.programme;
+  if (programme?.type !== undefined) {
+    // The data only for a programme the page loaded by its data alone: with
+    // an id, the receiver's connector fetches its own.
+    out.programme = {
+      type: programme.type,
+      ...(programme.id === undefined ? {} : { id: programme.id }),
+      ...(programme.id !== undefined || programme.data === undefined
+        ? {}
+        : { data: programme.data }),
+    };
+  }
+  // The player's markers now, over the ones the programme came with: the page may have set its own.
+  const { markers: _first, ...rest } = programme?.metadata ?? {};
+  const metadata: ProgrammeMetadata = {
+    ...rest,
+    ...(load.markers.length === 0 ? {} : { markers: load.markers }),
+  };
+  if (Object.keys(metadata).length > 0) out.metadata = metadata;
+  if (Object.keys(load.addons).length > 0) out.addons = load.addons;
+  return out;
 }
 
 /** Whether the engine's presentation carries MPEG-TS renditions. */
@@ -606,7 +824,7 @@ function tsSegments(engine: PlayerHost['engine']): boolean {
   return false;
 }
 
-/** The player's Cast, one per player, shared by its cast button and cast screen. */
+/** The player's Cast, one per player, shared by its cast button. */
 export function cast(player: PlayerHost): Cast {
   let held = players.get(player);
   if (held === undefined) {

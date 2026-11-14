@@ -76,4 +76,5 @@ export default {
   saidAudio: 'ऑडियो: {track}',
   saidSubtitles: 'उपशीर्षक: {track}',
   saidSubtitlesOff: 'उपशीर्षक बंद',
+  castingTo: '{device} पर कास्ट हो रहा है',
 } satisfies PlayerMessages;

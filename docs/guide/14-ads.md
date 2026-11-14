@@ -29,8 +29,10 @@ the players that show ads:
 - `ads()` adds the engine's `interstitials` stage to the stack, whatever
   the preset or the stages you give.
 - `addons` is an option of the player. A package of your own can use it:
-  `{ name, stages?(), attach?(player), engine? }`, where `attach` returns
-  what to run when the player leaves the page.
+  `{ name, stages?(), attach?(player), engine?, remoteData?(player) }`,
+  where `attach` returns what to run when the player leaves the page, and
+  `remoteData` returns what the add-on sends to a device that plays in the
+  video's place.
 - On Safari, `ads()` keeps HLS on the engine (ManagedMediaSource on iOS
   17.1 and later): Safari's own HLS plays interstitials itself and reports
   nothing, so no ad controls and no beacons. An older iOS stays native.
@@ -137,6 +139,37 @@ The SCTE-35 `segmentation_type_id` of a span sets what it is:
 
 The credits markers sit beside the page's own markers, and come back when
 the page sets its markers again.
+
+## During a cast
+
+- Under AirPlay nothing changes: Safari plays the video, and the ads with it.
+- During a Chromecast session the page starts no ad. The receiver plays
+  the ads: the ones in the stream, and the ones its own page schedules.
+- The add-on sends the schedule the page gave it, in
+  `customData.mattebox.addons.ads`: the URLs of `load` and of
+  `ad-schedule` as `urls`, and the breaks of `schedule` as `breaks`.
+- A receiver page with the add-on gives them to it, with the same calls,
+  at each session:
+
+```ts
+import { CAST_CONNECTOR } from '@mattebox/cast-receiver';
+import { ads, adsOf } from '@mattebox/player-ads';
+
+// Attach the add-on here, not in `define()`: its listener has to run before yours.
+ads().attach(player);
+// The add-on clears its schedule at each session. Yours is given after that.
+player.addEventListener('sourcechange', (event) => {
+  const programme = player.programme;
+  if (event.detail === null || programme?.type !== CAST_CONNECTOR) return;
+  const sent = programme.data.addons.ads;
+  for (const url of sent?.urls ?? []) void adsOf(player).load(url);
+  if (sent?.breaks) adsOf(player).schedule(sent.breaks);
+});
+```
+
+- The page needs `receiver.connectors()` of `@mattebox/cast-receiver` in
+  its `define()`: the sent sections are in the data of that programme.
+- A receiver page without the add-on ignores them, and plays no ad of the page.
 
 ## Words
 

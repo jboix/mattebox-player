@@ -27,9 +27,9 @@ function audience(send: (event: object) => void): Tracker {
     start(programme, player) {
       session = sessionId();
       const id = programme.id;
-      const playing = (): void => send({ event: 'play', id, session, at: player.video.currentTime });
-      player.video.addEventListener('playing', playing);
-      off = () => player.video.removeEventListener('playing', playing);
+      const playing = (): void => send({ event: 'play', id, session, at: player.media.currentTime });
+      player.media.addEventListener('playing', playing);
+      off = () => player.media.removeEventListener('playing', playing);
     },
     stop() {
       off();

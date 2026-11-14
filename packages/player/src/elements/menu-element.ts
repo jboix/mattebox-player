@@ -23,7 +23,7 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
     const root = this.attachShadow({ mode: 'open' });
     this.menu = menu({
       host: this,
-      picture: () => this.player?.video.getBoundingClientRect() ?? null,
+      picture: () => this.player?.media.getBoundingClientRect() ?? null,
       frame: () => this.player,
       back: (page) => fill(this.word('label-back', 'menuBack', 'Back from {page}'), { page }),
     });

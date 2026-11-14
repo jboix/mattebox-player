@@ -77,7 +77,7 @@ export function chapterAt(list: readonly Chapter[], time: number): number {
  * Every chapters track found is set hidden, so its cues load.
  */
 export function followChapters(player: PlayerHost, fn: () => void): () => void {
-  const video = player.video;
+  const video = player.media;
   const listen = (target: EventTarget, name: string, handler: () => void): (() => void) => {
     target.addEventListener(name, handler);
     return () => {

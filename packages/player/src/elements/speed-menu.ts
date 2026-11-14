@@ -19,6 +19,8 @@ export class MbxSpeedMenu extends MenuElement {
 
   constructor() {
     super(...single('playback-speed'));
+    // It would change the engine of the page, which a device does not play.
+    this.leaves = 'remote';
     show(this.slots, 'default');
   }
 
@@ -37,7 +39,7 @@ export class MbxSpeedMenu extends MenuElement {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['ratechange'], () => {
+    this.listen(player.media, ['ratechange'], () => {
       this.render();
     });
     this.render();
@@ -45,7 +47,7 @@ export class MbxSpeedMenu extends MenuElement {
 
   protected override render(): void {
     super.render();
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     const normal = this.word('label-normal', 'speedNormal', 'Normal');
     const items: Array<readonly [string, string]> = this.rates().map((rate) => [

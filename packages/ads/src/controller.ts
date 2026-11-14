@@ -78,6 +78,19 @@ export interface AdsApi {
   watch(fn: () => void): () => void;
 }
 
+/**
+ * What the add-on sends with a load to a device that plays in the video's
+ * place: the schedule the page gave for the programme, through `load`,
+ * `schedule` or the `ad-schedule` attribute. The page of the device gives
+ * it to its own add-on, with the same two calls.
+ */
+export interface AdsRemoteData {
+  /** The VMAP or VAST URLs of `load`, absolute. */
+  readonly urls?: readonly string[];
+  /** The breaks of `schedule`. */
+  readonly breaks?: readonly AdBreakInput[];
+}
+
 export interface AdsOptions {
   /** How VAST and VMAP documents are fetched: a page that signs its ad requests gives its own. */
   readonly fetch?: VastFetch;
@@ -213,6 +226,8 @@ export class Controller implements AdsApi {
   /** The credits markers this add-on gave the player, so a page's own stay. */
   declare private own: ReadonlySet<Marker>;
   declare private plans: Map<string, Plan>;
+  /** What the page gave for this programme, as it gave it. */
+  declare private given: { urls: string[]; breaks: AdBreakInput[] };
   declare private current: Current | null;
   declare private watchers: Set<() => void>;
   declare private offEngine: (() => void) | null;
@@ -237,6 +252,7 @@ export class Controller implements AdsApi {
     this.own = new Set();
     this.configure(options);
     this.plans = new Map();
+    this.given = { urls: [], breaks: [] };
     this.current = null;
     this.watchers = new Set();
     this.offEngine = null;
@@ -259,7 +275,7 @@ export class Controller implements AdsApi {
   /** Follows the player until `detach`. */
   attach(): () => void {
     const player = this.player;
-    const video = player.video;
+    const video = player.media;
     const onSource = (): void => {
       this.reset();
       this.bindEngine();
@@ -272,6 +288,7 @@ export class Controller implements AdsApi {
       this.tick();
     };
     const onPlay = (): void => {
+      if (this.away()) return;
       // The pre-roll first: the programme waits while its ad server answers,
       // and a progressive pre-roll already answered starts now.
       if (this.current === null && this.pending('start')) {
@@ -289,6 +306,7 @@ export class Controller implements AdsApi {
       this.tick();
     };
     const onEnded = (): void => {
+      if (this.away() && this.current === null) return;
       if (this.current?.interrupt === true) {
         this.nextProgressive();
         return;
@@ -382,12 +400,12 @@ export class Controller implements AdsApi {
   get state(): AdState | null {
     const current = this.current;
     if (current === null) return null;
-    const media = this.player.video;
+    const media = this.player.media;
     const ads = current.plan?.ads ?? [];
     const assets = current.entry?.assets ?? [];
     const total = Math.max(1, ads.length || assets.length);
     const time = current.stitched
-      ? this.player.video.currentTime - (current.entry?.start ?? 0)
+      ? this.player.media.currentTime - (current.entry?.start ?? 0)
       : media.currentTime;
     const duration = current.stitched
       ? (current.entry?.covers ?? Number.NaN)
@@ -444,9 +462,30 @@ export class Controller implements AdsApi {
     };
   }
 
+  /** The schedule the page gave, for the page of a device. Undefined without one. */
+  remoteData(): AdsRemoteData | undefined {
+    const { urls, breaks } = this.given;
+    if (urls.length === 0 && breaks.length === 0) return undefined;
+    return {
+      ...(urls.length === 0 ? {} : { urls: [...urls] }),
+      ...(breaks.length === 0 ? {} : { breaks: [...breaks] }),
+    };
+  }
+
+  /**
+   * A device plays in the video's place, and it is not the video itself as
+   * under AirPlay. The device's own page plays the ads then, so nothing
+   * starts here: the same break would play twice.
+   */
+  private away(): boolean {
+    const target = this.player.casting;
+    return target !== null && target.kind !== 'airplay';
+  }
+
   async load(source: string): Promise<void> {
     // Absolute, so the ad tags of a VMAP resolve against it.
     const url = new URL(source, location.href).href;
+    this.given.urls.push(url);
     let text: string;
     this.fetching += 1;
     try {
@@ -470,6 +509,7 @@ export class Controller implements AdsApi {
   }
 
   schedule(breaks: readonly AdBreakInput[]): void {
+    this.given.breaks.push(...breaks);
     for (const entry of breaks) {
       this.seq += 1;
       this.add({
@@ -498,7 +538,7 @@ export class Controller implements AdsApi {
     this.emit('adskip', this.detail());
     if (current.stitched && current.entry !== null) {
       // The stream plays this ad itself: a skip is a seek past it.
-      this.player.video.currentTime = current.entry.start + current.entry.covers;
+      this.player.media.currentTime = current.entry.start + current.entry.covers;
       return;
     }
     this.engineBreaks()?.skip();
@@ -511,7 +551,7 @@ export class Controller implements AdsApi {
     for (const url of current.ad?.clickTracking ?? []) this.send(expand(url, this.macros(current)));
     this.track(current, 'clickTracking');
     window.open(target, '_blank', 'noopener');
-    this.player.video.pause();
+    this.player.media.pause();
     this.emit('adclick', this.detail());
   }
 
@@ -610,11 +650,11 @@ export class Controller implements AdsApi {
 
   /** The programme's own time, through a break. */
   private programmeTime(): number {
-    return this.engineBreaks()?.primary.currentTime ?? this.player.video.currentTime;
+    return this.engineBreaks()?.primary.currentTime ?? this.player.media.currentTime;
   }
 
   private programmeDuration(): number {
-    return this.engineBreaks()?.primary.duration ?? this.player.video.duration;
+    return this.engineBreaks()?.primary.duration ?? this.player.media.duration;
   }
 
   /** Fetches the VAST of each break as it comes near, and starts the progressive ones on time. */
@@ -624,6 +664,7 @@ export class Controller implements AdsApi {
       this.followAd(this.current);
       return;
     }
+    if (this.away()) return;
     const time = this.programmeTime();
     const duration = this.programmeDuration();
     const seeked = Math.abs(time - this.lastTime) > 2;
@@ -656,7 +697,7 @@ export class Controller implements AdsApi {
     const playable: VastAd[] = [];
     const files: VastMediaFile[] = [];
     for (const ad of result.ads) {
-      const file = pick(ad, engine, this.player.video, height);
+      const file = pick(ad, engine, this.player.media, height);
       if (file === undefined || (!STREAMING.test(file.type) && this.progressive === 'skip')) {
         for (const url of ad.errors) this.send(expand(url, { errorCode: 403 }));
         continue;
@@ -686,7 +727,7 @@ export class Controller implements AdsApi {
       );
       if (this.holding) {
         this.holding = false;
-        void this.player.video.play()?.catch(() => {});
+        void this.player.media.play()?.catch(() => {});
       }
       this.engineBreaks()?.schedule({
         id: plan.id,
@@ -713,9 +754,9 @@ export class Controller implements AdsApi {
       return;
     }
     plan.status = 'progressive';
-    if (plan.offset === 'start' && (this.holding || !this.player.video.paused)) {
+    if (plan.offset === 'start' && (this.holding || !this.player.media.paused)) {
       this.holding = false;
-      this.player.video.pause();
+      this.player.media.pause();
       this.startProgressive(plan);
     }
   }
@@ -724,7 +765,7 @@ export class Controller implements AdsApi {
   private release(): void {
     if (!this.holding || this.pending('start')) return;
     this.holding = false;
-    void this.player.video.play()?.catch(() => {});
+    void this.player.media.play()?.catch(() => {});
   }
 
   // ---- the engine's breaks -----------------------------------------------
@@ -769,7 +810,7 @@ export class Controller implements AdsApi {
 
   /** After a drag: in an ad the stream plays, it starts; out of it, the ad that showed ends. */
   private landed(): void {
-    const time = this.player.video.currentTime;
+    const time = this.player.media.currentTime;
     const inside = (this.engineBreaks()?.breaks ?? []).find(
       (entry) =>
         entry.assets.length === 0 &&
@@ -933,9 +974,9 @@ export class Controller implements AdsApi {
 
   /** The ad's own time: progressive quartiles, progress beacons, the stream's callbacks, viewability. */
   private followAd(current: Current): void {
-    const media = this.player.video;
+    const media = this.player.media;
     const time = current.stitched
-      ? this.player.video.currentTime - (current.entry?.start ?? 0)
+      ? this.player.media.currentTime - (current.entry?.start ?? 0)
       : media.currentTime;
     if (current.interrupt && !media.seeking) current.last = time;
     if (current.interrupt && Number.isFinite(media.duration) && media.duration > 0) {
@@ -974,7 +1015,7 @@ export class Controller implements AdsApi {
 
   private adResumed(media: HTMLVideoElement): void {
     const current = this.current;
-    if (current === null || !current.paused || media !== this.player.video) return;
+    if (current === null || !current.paused || media !== this.player.media) return;
     current.paused = false;
     this.track(current, 'resume');
   }
@@ -1042,7 +1083,7 @@ export class Controller implements AdsApi {
   // ---- beacons and events ------------------------------------------------
 
   private macros(current: Current): MacroValues {
-    const media = this.player.video;
+    const media = this.player.media;
     const offset = current.plan?.offset;
     return {
       mediaPlayhead: current.at,
@@ -1086,6 +1127,7 @@ export class Controller implements AdsApi {
     if (current !== null) this.player.removeAttribute('ad');
     this.current = null;
     this.plans = new Map();
+    this.given = { urls: [], breaks: [] };
     this.done = new Set();
     this.own = new Set();
     this.player.breaks.set('ads', []);

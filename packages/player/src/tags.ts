@@ -15,6 +15,7 @@ export const MARKER_BUTTON = 'mbx-marker-button';
 export const ERROR_SCREEN = 'mbx-error-screen';
 export const SPINNER = 'mbx-spinner';
 export const TITLE = 'mbx-title';
+export const CASTING = 'mbx-casting';
 export const CURRENT_TIME = 'mbx-current-time';
 export const DURATION = 'mbx-duration';
 export const REMAINING_TIME = 'mbx-remaining-time';

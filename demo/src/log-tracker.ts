@@ -46,7 +46,7 @@ export function logTracker(
     },
     start(programme, player) {
       session = sessionId();
-      const video = player.video;
+      const video = player.media;
       const at = (): string => `${video.currentTime.toFixed(1)}s`;
       write('start', `${nameOf(programme)}, session ${session}`);
       const labels = labelsOf(programme);

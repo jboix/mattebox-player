@@ -52,7 +52,7 @@ export class MbxSkipButton extends Component {
   }
 
   private skip(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     const ranges = video.seekable;
     const end = Number.isFinite(video.duration)

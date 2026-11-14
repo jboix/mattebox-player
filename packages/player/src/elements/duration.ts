@@ -21,11 +21,11 @@ export class MbxDuration extends TimeElement {
     const on = live(engine) !== undefined;
     this.hidden = on;
     if (on) return;
-    const end = span(player.video, engine).end;
+    const end = span(player.media, engine).end;
     // A compact player has one readout, so this one counts down.
     this.text.data =
       this.getAttribute('layout') === 'compact'
-        ? `-${format(Math.max(0, end - player.video.currentTime))}`
+        ? `-${format(Math.max(0, end - player.media.currentTime))}`
         : format(end);
   }
 }

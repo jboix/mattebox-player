@@ -76,4 +76,5 @@ export default {
   saidAudio: '오디오: {track}',
   saidSubtitles: '자막: {track}',
   saidSubtitlesOff: '자막 끔',
+  castingTo: '{device}에 전송 중',
 } satisfies PlayerMessages;

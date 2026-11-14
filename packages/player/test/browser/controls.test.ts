@@ -29,7 +29,7 @@ function build(
   attributes: Readonly<Record<string, string>> = {},
 ): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
   document.body.append(player);
   return player;
@@ -67,7 +67,7 @@ async function loaded(
   seconds = 10,
 ): Promise<MatteboxPlayerElement> {
   const player = await custom(attributes);
-  await media(player.video).metadata(seconds);
+  await media(player.media).metadata(seconds);
   return player;
 }
 
@@ -123,20 +123,20 @@ describe('the controls attribute', () => {
   it('keeps native controls on the video and draws no bar by default', async () => {
     const player = mount();
     await settled();
-    expect(player.video.hasAttribute('controls')).toBe(true);
+    expect(player.media.hasAttribute('controls')).toBe(true);
     expect(bar(player)).toBeNull();
   });
 
   it('keeps native controls with controls="native"', async () => {
     const player = mount({ controls: 'native' });
     await settled();
-    expect(player.video.hasAttribute('controls')).toBe(true);
+    expect(player.media.hasAttribute('controls')).toBe(true);
     expect(bar(player)).toBeNull();
   });
 
   it('removes native controls and appends nothing with controls="custom"', async () => {
     const player = mount({ controls: 'custom' });
-    expect(player.video.hasAttribute('controls')).toBe(false);
+    expect(player.media.hasAttribute('controls')).toBe(false);
     await settled();
     // The composition is the page's: a player with nothing inside stays empty.
     expect(bar(player)).toBeNull();
@@ -153,7 +153,7 @@ describe('the controls attribute', () => {
   it('removes native controls and appends nothing with controls="none"', async () => {
     const player = mount({ controls: 'none' });
     await settled();
-    expect(player.video.hasAttribute('controls')).toBe(false);
+    expect(player.media.hasAttribute('controls')).toBe(false);
     expect([...player.children].map((node) => node.localName)).toEqual(['video']);
   });
 
@@ -166,9 +166,9 @@ describe('the controls attribute', () => {
       node !== null && getComputedStyle(node).display !== 'none';
     expect(shown(bar(player))).toBe(true);
     player.setAttribute('controls', 'none');
-    expect(shown(player.video)).toBe(true);
+    expect(shown(player.querySelector('video') as HTMLVideoElement)).toBe(true);
     for (const node of player.children) {
-      if (node !== player.video) expect(shown(node)).toBe(false);
+      if (node.localName !== 'video') expect(shown(node)).toBe(false);
     }
     // The children stay: the page keeps its composition and turns it off.
     expect(bar(player)?.isConnected).toBe(true);
@@ -217,18 +217,18 @@ describe('the controls attribute', () => {
       changes += 1;
     });
     await once(player, 'sourcechange');
-    const loaded = player.video.getAttribute('src');
+    const loaded = player.media.getAttribute('src');
 
     player.setAttribute('controls', 'custom');
-    expect(player.video.hasAttribute('controls')).toBe(false);
+    expect(player.media.hasAttribute('controls')).toBe(false);
     player.setAttribute('controls', 'none');
-    expect(player.video.hasAttribute('controls')).toBe(false);
+    expect(player.media.hasAttribute('controls')).toBe(false);
     player.removeAttribute('controls');
-    expect(player.video.hasAttribute('controls')).toBe(true);
+    expect(player.media.hasAttribute('controls')).toBe(true);
 
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(changes).toBe(1);
-    expect(player.video.getAttribute('src')).toBe(loaded);
+    expect(player.media.getAttribute('src')).toBe(loaded);
   });
 });
 
@@ -246,7 +246,7 @@ describe('a control and its player', () => {
     const player = await ready();
     const button = playButton(player);
     button.remove();
-    await player.video.play();
+    await player.media.play();
     expect(inner(button).getAttribute('aria-label')).toBe('Play');
   });
 
@@ -254,13 +254,13 @@ describe('a control and its player', () => {
     const first = await ready(10);
     const second = await custom();
     const button = playButton(first);
-    await first.video.play();
+    await first.media.play();
     expect(inner(button).getAttribute('aria-label')).toBe('Pause');
     bar(second)?.append(button);
     expect(inner(button).getAttribute('aria-label')).toBe('Play');
     // The first video's events no longer reach it.
-    first.video.pause();
-    await first.video.play();
+    first.media.pause();
+    await first.media.play();
     expect(inner(button).getAttribute('aria-label')).toBe('Play');
   });
 
@@ -280,10 +280,10 @@ describe('the state attributes on the player', () => {
     const player = await ready();
     expect(player.hasAttribute('paused')).toBe(true);
     expect(player.hasAttribute('playing')).toBe(false);
-    await player.video.play();
+    await player.media.play();
     expect(player.hasAttribute('playing')).toBe(true);
     expect(player.hasAttribute('paused')).toBe(false);
-    await media(player.video).end();
+    await media(player.media).end();
     expect(player.hasAttribute('ended')).toBe(true);
     expect(player.hasAttribute('paused')).toBe(true);
   });
@@ -291,28 +291,28 @@ describe('the state attributes on the player', () => {
   it('reflect the video unmuting, and drop the forwarded attribute with it', async () => {
     const player = await ready();
     expect(player.hasAttribute('muted')).toBe(true);
-    player.video.muted = false;
-    await once(player.video, 'volumechange');
+    player.media.muted = false;
+    await once(player.media, 'volumechange');
     expect(player.hasAttribute('muted')).toBe(false);
     // Reflection never writes to the video: its own attribute is the page's.
-    expect(player.video.hasAttribute('muted')).toBe(true);
-    expect(player.video.muted).toBe(false);
+    expect(player.media.hasAttribute('muted')).toBe(true);
+    expect(player.media.muted).toBe(false);
   });
 
   it('still forward the attribute the page sets onto the video', async () => {
     const player = await loaded();
-    expect(player.video.muted).toBe(false);
+    expect(player.media.muted).toBe(false);
     player.setAttribute('muted', '');
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(true);
-    expect(player.video.hasAttribute('muted')).toBe(true);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(true);
+    expect(player.media.hasAttribute('muted')).toBe(true);
   });
 
   it('still forward the attribute the page removes', async () => {
     const player = await ready();
     player.removeAttribute('muted');
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(false);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(false);
     expect(player.hasAttribute('muted')).toBe(false);
   });
 
@@ -330,18 +330,18 @@ describe('the play button', () => {
     expect(button.getAttribute('aria-label')).toBe('Play');
     expect(shown(playButton(player))).toBe('icon-play');
     button.click();
-    await once(player.video, 'play');
+    await once(player.media, 'play');
     expect(button.getAttribute('aria-label')).toBe('Pause');
     expect(shown(playButton(player))).toBe('icon-pause');
     button.click();
-    await once(player.video, 'pause');
+    await once(player.media, 'pause');
     expect(button.getAttribute('aria-label')).toBe('Play');
   });
 
   it('offers replay once the media has ended', async () => {
     const player = await ready();
-    await player.video.play();
-    await media(player.video).end();
+    await player.media.play();
+    await media(player.media).end();
     expect(inner(playButton(player)).getAttribute('aria-label')).toBe('Replay');
     expect(shown(playButton(player))).toBe('icon-replay');
   });
@@ -352,7 +352,7 @@ describe('the play button', () => {
     control.setAttribute('label-play', 'Reproduir');
     control.setAttribute('label-pause', 'Pausa');
     expect(inner(control).getAttribute('aria-label')).toBe('Reproduir');
-    await player.video.play();
+    await player.media.play();
     expect(inner(control).getAttribute('aria-label')).toBe('Pausa');
     control.removeAttribute('label-pause');
     expect(inner(control).getAttribute('aria-label')).toBe('Pause');
@@ -546,7 +546,7 @@ describe('the box', () => {
   /** The video's box against the player's. */
   function boxes(player: MatteboxPlayerElement) {
     const outer = player.getBoundingClientRect();
-    const inner = player.video.getBoundingClientRect();
+    const inner = player.media.getBoundingClientRect();
     return {
       outer: { width: outer.width, height: outer.height },
       inner: { width: inner.width, height: inner.height, top: inner.top - outer.top },
@@ -575,7 +575,9 @@ describe('the box', () => {
     const capped = boxes(player);
     expect(capped.inner.height).toBe(100);
     expect(capped.inner.width).toBe(320);
-    expect(getComputedStyle(player.video).objectFit).toBe('contain');
+    expect(getComputedStyle(player.querySelector('video') as HTMLVideoElement).objectFit).toBe(
+      'contain',
+    );
   });
 
   it('keeps a row the page puts in flow under the picture, and centres both', async () => {
@@ -586,7 +588,7 @@ describe('the box', () => {
     const row = document.createElement('div');
     row.style.height = '20px';
     player.append(row);
-    const video = player.video.getBoundingClientRect();
+    const video = player.media.getBoundingClientRect();
     expect(row.getBoundingClientRect().top).toBe(video.bottom);
     expect(boxes(player).inner.top).toBe(100);
   });
@@ -596,14 +598,14 @@ describe('the bar while idle', () => {
   it('hides after idle-ms of stillness while playing, and wakes on pointer movement', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     expect(idle(player)).toBe(false);
 
     vi.advanceTimersByTime(IDLE_MS);
     expect(idle(player)).toBe(true);
     expect(player.hasAttribute('idle')).toBe(true);
 
-    move(player.video);
+    move(player.querySelector('video') as HTMLVideoElement);
     expect(idle(player)).toBe(false);
     expect(player.hasAttribute('idle')).toBe(false);
   });
@@ -612,7 +614,7 @@ describe('the bar while idle', () => {
     const player = await ready();
     bar(player)?.setAttribute('idle-ms', '500');
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     vi.advanceTimersByTime(500);
     expect(idle(player)).toBe(true);
   });
@@ -620,7 +622,7 @@ describe('the bar while idle', () => {
   it('never hides while paused', async () => {
     const player = await custom();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    move(player.video);
+    move(player.querySelector('video') as HTMLVideoElement);
     vi.advanceTimersByTime(IDLE_MS * 2);
     expect(idle(player)).toBe(false);
   });
@@ -628,7 +630,7 @@ describe('the bar while idle', () => {
   it('holds while keyboard focus is inside it, and lets go once a pointer takes over', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     const play = inner(playButton(player));
     // A key, then focus inside: a keyboard user reading the bar.
     player.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
@@ -645,8 +647,8 @@ describe('the bar while idle', () => {
   it('is not held by the pointer leaving: the timer alone hides it', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
-    move(player.video);
+    await player.media.play();
+    move(player.querySelector('video') as HTMLVideoElement);
     player.dispatchEvent(new PointerEvent('pointerleave'));
     expect(idle(player)).toBe(false);
     vi.advanceTimersByTime(IDLE_MS);
@@ -656,7 +658,7 @@ describe('the bar while idle', () => {
   it('holds while a descendant carries open, and hides once it does not', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     const popup = document.createElement('div');
     popup.setAttribute('open', '');
     bar(player)?.append(popup);
@@ -670,13 +672,13 @@ describe('the bar while idle', () => {
   it('stops listening once the bar is removed, and clears its state from the player', async () => {
     const player = await ready();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     vi.advanceTimersByTime(IDLE_MS);
     expect(player.hasAttribute('idle')).toBe(true);
     const root = bar(player) as MbxControlBar;
     root.remove();
     expect(player.hasAttribute('idle')).toBe(false);
-    move(player.video);
+    move(player.querySelector('video') as HTMLVideoElement);
     expect(root.hasAttribute('idle')).toBe(false);
   });
 });
@@ -698,19 +700,19 @@ describe('the shortcuts', () => {
   it('toggles play with k and Space, and unmutes with m, from anywhere inside', async () => {
     const player = await ready(10);
     press(player, 'k');
-    await once(player.video, 'play');
-    press(player.video, ' ');
-    await once(player.video, 'pause');
+    await once(player.media, 'play');
+    press(player.media, ' ');
+    await once(player.media, 'pause');
     press(player, 'm');
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(false);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(false);
   });
 
   it('mutes with m', async () => {
     const player = await loaded();
     press(player, 'm');
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(true);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(true);
   });
 
   it('leaves Space to a focused button', async () => {
@@ -719,18 +721,18 @@ describe('the shortcuts', () => {
     button.focus();
     press(button, ' ');
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
   });
 
   it('seeks by the step with the arrows, from seek-step on the bar', async () => {
     const player = await ready(30);
     press(player, 'ArrowRight');
-    expect(player.video.currentTime).toBe(5);
+    expect(player.media.currentTime).toBe(5);
     bar(player)?.setAttribute('seek-step', '10');
     press(player, 'ArrowRight');
-    expect(player.video.currentTime).toBe(15);
+    expect(player.media.currentTime).toBe(15);
     press(player, 'ArrowLeft');
-    expect(player.video.currentTime).toBe(5);
+    expect(player.media.currentTime).toBe(5);
   });
 
   it('asks through seekkey before a seeking key moves the playhead, and a taken one does not', async () => {
@@ -744,29 +746,29 @@ describe('the shortcuts', () => {
     press(player, 'ArrowRight');
     press(player, 'MediaRewind');
     expect(asked).toEqual([5, -5]);
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     player.removeEventListener('seekkey', take);
     press(player, 'ArrowRight');
-    expect(player.video.currentTime).toBe(5);
+    expect(player.media.currentTime).toBe(5);
   });
 
   it('plays, pauses, stops and seeks with the media keys a remote sends', async () => {
     const player = await ready(30);
     press(player, 'MediaPlayPause');
-    await once(player.video, 'play');
+    await once(player.media, 'play');
     press(player, 'MediaPause');
-    await once(player.video, 'pause');
+    await once(player.media, 'pause');
     press(player, 'MediaPlay');
-    await once(player.video, 'play');
+    await once(player.media, 'play');
     // Stop pauses; the source stays.
     press(player, 'MediaStop');
-    await once(player.video, 'pause');
+    await once(player.media, 'pause');
     // The video may play a moment before the pause, as on WebKit.
-    const paused = player.video.currentTime;
+    const paused = player.media.currentTime;
     press(player, 'MediaFastForward');
-    expect(player.video.currentTime).toBeCloseTo(paused + 5, 3);
+    expect(player.media.currentTime).toBeCloseTo(paused + 5, 3);
     press(player, 'MediaRewind');
-    expect(player.video.currentTime).toBeCloseTo(paused, 3);
+    expect(player.media.currentTime).toBeCloseTo(paused, 3);
   });
 
   it('leaves a key another handler prevented, in the bar, the slider and the menu', async () => {
@@ -777,10 +779,10 @@ describe('the shortcuts', () => {
     };
     player.addEventListener('keydown', first, { capture: true });
     press(player, 'ArrowRight');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     const seek = knob(control(player, 'mbx-seek-bar'));
     press(seek, 'ArrowRight');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     const menu = control(player, 'mbx-speed-menu');
     inner(menu).click();
     const focusedBefore = menu.shadowRoot?.activeElement;
@@ -794,7 +796,7 @@ describe('the shortcuts', () => {
     player.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
     press(document.body, 'k');
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
   });
 
   it('asks the player for fullscreen on f', async () => {
@@ -813,13 +815,13 @@ describe('the shortcuts', () => {
 
   it('toggles play on a click on the video, and not on a click on the bar', async () => {
     const player = await ready(10);
-    player.video.click();
-    await once(player.video, 'play');
+    (player.querySelector('video') as HTMLVideoElement).click();
+    await once(player.media, 'play');
     (bar(player) as MbxControlBar).click();
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(player.video.paused).toBe(false);
-    player.video.click();
-    await once(player.video, 'pause');
+    expect(player.media.paused).toBe(false);
+    (player.querySelector('video') as HTMLVideoElement).click();
+    await once(player.media, 'pause');
   });
 });
 
@@ -924,8 +926,8 @@ describe('the mute button', () => {
     expect(shown(mute)).toBe('icon-high');
 
     button.click();
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(true);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(true);
     expect(button.getAttribute('aria-pressed')).toBe('true');
     expect(button.getAttribute('aria-label')).toBe('Unmute');
     expect(shown(mute)).toBe('icon-mute');
@@ -935,23 +937,23 @@ describe('the mute button', () => {
   it('draws the level in the glyph', async () => {
     const player = await custom();
     const mute = control(player, 'mbx-mute-button');
-    player.video.volume = 0.3;
-    await once(player.video, 'volumechange');
+    player.media.volume = 0.3;
+    await once(player.media, 'volumechange');
     expect(shown(mute)).toBe('icon-low');
-    player.video.volume = 0;
-    await once(player.video, 'volumechange');
+    player.media.volume = 0;
+    await once(player.media, 'volumechange');
     expect(shown(mute)).toBe('icon-mute');
     expect(inner(mute).getAttribute('aria-label')).toBe('Unmute');
   });
 
   it('brings the volume up when unmuting at zero', async () => {
     const player = await custom({ muted: '' });
-    player.video.volume = 0;
-    await once(player.video, 'volumechange');
+    player.media.volume = 0;
+    await once(player.media, 'volumechange');
     inner(control(player, 'mbx-mute-button')).click();
-    await once(player.video, 'volumechange');
-    expect(player.video.muted).toBe(false);
-    expect(player.video.volume).toBe(1);
+    await once(player.media, 'volumechange');
+    expect(player.media.muted).toBe(false);
+    expect(player.media.volume).toBe(1);
   });
 
   it('takes its names from the label attributes', async () => {
@@ -971,22 +973,22 @@ describe('the volume slider', () => {
     expect(knob.getAttribute('aria-valuenow')).toBe('1');
 
     press(knob, 'ArrowLeft');
-    await once(player.video, 'volumechange');
-    expect(player.video.volume).toBeCloseTo(0.95, 5);
+    await once(player.media, 'volumechange');
+    expect(player.media.volume).toBeCloseTo(0.95, 5);
     expect(knob.getAttribute('aria-valuenow')).toBe('0.95');
     expect(knob.getAttribute('aria-valuetext')).toBe('95%');
 
     press(knob, 'Home');
-    await once(player.video, 'volumechange');
-    expect(player.video.volume).toBe(0);
+    await once(player.media, 'volumechange');
+    expect(player.media.volume).toBe(0);
     press(knob, 'PageUp');
-    await once(player.video, 'volumechange');
-    expect(player.video.volume).toBeCloseTo(0.2, 5);
+    await once(player.media, 'volumechange');
+    expect(player.media.volume).toBeCloseTo(0.2, 5);
 
     volume.setAttribute('step', '0.5');
     press(knob, 'ArrowRight');
-    await once(player.video, 'volumechange');
-    expect(player.video.volume).toBeCloseTo(0.7, 5);
+    await once(player.media, 'volumechange');
+    expect(player.media.volume).toBeCloseTo(0.7, 5);
   });
 
   it('sets the volume where the pointer lands, unmutes, and carries dragging meanwhile', async () => {
@@ -1007,9 +1009,9 @@ describe('the volume slider', () => {
       }),
     );
     expect(volume.hasAttribute('dragging')).toBe(true);
-    await once(player.video, 'volumechange');
-    expect(player.video.volume).toBeCloseTo(0.25, 1);
-    expect(player.video.muted).toBe(false);
+    await once(player.media, 'volumechange');
+    expect(player.media.volume).toBeCloseTo(0.25, 1);
+    expect(player.media.muted).toBe(false);
     knob.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: rect.left }));
     expect(volume.hasAttribute('dragging')).toBe(false);
   });
@@ -1075,15 +1077,15 @@ describe('the skip buttons', () => {
     expect(inner(back as HTMLElement).getAttribute('aria-label')).toBe('Back 10 seconds');
     expect(inner(forward as HTMLElement).getAttribute('aria-label')).toBe('Forward 10 seconds');
     inner(forward as HTMLElement).click();
-    expect(player.video.currentTime).toBe(10);
+    expect(player.media.currentTime).toBe(10);
     inner(forward as HTMLElement).click();
-    expect(player.video.currentTime).toBe(20);
+    expect(player.media.currentTime).toBe(20);
     inner(back as HTMLElement).click();
-    expect(player.video.currentTime).toBe(10);
+    expect(player.media.currentTime).toBe(10);
     // Never past the ends.
     inner(back as HTMLElement).click();
     inner(back as HTMLElement).click();
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
   });
 
   it('take the amount from the attribute, with a plain arrow for an amount the set has no glyph for', async () => {
@@ -1106,7 +1108,7 @@ describe('the skip buttons', () => {
       icon('seek-forward').firstElementChild?.getAttribute('d'),
     );
     inner(forward).click();
-    expect(player.video.currentTime).toBe(20);
+    expect(player.media.currentTime).toBe(20);
   });
 
   it('fill the amount into a label the page wrote', async () => {
@@ -1122,7 +1124,7 @@ describe('the fullscreen button', () => {
     const player = await custom();
     const button = control(player, 'mbx-fullscreen-button');
     const host: object = player;
-    const video: object = player.video;
+    const video: object = player.media;
     const supported =
       'requestFullscreen' in host ||
       'webkitRequestFullscreen' in host ||
@@ -1159,7 +1161,7 @@ describe('the picture-in-picture button', () => {
   it('shows exactly when an API exists, and swaps its glyph and name with the state', async () => {
     const player = await custom();
     const button = control(player, 'mbx-pip-button');
-    const video: object = player.video;
+    const video: object = player.media;
     const supported =
       ('requestPictureInPicture' in video && document.pictureInPictureEnabled) ||
       'webkitSetPresentationMode' in video;
@@ -1171,11 +1173,11 @@ describe('the picture-in-picture button', () => {
     let inside = false;
     Object.defineProperty(document, 'pictureInPictureElement', {
       configurable: true,
-      get: () => (inside ? player.video : null),
+      get: () => (inside ? player.querySelector('video') : null),
     });
-    player.video.requestPictureInPicture = () => {
+    player.media.requestPictureInPicture = () => {
       inside = true;
-      player.video.dispatchEvent(new Event('enterpictureinpicture'));
+      player.media.dispatchEvent(new Event('enterpictureinpicture'));
       return Promise.resolve({} as PictureInPictureWindow);
     };
     inner(button).click();
@@ -1188,7 +1190,7 @@ describe('the picture-in-picture button', () => {
   it('hides while the player has disablepictureinpicture, and shows again without it', async () => {
     const player = await custom();
     const button = control(player, 'mbx-pip-button');
-    const video: object = player.video;
+    const video: object = player.media;
     const supported =
       ('requestPictureInPicture' in video && document.pictureInPictureEnabled) ||
       'webkitSetPresentationMode' in video;
@@ -1218,10 +1220,10 @@ describe('markers', () => {
     expect(inner(button).textContent).toBe('Skip intro');
     inner(button).click();
     await expect.poll(() => button.hidden).toBe(true);
-    expect(player.video.currentTime).toBe(20);
-    player.video.currentTime = 55;
+    expect(player.media.currentTime).toBe(20);
+    player.media.currentTime = 55;
     await expect.poll(() => inner(button).textContent).toBe('Skip recap');
-    player.video.currentTime = 95;
+    player.media.currentTime = 95;
     await expect.poll(() => inner(button).textContent).toBe('Skip credits');
   });
 
@@ -1246,7 +1248,7 @@ describe('markers', () => {
     // A card that offers the next item marks the player while it shows.
     player.setAttribute('upnext', '');
     expect(button.hidden).toBe(false);
-    player.video.currentTime = 95;
+    player.media.currentTime = 95;
     await expect.poll(() => button.hidden).toBe(true);
     player.removeAttribute('upnext');
     await expect.poll(() => button.hidden).toBe(false);
@@ -1270,12 +1272,12 @@ describe('markers', () => {
     const button = control(player, 'mbx-marker-button');
     // A content API can give credits that run past the media's last frame.
     player.markers.set([{ start: 90, end: 105, kind: 'closing-credits' }]);
-    player.video.currentTime = 95;
+    player.media.currentTime = 95;
     await expect.poll(() => button.hidden).toBe(false);
-    await media(player.video).end();
+    await media(player.media).end();
     // The player's stylesheet hides it from the host's ended state.
     expect(getComputedStyle(button).display).toBe('none');
-    player.video.currentTime = 95;
+    player.media.currentTime = 95;
     await expect.poll(() => getComputedStyle(button).display).not.toBe('none');
   });
 
@@ -1286,8 +1288,8 @@ describe('markers', () => {
     const range = { start: 30, end: 40, kind: 'blocked', label: 'Not available here' };
     player.markers.set([range]);
     expect(control(player, 'mbx-marker-button').hidden).toBe(true);
-    player.video.currentTime = 35;
-    await expect.poll(() => player.video.currentTime).toBeCloseTo(40.1);
+    player.media.currentTime = 35;
+    await expect.poll(() => player.media.currentTime).toBeCloseTo(40.1);
     expect(blocked).toEqual([range]);
     const drawn = inside(control(player, 'mbx-seek-bar'), 'blocked-range');
     expect([drawn.style.left, drawn.style.width]).toEqual(['30%', '10%']);
@@ -1327,18 +1329,18 @@ describe('the start button', () => {
     expect(inner(start).getAttribute('aria-label')).toBe('Play');
 
     inner(start).click();
-    await once(player.video, 'play');
+    await once(player.media, 'play');
     expect(start.hidden).toBe(true);
-    player.video.pause();
-    await once(player.video, 'pause');
+    player.media.pause();
+    await once(player.media, 'pause');
     expect(start.hidden).toBe(false);
   });
 
   it('offers a replay once the media has ended', async () => {
     const player = await ready();
     const start = control(player, 'mbx-start-button');
-    await player.video.play();
-    await media(player.video).end();
+    await player.media.play();
+    await media(player.media).end();
     expect(start.hidden).toBe(false);
     expect(inner(start).getAttribute('aria-label')).toBe('Replay');
     expect(shown(start)).toBe('icon-replay');
@@ -1590,13 +1592,13 @@ async function over(
 /** The element over a fake engine session, with the metadata of a clip `seconds` long in. */
 async function session(parts: FakeParts, seconds = 10): Promise<MatteboxPlayerElement> {
   const player = await over([fakeHandler(fakeEngine(parts))], { muted: '' });
-  await media(player.video).metadata(seconds);
+  await media(player.media).metadata(seconds);
   return player;
 }
 
 /** Asks every reader of the row to look again, the way the clock does. */
 function tickClock(player: MatteboxPlayerElement): void {
-  player.video.dispatchEvent(new Event('timeupdate'));
+  player.media.dispatchEvent(new Event('timeupdate'));
 }
 
 function knob(node: HTMLElement): HTMLElement {
@@ -1644,8 +1646,8 @@ describe('the times', () => {
     expect(text(current)).toBe('0:00');
     expect(text(duration)).toBe('0:10');
     expect(duration.hidden).toBe(false);
-    player.video.currentTime = 3;
-    await once(player.video, 'seeked');
+    player.media.currentTime = 3;
+    await once(player.media, 'seeked');
     expect(text(current)).toBe('0:03');
   });
 
@@ -1689,8 +1691,8 @@ describe('the times', () => {
     await settled();
     expect(remaining.getAttribute('slot')).toBe('seek');
     expect(text(remaining)).toBe('-0:10');
-    player.video.currentTime = 3;
-    await once(player.video, 'seeked');
+    player.media.currentTime = 3;
+    await once(player.media, 'seeked');
     expect(text(remaining)).toBe('-0:07');
     const live = await session({ live: liveApi(8), bufferGoal: 2 });
     const gone = document.createElement('mbx-remaining-time');
@@ -1725,18 +1727,18 @@ describe('the seek bar', () => {
     const element = control(player, 'mbx-seek-bar');
     const seek = knob(element);
     press(seek, 'ArrowRight');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(5, 1);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(5, 1);
     press(seek, 'PageUp');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(30, 1);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(30, 1);
     press(seek, 'Home');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(0, 1);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(0, 1);
     element.setAttribute('step', '10');
     press(seek, 'ArrowRight');
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(10, 1);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(10, 1);
   });
 
   it('seeks where the pointer lands, and the played layer follows the pointer meanwhile', async () => {
@@ -1764,17 +1766,17 @@ describe('the seek bar', () => {
       }),
     );
     expect(element.hasAttribute('dragging')).toBe(false);
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(8, 0);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(8, 0);
   });
 
   it('pauses a playing video while the pointer holds the thumb, and plays on the release', async () => {
     const player = await ready(10);
-    await player.video.play();
+    await player.media.play();
     const element = control(player, 'mbx-seek-bar');
     pointer(element, 'pointerdown', 0.2);
     pointer(element, 'pointermove', 0.4);
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
     // The drag's pause is not the viewer's: the buttons show the state from before.
     expect(player.getAttribute('scrubbing')).toBe('playing');
     await expect.poll(() => control(player, 'mbx-start-button').hidden).toBe(true);
@@ -1782,9 +1784,9 @@ describe('the seek bar', () => {
       .poll(() => inner(control(player, 'mbx-play-button')).getAttribute('aria-label'))
       .toBe('Pause');
     pointer(element, 'pointerup', 0.6, 0);
-    await expect.poll(() => player.video.paused).toBe(false);
+    await expect.poll(() => player.media.paused).toBe(false);
     expect(player.hasAttribute('scrubbing')).toBe(false);
-    expect(player.video.currentTime).toBeCloseTo(6, 0);
+    expect(player.media.currentTime).toBeCloseTo(6, 0);
   });
 
   it('never shows the title or the start button for a seek while playing', async () => {
@@ -1792,7 +1794,7 @@ describe('the seek bar', () => {
     const title = document.createElement('mbx-title');
     title.setAttribute('heading', 'The rodents');
     player.append(title);
-    await player.video.play();
+    await player.media.play();
     await expect.poll(() => title.hasAttribute('playing')).toBe(true);
     const start = control(player, 'mbx-start-button');
     const seen: string[] = [];
@@ -1803,11 +1805,11 @@ describe('the seek bar', () => {
     watch.observe(title, { attributes: true });
     watch.observe(start, { attributes: true });
     const element = control(player, 'mbx-seek-bar');
-    const seeked = once(player.video, 'seeked');
+    const seeked = once(player.media, 'seeked');
     pointer(element, 'pointerdown', 0.2);
     pointer(element, 'pointerup', 0.2, 0);
     await seeked;
-    expect(player.video.paused).toBe(false);
+    expect(player.media.paused).toBe(false);
     await new Promise((resolve) => setTimeout(resolve, 50));
     watch.disconnect();
     expect(seen).toEqual([]);
@@ -1823,7 +1825,7 @@ describe('the seek bar', () => {
     });
     watch.observe(start, { attributes: true });
     const element = control(player, 'mbx-seek-bar');
-    const seeked = once(player.video, 'seeked');
+    const seeked = once(player.media, 'seeked');
     pointer(element, 'pointerdown', 0.5);
     expect(player.getAttribute('scrubbing')).toBe('paused');
     pointer(element, 'pointerup', 0.5, 0);
@@ -1831,23 +1833,23 @@ describe('the seek bar', () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
     watch.disconnect();
     expect(hidden).toBe(false);
-    expect(player.video.paused).toBe(true);
+    expect(player.media.paused).toBe(true);
   });
 
   it('seeks once for a click, which writes on the press and again on the release', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');
     let seeks = 0;
-    player.video.addEventListener('seeking', () => {
+    player.media.addEventListener('seeking', () => {
       seeks += 1;
     });
     pointer(element, 'pointerdown', 0.5);
     // The press writes in the next frame, and the release at the same place writes nothing.
-    await once(player.video, 'seeked');
+    await once(player.media, 'seeked');
     pointer(element, 'pointerup', 0.5, 0);
     await new Promise((resolve) => setTimeout(resolve, 50));
     expect(seeks).toBe(1);
-    expect(player.video.currentTime).toBeCloseTo(5, 0);
+    expect(player.media.currentTime).toBeCloseTo(5, 0);
   });
 
   it('leaves a paused video paused after the drag', async () => {
@@ -1855,8 +1857,8 @@ describe('the seek bar', () => {
     const element = control(player, 'mbx-seek-bar');
     pointer(element, 'pointerdown', 0.2);
     pointer(element, 'pointerup', 0.6, 0);
-    await once(player.video, 'seeked');
-    expect(player.video.paused).toBe(true);
+    await once(player.media, 'seeked');
+    expect(player.media.paused).toBe(true);
   });
 
   it('lets the thumb go on a move with no button held, when the pointerup never reached it', async () => {
@@ -1894,8 +1896,8 @@ describe('the seek bar', () => {
       }),
     );
     expect(element.hasAttribute('dragging')).toBe(false);
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(6, 0);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(6, 0);
     // And a later move with nothing held moves nothing.
     seek.dispatchEvent(
       new PointerEvent('pointermove', {
@@ -1905,14 +1907,14 @@ describe('the seek bar', () => {
         clientY: y,
       }),
     );
-    expect(player.video.currentTime).toBeCloseTo(6, 0);
+    expect(player.media.currentTime).toBeCloseTo(6, 0);
   });
 
   it('draws the buffered ranges on the track', async () => {
     const player = await ready(10);
     const element = control(player, 'mbx-seek-bar');
     expect(inside(element, 'buffered-range').style.width).toBe('100%');
-    await media(player.video).buffer(6);
+    await media(player.media).buffer(6);
     expect(inside(element, 'buffered-range').style.width).toBe('60%');
   });
 
@@ -1969,13 +1971,13 @@ describe('the seek bar under key-mode="preview"', () => {
     const { player, element, seek } = await aiming();
     press(seek, 'ArrowRight');
     press(seek, 'ArrowRight');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     expect(seek.getAttribute('aria-valuenow')).toBe('10');
     expect(inside(element, 'preview').hidden).toBe(false);
     expect(inside(element, 'preview-time').textContent).toBe('0:10');
     // Enter seeks to the target at once.
     press(seek, 'Enter');
-    expect(player.video.currentTime).toBe(10);
+    expect(player.media.currentTime).toBe(10);
     expect(inside(element, 'preview').hidden).toBe(true);
   });
 
@@ -1986,8 +1988,8 @@ describe('the seek bar under key-mode="preview"', () => {
     expect(seek.getAttribute('aria-valuenow')).toBe('0');
     press(seek, 'ArrowRight');
     await new Promise((resolve) => setTimeout(resolve, 600));
-    expect(player.video.currentTime).toBe(0);
-    await expect.poll(() => player.video.currentTime, { timeout: 2000 }).toBe(5);
+    expect(player.media.currentTime).toBe(0);
+    await expect.poll(() => player.media.currentTime, { timeout: 2000 }).toBe(5);
   });
 
   it('grows the step while a key is held', async () => {
@@ -2001,12 +2003,12 @@ describe('the seek bar under key-mode="preview"', () => {
     const { player, element, seek } = await aiming();
     seek.blur();
     press(player, 'ArrowRight');
-    press(player.video, 'ArrowRight');
-    expect(player.video.currentTime).toBe(0);
+    press(player.media, 'ArrowRight');
+    expect(player.media.currentTime).toBe(0);
     expect(seek.getAttribute('aria-valuenow')).toBe('10');
     expect(inside(element, 'preview').hidden).toBe(false);
     press(player, 'Enter');
-    expect(player.video.currentTime).toBe(10);
+    expect(player.media.currentTime).toBe(10);
   });
 
   it("aims by the control bar's seek-step, the same step as without preview", async () => {
@@ -2015,7 +2017,7 @@ describe('the seek bar under key-mode="preview"', () => {
     bar(player)?.setAttribute('seek-step', '10');
     press(player, 'ArrowRight');
     expect(seek.getAttribute('aria-valuenow')).toBe('10');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
   });
 
   it('leaves the arrows to a handler that takes them first, as a spatial navigation does', async () => {
@@ -2028,7 +2030,7 @@ describe('the seek bar under key-mode="preview"', () => {
     press(player, 'ArrowRight');
     player.removeEventListener('keydown', first, { capture: true });
     expect(seek.getAttribute('aria-valuenow')).toBe('0');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
   });
 
   it('leaves the arrows to the volume slider', async () => {
@@ -2043,7 +2045,7 @@ describe('the seek bar under key-mode="preview"', () => {
     press(player, 'MediaFastForward');
     press(player, 'MediaFastForward');
     press(player, 'MediaRewind');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     expect(seek.getAttribute('aria-valuenow')).toBe('5');
   });
 });
@@ -2274,8 +2276,8 @@ describe('the seek bar over an I-frame track', () => {
     pointer(element, 'pointerdown', 0.2);
     pointer(element, 'pointerup', 0.6, 0);
     expect(trick.calls).toEqual([]);
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBeCloseTo(6, 0);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBeCloseTo(6, 0);
   });
 
   it('prefers the tile under preview="tiles frames", and decodes a frame where there is none', async () => {
@@ -2512,7 +2514,7 @@ describe('the quality menu', () => {
     };
     const engine = { ...fakeEngine({}), quality } as unknown as Mattebox;
     const player = await over([fakeHandler(engine)], { muted: '' });
-    await media(player.video).metadata(10);
+    await media(player.media).metadata(10);
     const menu = control(player, 'mbx-quality-menu');
     const auto = () => items(menu)[0]?.querySelector('[part~="item-detail"]')?.textContent ?? null;
     expect(items(menu).map((item) => item.firstChild?.textContent)).toEqual([
@@ -2522,13 +2524,13 @@ describe('the quality menu', () => {
     ]);
     expect(auto()).toBeNull();
     quality.playing = low;
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     expect(auto()).toBe('720p');
     quality.playing = high;
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     expect(auto()).toBe('1080p');
     quality.pinned = 'v-1080';
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     expect(auto()).toBeNull();
   });
 
@@ -2555,7 +2557,7 @@ describe('the quality menu', () => {
     const events = new Map<string, Set<() => void>>();
     const engine = { ...fakeEngine({ events }), quality } as unknown as Mattebox;
     const player = await over([fakeHandler(engine)], { muted: '' });
-    await media(player.video).metadata(10);
+    await media(player.media).metadata(10);
     const menu = control(player, 'mbx-quality-menu');
     const selected = (): void => {
       for (const fn of events.get('tracks:selected') ?? []) fn();
@@ -2603,7 +2605,7 @@ describe('a long menu', () => {
     player.style.height = '220px';
     inner(menu).click();
     await expect.poll(() => popup(menu).hidden).toBe(false);
-    const room = inner(menu).getBoundingClientRect().top - player.video.getBoundingClientRect().top;
+    const room = inner(menu).getBoundingClientRect().top - player.media.getBoundingClientRect().top;
     expect(popup(menu).getBoundingClientRect().height).toBeLessThanOrEqual(Math.max(0, room));
   });
 });
@@ -2752,8 +2754,8 @@ describe('the speed menu', () => {
     items(menu)
       .find((item) => item.value === '1.5')
       ?.click();
-    await once(player.video, 'ratechange');
-    expect(player.video.playbackRate).toBe(1.5);
+    await once(player.media, 'ratechange');
+    expect(player.media.playbackRate).toBe(1.5);
     expect(items(menu).find((item) => item.getAttribute('aria-checked') === 'true')?.value).toBe(
       '1.5',
     );
@@ -2767,8 +2769,8 @@ describe('the speed menu', () => {
     menu.setAttribute('label', 'Velocitat');
     expect(items(menu).map((item) => item.textContent)).toEqual(['Normal (1×)', '2×', '4×']);
     expect(inner(menu).getAttribute('aria-label')).toBe('Velocitat');
-    player.video.playbackRate = 3;
-    await once(player.video, 'ratechange');
+    player.media.playbackRate = 3;
+    await once(player.media, 'ratechange');
     expect(items(menu).map((item) => item.value)).toEqual(['1', '2', '4', '3']);
   });
 });
@@ -2809,8 +2811,8 @@ describe('the menu primitive, through the speed menu', () => {
     press(popup(menu), 'ArrowDown');
     expect(focused()).toBe(items(menu)[0]);
     (focused() as HTMLButtonElement).click();
-    await once(player.video, 'ratechange');
-    expect(player.video.playbackRate).toBe(0.5);
+    await once(player.media, 'ratechange');
+    expect(player.media.playbackRate).toBe(0.5);
     expect(popup(menu).hidden).toBe(true);
     expect(menu.hasAttribute('open')).toBe(false);
     expect(focused()).toBe(button);
@@ -2829,7 +2831,7 @@ describe('the menu primitive, through the speed menu', () => {
   it('holds the bar while open', async () => {
     const player = await ready(10);
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
-    await player.video.play();
+    await player.media.play();
     inner(control(player, 'mbx-speed-menu')).click();
     vi.advanceTimersByTime(IDLE_MS * 2);
     expect(idle(player)).toBe(false);
@@ -3166,9 +3168,9 @@ describe('the video menu', () => {
     player.append(version, ...compose());
     await settled();
     await expect.poll(() => player.engine).not.toBeNull();
-    const fake = media(player.video);
+    const fake = media(player.media);
     await fake.metadata(60);
-    player.video.currentTime = 20;
+    player.media.currentTime = 20;
     const menu = control(player, 'mbx-video-menu');
     expect(items(menu).map((item) => [item.value, item.textContent])).toEqual([
       ['v', 'Main'],
@@ -3180,7 +3182,7 @@ describe('the video menu', () => {
     expect(player.videoSource?.url).toBe('https://cdn.test/sign');
     await expect.poll(() => loads).toEqual([SOURCE, 'https://cdn.test/sign']);
     await fake.metadata(60);
-    expect(player.video.currentTime).toBe(20);
+    expect(player.media.currentTime).toBe(20);
     // On the version, the menu offers the way back instead of its tracks.
     expect(items(menu).map((item) => item.value)).toEqual(['source:', 'source:0']);
     expect(items(menu)[1]?.getAttribute('aria-checked')).toBe('true');
@@ -3222,18 +3224,18 @@ describe('switchSource', () => {
     player.append(...compose());
     await settled();
     await expect.poll(() => player.engine).not.toBeNull();
-    const fake = media(player.video);
+    const fake = media(player.media);
     await fake.metadata(60);
-    player.video.currentTime = 20;
-    await player.video.play();
+    player.media.currentTime = 20;
+    await player.media.play();
     const play = inner(control(player, 'mbx-play-button'));
     expect(play.getAttribute('aria-label')).toBe('Pause');
 
     player.switchSource({ url: 'https://cdn.test/hls', type: 'application/vnd.apple.mpegurl' });
     expect(player.getAttribute('switching')).toBe('playing');
     // The new load empties and pauses the video, as a real one does.
-    player.video.dispatchEvent(new Event('emptied'));
-    player.video.pause();
+    player.media.dispatchEvent(new Event('emptied'));
+    player.media.pause();
     await settled();
     expect(play.getAttribute('aria-label')).toBe('Pause');
     expect(player.hasAttribute('playing')).toBe(true);
@@ -3244,8 +3246,8 @@ describe('switchSource', () => {
     await expect.poll(() => loads).toEqual([SOURCE, 'https://cdn.test/hls']);
     await fake.metadata(60);
     await expect.poll(() => player.hasAttribute('switching')).toBe(false);
-    expect(player.video.currentTime).toBe(20);
-    expect(player.video.paused).toBe(false);
+    expect(player.media.currentTime).toBe(20);
+    expect(player.media.paused).toBe(false);
     // A retry loads the switched source again, not the src attribute.
     player.retry();
     await expect.poll(() => loads.length).toBe(3);
@@ -3260,8 +3262,8 @@ describe('the audio and subtitles menus over a native session', () => {
    */
   async function native(before: (video: HTMLVideoElement) => void = () => undefined) {
     const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-    fakeMedia(player.video);
-    before(player.video);
+    fakeMedia(player.media);
+    before(player.media);
     for (const [name, value] of Object.entries({
       controls: 'custom',
       muted: '',
@@ -3309,9 +3311,9 @@ describe('the audio and subtitles menus over a native session', () => {
     const player = await native();
     const menu = control(player, 'mbx-subtitles-menu');
     expect(menu.hidden).toBe(true);
-    const en = player.video.addTextTrack('subtitles', 'English', 'en');
-    const fr = player.video.addTextTrack('captions', '', 'fr');
-    player.video.addTextTrack('metadata', 'ID3');
+    const en = player.media.addTextTrack('subtitles', 'English', 'en');
+    const fr = player.media.addTextTrack('captions', '', 'fr');
+    player.media.addTextTrack('metadata', 'ID3');
     await expect.poll(() => menu.hidden).toBe(false);
     expect(items(menu).map((item) => item.textContent)).toEqual([
       'Off',

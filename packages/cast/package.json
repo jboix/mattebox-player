@@ -1,7 +1,7 @@
 {
   "name": "@mattebox/player-cast",
   "version": "0.6.1",
-  "description": "<mbx-cast-button> and <mbx-cast-screen>: Chromecast from <mattebox-player>, over Google's sender SDK.",
+  "description": "<mbx-cast-button>: Chromecast from <mattebox-player>, over Google's sender SDK.",
   "author": "Josep Boix Requesens",
   "repository": {
     "type": "git",

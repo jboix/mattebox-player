@@ -79,6 +79,8 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
 
   constructor() {
     super(STATES, (state) => icon(state === 'on' ? 'subtitles-on' : 'subtitles'));
+    // It would change the engine of the page, which a device does not play.
+    this.leaves = 'remote';
     this.engine = null;
     show(this.slots, 'off');
   }
@@ -137,7 +139,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         this.render();
       };
       return engine === null
-        ? onNativeTracks(player.video, 'textTracks', tick)
+        ? onNativeTracks(player.media, 'textTracks', tick)
         : onTracks(engine, tick);
     });
   }

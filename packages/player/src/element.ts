@@ -43,13 +43,17 @@ import { announcer } from './announcer.js';
 import { type BreakMarks, createBreakMarks } from './controls/breaks.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
+import { live as liveOf } from './controls/session.js';
 import { languageName } from './controls/track-names.js';
 import type { Block, PlayerAddon, PlayerHost } from './host.js';
 import type { LocaleSource } from './locales.js';
 import { addLocale, load, onLocales, registered, wordsNow } from './locales.js';
+import type { Media } from './media.js';
+import { createMedia } from './media.js';
 import type { Messages, Words } from './messages.js';
 import { namespaces } from './namespaces.js';
 import { drmGuard, resolvePreset } from './presets.js';
+import type { CastOptions, CastTarget, Remote, RemoteLoad, TextFile } from './remote.js';
 import { STYLE } from './style.js';
 import type { ErrorSurface } from './surface.js';
 import { errorSurface } from './surface.js';
@@ -193,6 +197,8 @@ const DEFAULT_PRESET = 'full';
  */
 export interface MatteboxPlayerEventMap {
   sourcechange: CustomEvent<Session | null>;
+  /** A device plays in the video's place, or stopped: the target, or null. */
+  castingchange: CustomEvent<CastTarget | null>;
   /** The size tier changed: `compact`, `regular` or `wide`. */
   layoutchange: CustomEvent<string>;
   error: CustomEvent<PlayerError>;
@@ -309,7 +315,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
   }
 
-  declare private readonly media: HTMLVideoElement;
+  declare private readonly node: HTMLVideoElement;
+  /** `player.media`: the video, or the device that plays in its place. */
+  declare private readonly playback: Media;
   /** Wraps the slot: the picture, and the controls over it or under it. */
   declare private readonly stage: HTMLDivElement;
   /** Whether the element gave itself a tabindex for the bar, to take back with it. */
@@ -363,6 +371,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private offs: Array<() => void>;
   /** Where `interrupt` left the programme: its time, whether it played, its tracks. */
   declare private interruption: { at: number | null; playing: boolean; had: Chosen | null } | null;
+  /** The device a cast package handed over with `cast()`, or null. */
+  declare private device: Remote | null;
+  /** The device plays in the video's place: the playback members are its own, and the video stays paused. */
+  declare private away: boolean;
+  /** Ends the cast that runs. */
+  declare private uncast: (() => void) | null;
+  /** The device that plays, for the `casting` attribute: the remote's target, or AirPlay's. */
+  declare private target: CastTarget | null;
+  /** The position and play state the next session takes to the device, set by a switch. */
+  declare private handoff: { at: number | null; playing: boolean } | null;
+  /** The session was live when the engine was suspended. A suspended engine no longer says. */
+  declare private frozenLive: boolean;
   /** The add-ons attached to this player, with what each returned, run when it leaves the page. */
   declare private attached: Map<PlayerAddon, (() => void) | undefined>;
   /** Everything the element does to the player runs here, so it runs in order. */
@@ -400,6 +420,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.offs = [];
     this.attached = new Map();
     this.interruption = null;
+    this.device = null;
+    this.away = false;
+    this.uncast = null;
+    this.target = null;
+    this.handoff = null;
+    this.frozenLive = false;
     this.queue = Promise.resolve();
     this.pending = false;
     this.original = null;
@@ -416,17 +442,19 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.heardText = undefined;
     this.offTracks = null;
 
-    this.media = document.createElement('video');
+    this.node = document.createElement('video');
+    this.playback = createMedia(this.node);
     // Native until the `controls` attribute says otherwise, which arrives
     // through attributeChangedCallback: a constructor must not read attributes.
-    this.media.controls = true;
+    this.node.controls = true;
     // Inline is the default, and the player's own attribute has not arrived
     // yet. Set as an attribute: not every browser has the `playsInline`
     // property. The fullscreen button still reaches the iPhone's fullscreen,
     // through `webkitEnterFullscreen`.
-    this.media.setAttribute(PLAYSINLINE, '');
+    this.node.setAttribute(PLAYSINLINE, '');
+    // Through `media`, so the state follows the device while one plays.
     for (const name of STATE_EVENTS) {
-      this.media.addEventListener(name, () => {
+      this.playback.media.addEventListener(name, () => {
         const was = this.waiting;
         this.note(name);
         this.reflect();
@@ -434,18 +462,32 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       });
     }
     // A native session's tracks; an engine session's are on `tracks:selected`.
-    const lists = this.media as { audioTracks?: EventTarget; textTracks: EventTarget };
+    const lists = this.node as { audioTracks?: EventTarget; textTracks: EventTarget };
     for (const list of [lists.audioTracks, lists.textTracks]) {
       list?.addEventListener('change', () => {
         this.tracks();
       });
     }
     // An error over a picture that then plays is wrong by definition.
-    this.media.addEventListener('playing', () => {
+    this.node.addEventListener('playing', () => {
       this.failure = null;
       this.reflect();
     });
-    this.marks = createMarkers(this.media, (name, detail) => this.emit(name, detail));
+    // While a device plays, the video never does: an `autoplay` or a page's
+    // `play()` on the node is taken back.
+    this.node.addEventListener('play', () => {
+      if (this.away) this.node.pause();
+    });
+    // Safari plays the video on an AirPlay device and keeps the video reporting it.
+    this.node.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
+      if (this.device !== null) return;
+      const wireless =
+        (this.node as { webkitCurrentPlaybackTargetIsWireless?: boolean })
+          .webkitCurrentPlaybackTargetIsWireless === true;
+      this.aim(wireless ? { kind: 'airplay', name: '' } : null);
+    });
+    // Through `media`: a blocked range is skipped on the device too.
+    this.marks = createMarkers(this.playback.media, (name, detail) => this.emit(name, detail));
     this.breakMarks = createBreakMarks((list) => this.emit('breakschange', list));
     this.tracking = createTrackers(this, () => this.emit('trackerschange', this.tracking.list));
     this.stage = document.createElement('div');
@@ -473,9 +515,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     root.append(style, this.stage, this.surface.root, this.voice.root);
   }
 
-  /** The media element. Everything the browser already does is here. */
-  get video(): HTMLVideoElement {
-    return this.media;
+  /**
+   * What plays: the video, with everything the browser already does. While
+   * a device plays in its place, the playback members are the device's.
+   * A proxy and not the node: a page that needs the node reads the
+   * `<video>` child of the player.
+   */
+  get media(): HTMLVideoElement {
+    return this.playback.media;
   }
 
   /** The ranges the page named in this source: credits to skip, parts that must not play. */
@@ -597,7 +644,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * replaces it.
    */
   switchSource(source: Source): void {
-    const media = this.media;
+    const media = this.playback.media;
     const at = Number.isFinite(media.duration) ? media.currentTime : null;
     const playing = !media.paused;
     const had = chosen(this.current?.engine ?? null);
@@ -620,7 +667,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * handler plays it.
    */
   interrupt(source: Source): Promise<void> {
-    const media = this.media;
+    const media = this.playback.media;
     this.interruption ??= {
       at: Number.isFinite(media.duration) ? media.currentTime : null,
       playing: !media.paused,
@@ -630,7 +677,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       const core = await this.ensure();
       await core.interrupt(source);
       this.current = core.session;
-      media.play().catch(() => undefined);
+      if (this.away) this.hand(source, null, true, false);
+      else this.node.play().catch(() => undefined);
     });
   }
 
@@ -650,7 +698,10 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       await core.resume(at ?? undefined);
       this.current = core.session;
       restore(this.current?.engine ?? null, left.had);
-      if (playing) this.media.play().catch(() => undefined);
+      const session = this.current;
+      // A cast that started during the interruption takes the programme here.
+      if (this.device !== null && session !== null) this.hand(session.source, at, playing, true);
+      else if (playing) this.node.play().catch(() => undefined);
     });
   }
 
@@ -686,7 +737,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const programme = this.original;
     if (programme === null || track === this.version) return;
     if (track !== null && programme.videoTracks?.includes(track) !== true) return;
-    const media = this.media;
+    const media = this.playback.media;
     const at = Number.isFinite(media.duration) ? media.currentTime : null;
     const playing = !media.paused;
     const had = chosen(this.current?.engine ?? null);
@@ -714,7 +765,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     had: Chosen | null,
     hold: boolean,
   ): void {
-    const media = this.media;
+    const media = this.node;
     this.held?.();
     let release: (() => void) | null = null;
     if (hold) {
@@ -734,6 +785,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     this.enqueue(async () => {
       const core = await this.ensure();
       this.switching = true;
+      if (this.away) this.handoff = { at, playing };
       try {
         await core.load([source]);
       } catch {
@@ -743,10 +795,150 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       } finally {
         this.switching = false;
       }
-      resume(media, at, playing);
-      if (release !== null) onNextFrame(media, at, release);
+      // On a device the new session took the position with it.
+      if (this.away) release?.();
+      else {
+        resume(media, at, playing);
+        if (release !== null) onNextFrame(media, at, release);
+      }
       restore(this.current?.engine ?? null, had);
     });
+  }
+
+  /** The device that plays in the video's place, its kind and its name, or null. The `casting` attribute carries the kind. */
+  get casting(): CastTarget | null {
+    return this.target;
+  }
+
+  /**
+   * Hands playback to a device, for a cast package. From here `media`
+   * reads the device for the members `remote.media` has, the video stays
+   * paused, and every load goes to the device. Returns the function that
+   * ends the cast: the video takes the device's position and play state
+   * back, with no new load. A second call ends the cast before it.
+   */
+  cast(remote: Remote, options: CastOptions = {}): () => void {
+    this.uncast?.();
+    this.device = remote;
+    this.aim(remote.target);
+    const session = this.current;
+    if (this.interruption !== null) {
+      // An ad ends on the page. `resume()` hands the programme over.
+    } else if (options.adopted === true || session === null) {
+      this.freeze();
+      this.away = true;
+      this.playback.attach(remote.media);
+    } else {
+      this.hand(session.source, this.position(), !this.node.paused, true);
+    }
+    const end = (): void => {
+      if (this.device !== remote) return;
+      const time = remote.media.currentTime;
+      const playing = !remote.media.paused;
+      const away = this.away;
+      this.device = null;
+      this.away = false;
+      this.uncast = null;
+      this.playback.detach();
+      this.aim(null);
+      if (!away) return;
+      this.current?.engine?.resume();
+      // Live rejoins at its edge: the device's time is on the device's timeline.
+      if (this.current !== null && !this.frozenLive && Number.isFinite(time)) {
+        this.node.currentTime = time;
+      }
+      if (playing) this.node.play().catch(() => undefined);
+    };
+    this.uncast = end;
+    return end;
+  }
+
+  /**
+   * Where the video is, for a device: seconds on demand, and for live null
+   * at the edge or the clock time behind it. Read before the engine is
+   * suspended, which no longer says where the edge is.
+   */
+  private position(): number | { readonly date: number } | null {
+    const node = this.node;
+    const engine = this.current?.engine ?? null;
+    const edge = liveOf(engine);
+    if (edge !== undefined) {
+      if (edge.atEdge) return null;
+      const date =
+        engine === null ? null : (namespaces(engine).pdt?.toWallClock(node.currentTime) ?? null);
+      return date === null ? null : { date };
+    }
+    return Number.isFinite(node.duration) ? node.currentTime : null;
+  }
+
+  /** Pauses the video and stops the engine's requests. The source stays loaded, for the chapters and the thumbnails. */
+  private freeze(): void {
+    const engine = this.current?.engine ?? null;
+    this.frozenLive = liveOf(engine) !== undefined;
+    this.node.pause();
+    engine?.suspend();
+  }
+
+  /** The device plays `source` in the video's place: the programme's own, or one that interrupts it. */
+  private hand(source: Source, at: RemoteLoad['at'], playing: boolean, own: boolean): void {
+    const remote = this.device;
+    if (remote === null) return;
+    this.freeze();
+    if (!this.away) {
+      this.away = true;
+      this.playback.attach(remote.media);
+    }
+    const addons: Record<string, unknown> = {};
+    if (own) {
+      for (const addon of this.attached.keys()) {
+        const data = addon.remoteData?.(this);
+        if (data !== undefined) addons[addon.name] = data;
+      }
+    }
+    // What belongs to the programme stays with it: an ad that interrupts takes none of it.
+    const chapters = own ? this.getAttribute(CHAPTERS) : null;
+    const thumbnails = own ? this.getAttribute('thumbnails') : null;
+    const load: RemoteLoad = {
+      programme: own ? this.programme : null,
+      at,
+      playing,
+      live: this.frozenLive,
+      markers: own ? this.marks.list : [],
+      ...(chapters === null ? {} : { chapters }),
+      ...(thumbnails === null ? {} : { thumbnails }),
+      textTracks: own ? this.textFiles() : [],
+      addons,
+    };
+    remote.load(source, load).catch(() => {
+      // The cast goes on, so the viewer can end it.
+      if (this.device !== remote) return;
+      this.report({
+        category: 'remote',
+        code: 'REMOTE_LOAD_FAILED',
+        fatal: false,
+        recoverable: true,
+        handler: this.current?.handler ?? null,
+      });
+    });
+  }
+
+  /** The subtitle and caption files the page gave the video as `<track>` children. */
+  private textFiles(): TextFile[] {
+    const files: TextFile[] = [];
+    for (const track of Array.from(this.node.querySelectorAll<HTMLTrackElement>('track[src]'))) {
+      if (track.kind !== 'subtitles' && track.kind !== 'captions') continue;
+      files.push({ url: track.src, kind: track.kind, label: track.label, language: track.srclang });
+    }
+    return files;
+  }
+
+  /** Sets the device that plays: the `casting` attribute carries its kind, and `castingchange` the target. */
+  private aim(target: CastTarget | null): void {
+    if (this.target === null && target === null) return;
+    this.target = target;
+    if (target === null) this.removeAttribute('casting');
+    else this.setAttribute('casting', target.kind);
+    this.emit('castingchange', target);
   }
 
   /** The core, or null until the first source has been set up: resolving a preset is asynchronous. */
@@ -785,7 +977,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Shows the block, for `block()` and for a programme a connector blocked, which loaded nothing. */
   private refuse(block: Block): void {
     this.stop = block;
-    this.media.pause();
+    this.node.pause();
     clearTimeout(this.slow);
     const [title, message] = this.blockWords(block);
     // An error screen in the player is an alert of its own, read already.
@@ -836,8 +1028,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const metadata = programme?.metadata;
     if (metadata?.markers !== undefined) this.marks.set(metadata.markers);
     if (!this.hasAttribute('poster')) {
-      if (metadata?.poster === undefined) this.media.removeAttribute('poster');
-      else this.media.poster = metadata.poster;
+      if (metadata?.poster === undefined) this.node.removeAttribute('poster');
+      else this.node.poster = metadata.poster;
     }
     if (programme?.block !== undefined) this.refuse(programme.block);
     this.emit('programmechange', programme);
@@ -862,7 +1054,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   }
 
   connectedCallback(): void {
-    if (this.media.parentNode !== this) this.append(this.media);
+    if (this.node.parentNode !== this) this.append(this.node);
     for (const name of FORWARDED) this.forward(name);
     this.reflect();
     if (typeof ResizeObserver !== 'undefined') {
@@ -920,7 +1112,8 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       // Not `stalled`: a paused video with a full buffer fires it too, when
       // nothing more is appended for three seconds. video.js reads `waiting` alone.
       this.waiting = true;
-    } else if (event === 'canplay') {
+    } else if (event === 'canplay' || (event === 'pause' && this.away)) {
+      // A device reports no `canplay`: its pause ends the wait.
       this.waiting = false;
     } else if (event === 'emptied') {
       // A new source starts over: the title shows again before its first play.
@@ -937,7 +1130,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // The load of a switch pauses and plays the video, and the viewer did neither.
     if (event === 'play' && this.held === null) this.voice.say('playing', 'saidPlaying', 'Playing');
     // The end of the video pauses it too, and that is no pause to say.
-    if (event === 'pause' && !this.media.ended && this.held === null) {
+    if (event === 'pause' && !this.playback.media.ended && this.held === null) {
       this.voice.say('paused', 'saidPaused', 'Paused');
     }
     if (this.waiting === was) return;
@@ -967,11 +1160,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
           ? null
           : trackName(words.name, words.lang, this.locale);
     } else {
-      const video = this.media as {
+      const video = this.node as {
         audioTracks?: ArrayLike<{ enabled: boolean; label: string; language: string }>;
       };
       const sound = Array.from(video.audioTracks ?? []).find((track) => track.enabled);
-      const words = Array.from(this.media.textTracks).find(
+      const words = Array.from(this.node.textTracks).find(
         (track) =>
           (track.kind === 'subtitles' || track.kind === 'captions') && track.mode === 'showing',
       );
@@ -993,7 +1186,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   /** The video's state on the element, for `mattebox-player[paused]` and the like. */
   private reflect(): void {
-    const video = this.media;
+    const video = this.playback.media;
     this.reflecting = true;
     // Through a switch, the play state from before it.
     const held = this.getAttribute(SWITCHING);
@@ -1021,7 +1214,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    * the start rather than from its metadata.
    */
   private audio(): boolean {
-    const video = this.media;
+    const video = this.node;
     if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
       return video.videoWidth === 0 && video.videoHeight === 0;
     }
@@ -1076,7 +1269,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     }
     if (name === PLAYSINLINE) {
       // On the video it is a boolean attribute, so off is absent.
-      this.media.toggleAttribute(PLAYSINLINE, this.getAttribute(PLAYSINLINE) !== 'false');
+      this.node.toggleAttribute(PLAYSINLINE, this.getAttribute(PLAYSINLINE) !== 'false');
       return;
     }
     // The preset decides the chain, so it is the one attribute that rebuilds it.
@@ -1101,7 +1294,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private mode(): void {
     const value = this.getAttribute(CONTROLS);
     const custom = value === 'custom';
-    this.media.controls = !custom && value !== 'none';
+    this.node.controls = !custom && value !== 'none';
     // Under custom controls the error screen element carries a fatal error.
     if (custom) this.surface.clear();
     else this.showBlock();
@@ -1138,7 +1331,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       return;
     }
     const held = this.track;
-    if (held !== null && held.parentNode === this.media && held.getAttribute('src') === url) return;
+    if (held !== null && held.parentNode === this.node && held.getAttribute('src') === url) return;
     // A new element each time: one removed mid-load, as the engine's attach
     // does, stays in its error state, and neither a new `src` nor a second
     // insertion starts it loading again.
@@ -1147,7 +1340,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     track.kind = 'chapters';
     track.src = url;
     this.track = track;
-    this.media.append(track);
+    this.node.append(track);
     // Set after the insertion: a track element's mode exists once it is in
     // a media element, and `hidden` is what makes its cues load unseen.
     track.track.mode = 'hidden';
@@ -1155,12 +1348,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   private forward(name: string): void {
     const value = this.getAttribute(name);
-    if (value === null) this.media.removeAttribute(name);
-    else this.media.setAttribute(name, value);
+    if (value === null) this.node.removeAttribute(name);
+    else this.node.setAttribute(name, value);
     // A video reads `muted` into its state only when it is created, and this
     // one was created before any attribute reached it. Muted autoplay and
     // the autoplay policy read the state, so the attribute alone would not do.
-    if (name === 'muted') this.media.muted = value !== null;
+    if (name === 'muted') this.node.muted = value !== null;
   }
 
   private enqueue(task: () => Promise<void>): void {
@@ -1289,7 +1482,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   private async ensure(): Promise<Player> {
     if (this.core !== null) return this.core;
     const connectors = this.options.connectors;
-    const core = createPlayer(this.media, {
+    const core = createPlayer(this.node, {
       handlers: await this.chain(),
       ...(connectors === undefined ? {} : { connectors }),
     });
@@ -1313,6 +1506,17 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
         this.offTracks?.();
         this.offTracks = session?.engine?.on('tracks:selected', () => this.tracks()) ?? null;
         if (session !== null && this.isConnected) this.adopt(session);
+        const handoff = this.handoff;
+        this.handoff = null;
+        // During a cast every session goes to the device, and plays there.
+        if (session !== null && this.away) {
+          this.hand(
+            session.source,
+            handoff?.at ?? session.source.start ?? null,
+            handoff?.playing ?? true,
+            true,
+          );
+        }
         this.emit('sourcechange', session);
       }),
       core.on('error', (error) => {

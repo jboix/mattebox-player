@@ -44,13 +44,13 @@ export class MbxStartButton extends Component {
     this.slots = iconSlots(STATES, icon);
     for (const state of STATES) this.button.append(this.slots[state]);
     this.button.addEventListener('click', () => {
-      this.player?.video.play().catch(() => undefined);
+      this.player?.media.play().catch(() => undefined);
     });
     root.append(style(STYLE), this.button);
   }
 
   protected override attach(player: PlayerHost): void {
-    const video = player.video;
+    const video = player.media;
     this.listen(video, ['play', 'pause', 'ended', 'waiting', 'canplay'], () => {
       this.render();
     });
@@ -132,7 +132,7 @@ export class MbxStartButton extends Component {
   }
 
   protected override render(): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     const state: State = video.ended ? 'replay' : 'play';
     show(this.slots, state);

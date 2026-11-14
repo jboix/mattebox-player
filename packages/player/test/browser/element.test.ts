@@ -134,29 +134,31 @@ describe('<mattebox-player>', () => {
     const video = player?.querySelector('video');
     expect(video).toBeInstanceOf(HTMLVideoElement);
     expect(video?.controls).toBe(true);
-    expect((player as MatteboxPlayerElement).video).toBe(video);
+    // `media` behaves as the video and is not the node.
+    expect((player as MatteboxPlayerElement).media.controls).toBe(true);
+    expect((player as MatteboxPlayerElement).media).not.toBe(video);
     expect(player?.shadowRoot).not.toBeNull();
   });
 
   it('creates the video inline, so an iPhone does not take it to fullscreen on play', () => {
     document.body.innerHTML = '<mattebox-player></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
-    expect(player.video.hasAttribute('playsinline')).toBe(true);
+    expect(player.media.hasAttribute('playsinline')).toBe(true);
     // On until told otherwise, like `spellcheck`: only "false" turns it off,
     // and off is the attribute absent, because the video's is a boolean.
     player.setAttribute('playsinline', 'false');
-    expect(player.video.hasAttribute('playsinline')).toBe(false);
+    expect(player.media.hasAttribute('playsinline')).toBe(false);
     player.setAttribute('playsinline', '');
-    expect(player.video.hasAttribute('playsinline')).toBe(true);
+    expect(player.media.hasAttribute('playsinline')).toBe(true);
     player.setAttribute('playsinline', 'false');
     player.removeAttribute('playsinline');
-    expect(player.video.hasAttribute('playsinline')).toBe(true);
+    expect(player.media.hasAttribute('playsinline')).toBe(true);
   });
 
   it('reads playsinline="false" from the markup', () => {
     document.body.innerHTML = '<mattebox-player playsinline="false"></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
-    expect(player.video.hasAttribute('playsinline')).toBe(false);
+    expect(player.media.hasAttribute('playsinline')).toBe(false);
   });
 
   it('loads once when its attributes are set before it is connected', async () => {
@@ -176,31 +178,31 @@ describe('<mattebox-player>', () => {
   it('forwards autoplay, muted and poster as attributes', () => {
     document.body.innerHTML = '<mattebox-player muted poster="p.png"></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
-    expect(player.video.getAttribute('muted')).toBe('');
+    expect(player.media.getAttribute('muted')).toBe('');
     // The attribute alone would not do: a video reads `muted` into its state
     // only when it is created, and this one was created before the attribute
     // reached it. Muted autoplay depends on the state, not the attribute.
-    expect(player.video.muted).toBe(true);
-    expect(player.video.getAttribute('poster')).toBe('p.png');
+    expect(player.media.muted).toBe(true);
+    expect(player.media.getAttribute('poster')).toBe('p.png');
     player.setAttribute('autoplay', '');
-    expect(player.video.hasAttribute('autoplay')).toBe(true);
+    expect(player.media.hasAttribute('autoplay')).toBe(true);
     player.removeAttribute('poster');
-    expect(player.video.hasAttribute('poster')).toBe(false);
+    expect(player.media.hasAttribute('poster')).toBe(false);
   });
 
   it("forwards disablepictureinpicture, which hides the browser's own toggle", () => {
     document.body.innerHTML = '<mattebox-player disablepictureinpicture></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
-    expect(player.video.hasAttribute('disablepictureinpicture')).toBe(true);
+    expect(player.media.hasAttribute('disablepictureinpicture')).toBe(true);
     player.removeAttribute('disablepictureinpicture');
-    expect(player.video.hasAttribute('disablepictureinpicture')).toBe(false);
+    expect(player.media.hasAttribute('disablepictureinpicture')).toBe(false);
   });
 
   it('reflects started after the first play, and waiting while data is awaited', () => {
     document.body.innerHTML =
       '<mattebox-player muted src="https://cdn.test/show.mp4"></mattebox-player>';
     const player = document.querySelector('mattebox-player') as MatteboxPlayerElement;
-    const video = player.video;
+    const video = player.media;
     expect(player.hasAttribute('started')).toBe(false);
     expect(player.hasAttribute('waiting')).toBe(false);
     video.dispatchEvent(new Event('waiting'));
@@ -249,13 +251,13 @@ describe('<mattebox-player>', () => {
     // A rendition switch changes the size and fires `resize`.
     let width = 1280;
     let height = 720;
-    Object.defineProperty(player.video, 'videoWidth', { get: () => width });
-    Object.defineProperty(player.video, 'videoHeight', { get: () => height });
-    player.video.dispatchEvent(new Event('resize'));
+    Object.defineProperty(player.media, 'videoWidth', { get: () => width });
+    Object.defineProperty(player.media, 'videoHeight', { get: () => height });
+    player.media.dispatchEvent(new Event('resize'));
     expect(player.hasAttribute('audio')).toBe(false);
     width = 0;
     height = 0;
-    player.video.dispatchEvent(new Event('resize'));
+    player.media.dispatchEvent(new Event('resize'));
     expect(player.hasAttribute('audio')).toBe(true);
     URL.revokeObjectURL(url);
   });
@@ -271,14 +273,14 @@ describe('<mattebox-player>', () => {
     await settled();
     const children = (): string[] => [...player.children].map((node) => node.localName);
     expect(children()).toEqual(['video']);
-    expect(player.video.hasAttribute('controls')).toBe(true);
+    expect(player.media.hasAttribute('controls')).toBe(true);
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
     expect(children()).toEqual(['video']);
     for (const mode of ['custom', 'none', 'native']) {
       player.setAttribute('controls', mode);
       await settled();
       expect(children()).toEqual(['video']);
-      expect(player.video.hasAttribute('controls')).toBe(mode === 'native');
+      expect(player.media.hasAttribute('controls')).toBe(mode === 'native');
     }
   });
 
@@ -313,7 +315,7 @@ describe('<mattebox-player>', () => {
     const player = mount({ src: url, type: 'audio/wav' });
     await settled();
     await expect.poll(() => player.player?.session?.handler).toBe('native');
-    await expect.poll(() => player.video.readyState).toBeGreaterThan(0);
+    await expect.poll(() => player.media.readyState).toBeGreaterThan(0);
     expect(player.engine).toBeNull();
     expect(player.shadowRoot?.querySelector<HTMLElement>('[part~="error"]')?.hidden).toBe(true);
     URL.revokeObjectURL(url);
@@ -342,7 +344,7 @@ describe('<mattebox-player>', () => {
   it('detaches on disconnect, so an SPA navigation leaks no pipeline', async () => {
     const player = mount({ src: 'https://cdn.test/hls/master.m3u8' });
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
-    const video = player.video;
+    const video = player.querySelector('video') as HTMLVideoElement;
     expect(mattebox.from(video)).not.toBeNull();
 
     player.remove();
@@ -355,7 +357,9 @@ describe('<mattebox-player>', () => {
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
 
     player.remove();
-    await expect.poll(() => mattebox.from(player.video)).toBeNull();
+    await expect
+      .poll(() => mattebox.from(player.querySelector('video') as HTMLVideoElement))
+      .toBeNull();
     document.body.append(player);
 
     await expect.poll(() => player.engine, { timeout: 5000 }).not.toBeNull();
@@ -383,7 +387,7 @@ describe('<mattebox-player>', () => {
     const url = silence();
     const player = mount({ src: url, type: 'audio/wav' });
     await expect.poll(() => player.player?.session?.handler).toBe('native');
-    expect(player.video.getAttribute('src')).toBe(url);
+    expect(player.media.getAttribute('src')).toBe(url);
 
     // `type` is authoritative, so it goes when the source it described goes.
     player.removeAttribute('type');
@@ -392,8 +396,8 @@ describe('<mattebox-player>', () => {
     await expect.poll(() => player.player?.session?.handler).toBe('mattebox');
     // The engine holds the element now: the native src is gone, replaced by
     // whatever the engine attached through.
-    expect(player.video.getAttribute('src')).not.toBe(url);
-    expect(mattebox.from(player.video)).toBe(player.engine);
+    expect(player.media.getAttribute('src')).not.toBe(url);
+    expect(mattebox.from(player.querySelector('video') as HTMLVideoElement)).toBe(player.engine);
     URL.revokeObjectURL(url);
   });
 
@@ -459,7 +463,7 @@ describe('the menus over an engine session', () => {
     const engine = player.engine as Mattebox;
     await expect.poll(() => engine.tracks.active('audio')?.name).toBe('English');
     // The region speaks once the video has played; this one has no media to play.
-    player.video.dispatchEvent(new Event('playing'));
+    player.media.dispatchEvent(new Event('playing'));
     const french = engine.tracks.available.find((track) => track.name === 'French');
     engine.tracks.select(french?.id as string);
     const region = player.shadowRoot?.querySelector('[part~="announcer"]');
@@ -720,7 +724,7 @@ describe('native HLS on Apple WebKit', () => {
       configurable: true,
     });
     const player = new MatteboxPlayerElement({ stages });
-    player.video.canPlayType = (type: string) => (type.includes('mpegurl') ? 'maybe' : '');
+    player.media.canPlayType = (type: string) => (type.includes('mpegurl') ? 'maybe' : '');
     player.setAttribute('muted', '');
     for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
     player.setAttribute('src', src);
@@ -771,7 +775,7 @@ describe('native HLS on Apple WebKit', () => {
     document.body.append(player);
     const expected =
       navigator.vendor.startsWith('Apple') &&
-      player.video.canPlayType('application/vnd.apple.mpegurl') !== ''
+      player.media.canPlayType('application/vnd.apple.mpegurl') !== ''
         ? 'native'
         : 'mattebox';
     await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe(expected);

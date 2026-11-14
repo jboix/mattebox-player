@@ -293,7 +293,7 @@ export class MbxDiagnostics extends HTMLElement {
   private attach(player: PlayerHost): void {
     this.player = player;
     this.renderLabels();
-    this.sampler.attach(player.video, player.engine);
+    this.sampler.attach(player.media, player.engine);
     const on = (target: EventTarget, name: string, fn: (event: Event) => void): void => {
       target.addEventListener(name, fn);
       this.offs.push(() => {
@@ -304,7 +304,7 @@ export class MbxDiagnostics extends HTMLElement {
       this.renderLabels();
     });
     on(player, 'sourcechange', () => {
-      this.sampler.attach(player.video, player.engine);
+      this.sampler.attach(player.media, player.engine);
       this.poll();
     });
     on(player, 'error', (event) => {
@@ -349,7 +349,7 @@ export class MbxDiagnostics extends HTMLElement {
   private poll(): void {
     const player = this.player;
     if (player === null) return;
-    this.sampler.poll(player.video, player.engine);
+    this.sampler.poll(player.media, player.engine);
     if (!this.panel.hidden) this.paint();
   }
 
@@ -395,7 +395,7 @@ export class MbxDiagnostics extends HTMLElement {
     if (player === null) return;
     const box = player.getBoundingClientRect();
     const host = this.getBoundingClientRect();
-    const top = player.video.getBoundingClientRect().top;
+    const top = player.media.getBoundingClientRect().top;
     const room = host.top - top - AIR;
     this.panel.style.maxHeight = `${Math.max(120, Math.floor(room))}px`;
     const em = Number.parseFloat(getComputedStyle(this).fontSize) || 16;
@@ -493,7 +493,7 @@ export class MbxDiagnostics extends HTMLElement {
       samples: this.sampler.samples,
       marks: this.sampler.marks,
       counters: this.sampler.counters,
-      video: player.video,
+      video: player.media,
       engine: player.engine,
       palette: this.palette(),
     });
@@ -519,7 +519,7 @@ export class MbxDiagnostics extends HTMLElement {
   }
 
   private playbackSections(player: PlayerHost): Section[] {
-    const video = player.video;
+    const video = player.media;
     const engine = player.engine;
     const quality = video.getVideoPlaybackQuality?.();
     const counters = this.sampler.counters;

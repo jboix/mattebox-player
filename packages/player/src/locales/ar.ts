@@ -76,4 +76,5 @@ export default {
   saidAudio: 'الصوت: {track}',
   saidSubtitles: 'الترجمة: {track}',
   saidSubtitlesOff: 'الترجمة متوقفة',
+  castingTo: 'الإرسال إلى {device}',
 } satisfies PlayerMessages;

@@ -1,7 +1,7 @@
 /**
  * The contract of a control of the page's own, as guide chapter 03 of the
  * player states it: the nearest <mattebox-player> above, through shadow
- * hosts, awaited until defined and upgraded, then read for `video`,
+ * hosts, awaited until defined and upgraded, then read for `media`,
  * `engine`, `player` and `error`, with `sourcechange` and `error` heard on
  * it. This package implements the contract from outside, on purpose: the
  * player exports no base class, and a control that needs more than this
@@ -40,9 +40,9 @@ export function whenPlayer(found: HTMLElement, fn: (player: PlayerHost) => void)
     if (!waiting) return;
     waiting = false;
     customElements.upgrade(found);
-    if ('video' in found) fn(found as PlayerHost);
+    if ('media' in found) fn(found as PlayerHost);
   };
-  if ('video' in found) ready();
+  if ('media' in found) ready();
   else void customElements.whenDefined(PLAYER).then(ready);
   return () => {
     waiting = false;

@@ -240,16 +240,16 @@ credits, so it starts with no request to the content API:
   const next = { type: 'example/episode', id: 'ep-1043' };
   let asked = false;
 
-  player.video.addEventListener('timeupdate', () => {
+  player.media.addEventListener('timeupdate', () => {
     const credits = player.markers
-      .within(player.video.currentTime)
+      .within(player.media.currentTime)
       .some((marker) => marker.kind === 'closing-credits');
     if (credits && !asked) {
       asked = true;
       player.player?.preload(next);
     }
   });
-  player.video.addEventListener('ended', () => {
+  player.media.addEventListener('ended', () => {
     player.sources = [next];
   });
 </script>

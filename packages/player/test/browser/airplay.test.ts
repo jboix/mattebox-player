@@ -87,13 +87,13 @@ describe('<mbx-airplay-button>', () => {
     fakeAirplay();
     const { player, button } = mount();
 
-    wireless(player.video, true);
+    wireless(player.media, true);
     expect(player.hasAttribute('airplay')).toBe(true);
     expect(button.shadowRoot?.querySelector('button')?.getAttribute('aria-label')).toBe(
       'Stop AirPlay',
     );
 
-    wireless(player.video, false);
+    wireless(player.media, false);
     expect(player.hasAttribute('airplay')).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe('<mbx-airplay-button>', () => {
 
     const inner = button.shadowRoot?.querySelector('button');
     expect(inner?.getAttribute('aria-label')).toBe('Enviar a la tele');
-    wireless(player.video, true);
+    wireless(player.media, true);
     expect(inner?.getAttribute('aria-label')).toBe('Aturar');
   });
 
@@ -116,11 +116,11 @@ describe('<mbx-airplay-button>', () => {
     // What an engine session without an AirPlay alternative leaves behind.
     // Nothing announces the property, so the source change is when it is
     // read again; a native session hands it back and the button returns.
-    player.video.disableRemotePlayback = true;
+    player.media.disableRemotePlayback = true;
     player.dispatchEvent(new CustomEvent('sourcechange', { detail: null }));
     expect(button.hidden).toBe(true);
 
-    player.video.disableRemotePlayback = false;
+    player.media.disableRemotePlayback = false;
     player.dispatchEvent(new CustomEvent('sourcechange', { detail: null }));
     expect(button.hidden).toBe(false);
   });
@@ -128,7 +128,7 @@ describe('<mbx-airplay-button>', () => {
   it('drops the player attribute when it leaves', () => {
     fakeAirplay();
     const { player, button } = mount();
-    wireless(player.video, true);
+    wireless(player.media, true);
     expect(player.hasAttribute('airplay')).toBe(true);
 
     button.remove();

@@ -42,16 +42,16 @@ export abstract class Component extends HTMLElement {
     const epoch = this.epoch;
     const attach = (): void => {
       if (epoch !== this.epoch || !this.isConnected) return;
-      // Defined, and this instance upgraded: `video` is on the prototype.
+      // Defined, and this instance upgraded: `media` is on the prototype.
       customElements.upgrade(found);
-      if (!('video' in found)) return;
+      if (!('media' in found)) return;
       this.player = found as PlayerHost;
       this.listen(found, ['localechange'], () => {
         this.render();
       });
       this.attach(this.player);
     };
-    if ('video' in found) attach();
+    if ('media' in found) attach();
     else void customElements.whenDefined(PLAYER).then(attach);
   }
 

@@ -73,7 +73,7 @@ import STYLE_CSS from './seek-bar.css?inline';
 import { number, SLIDER_STYLE, seekRow, style } from './shared.js';
 
 /** What a drag does, chosen when the pointer takes the thumb. */
-type Drag = 'none' | 'seek' | 'scrub';
+type Drag = 'none' | 'seek' | 'scrub' | 'hold';
 
 /** Where the preview's picture comes from: decoded I-frames, or thumbnail tiles. */
 type Preview = 'frames' | 'tiles';
@@ -322,15 +322,20 @@ export class MbxSeekBar extends Component {
     this.dragged = null;
     // The pause below is the drag's, not the viewer's: the player says so,
     // with the state from before, which the play buttons keep showing.
-    const before = this.player?.video.paused === false ? 'playing' : 'paused';
+    const before = this.player?.media.paused === false ? 'playing' : 'paused';
     this.player?.setAttribute('scrubbing', before);
-    if (trick?.available === true && this.getAttribute('scrub') !== 'false') {
+    if (this.remote()) {
+      // A device plays: the preview follows the pointer, and the seek goes
+      // out once, on the release.
+      this.resume = false;
+      this.drag = 'hold';
+    } else if (trick?.available === true && this.getAttribute('scrub') !== 'false') {
       trick.scrubStart();
       this.drag = 'scrub';
     } else {
       // Paused for the drag, the way the scrub is: the picture follows the
       // pointer, and playback waits for the release.
-      const video = this.player?.video;
+      const video = this.player?.media;
       this.resume = video !== undefined && !video.paused;
       video?.pause();
       this.drag = 'seek';
@@ -364,8 +369,8 @@ export class MbxSeekBar extends Component {
     } else {
       // A click writes on the press and again on the release, at the same
       // time: one seek is enough, and a tracker counts each one.
-      if (value !== null && value !== written) player.video.currentTime = value;
-      if (this.resume) void player.video.play().catch(() => undefined);
+      if (value !== null && value !== written) player.media.currentTime = value;
+      if (this.resume) void player.media.play().catch(() => undefined);
       this.resume = false;
     }
     // After the play, which clears `paused` at once, so the start button
@@ -418,7 +423,7 @@ export class MbxSeekBar extends Component {
   private commit(): void {
     const target = this.target;
     this.stopAiming();
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (target !== null && video !== undefined) video.currentTime = target;
   }
 
@@ -437,7 +442,7 @@ export class MbxSeekBar extends Component {
   }
 
   private input(value: number): void {
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     this.bar.set(value, this.say(value));
     if (!this.bar.dragging()) {
@@ -449,6 +454,7 @@ export class MbxSeekBar extends Component {
       return;
     }
     this.dragged = value;
+    if (this.drag === 'hold') return;
     if (this.drag === 'scrub') {
       // The engine writes `currentTime` on every move; the browser drops a
       // seek a newer one supersedes, so no throttle is needed here.
@@ -465,7 +471,7 @@ export class MbxSeekBar extends Component {
 
   private flush(): void {
     this.frame = 0;
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (this.pending === null || video === undefined) return;
     video.currentTime = this.pending;
     if (this.drag === 'seek') this.written = this.pending;
@@ -659,7 +665,7 @@ export class MbxSeekBar extends Component {
     const tick = (): void => {
       this.render();
     };
-    this.listen(player.video, EVENTS, tick);
+    this.listen(player.media, EVENTS, tick);
     this.keep(followChapters(player, tick));
     this.listen(player, ['markerschange', 'breakschange'], tick);
     this.listen(player, ['sourcechange'], () => {
@@ -673,7 +679,7 @@ export class MbxSeekBar extends Component {
       const asked = event as CustomEvent<{ readonly by: number }>;
       if (!this.previewing() || this.hidden || asked.defaultPrevented) return;
       asked.preventDefault();
-      this.aim((this.target ?? player.video.currentTime) + asked.detail.by * this.growth());
+      this.aim((this.target ?? player.media.currentTime) + asked.detail.by * this.growth());
     });
     // While a target stands, Enter seeks to it and Escape or Back drops it,
     // wherever focus is: on the bar, or anywhere the seeking keys came from.
@@ -706,7 +712,7 @@ export class MbxSeekBar extends Component {
   protected override render(): void {
     const player = this.player;
     if (player === null) return;
-    const video = player.video;
+    const video = player.media;
     const engine = player.engine;
     const api = live(engine);
     const on = api !== undefined;

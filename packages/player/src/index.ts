@@ -7,6 +7,7 @@
 import type { MatteboxPlayerElement } from './element-entry.js';
 import type { MbxAirplayButton } from './entries/airplay-button.js';
 import type { MbxAudioMenu } from './entries/audio-menu.js';
+import type { MbxCasting } from './entries/casting.js';
 import type { MbxChaptersMenu } from './entries/chapters-menu.js';
 import type { MbxControlBar } from './entries/control-bar.js';
 import type { MbxCurrentTime } from './entries/current-time.js';
@@ -50,6 +51,7 @@ export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
 export { MbxAirplayButton } from './entries/airplay-button.js';
 export { MbxAudioMenu } from './entries/audio-menu.js';
+export { MbxCasting } from './entries/casting.js';
 export { MbxChaptersMenu } from './entries/chapters-menu.js';
 export { MbxControlBar } from './entries/control-bar.js';
 export { MbxCurrentTime } from './entries/current-time.js';
@@ -81,6 +83,15 @@ export type { DeviceIdOptions } from './ids.js';
 export { deviceId, sessionId } from './ids.js';
 export type { LocaleSource } from './locales.js';
 export type { Messages, PlayerMessages, Words } from './messages.js';
+export type {
+  CastOptions,
+  CastTarget,
+  Ranges,
+  Remote,
+  RemoteLoad,
+  RemoteMedia,
+  TextFile,
+} from './remote.js';
 export type { Text } from './text.js';
 export type { Tracker, Trackers } from './trackers.js';
 
@@ -102,6 +113,7 @@ declare global {
     'mbx-error-screen': MbxErrorScreen;
     'mbx-spinner': MbxSpinner;
     'mbx-title': MbxTitle;
+    'mbx-casting': MbxCasting;
     'mbx-current-time': MbxCurrentTime;
     'mbx-duration': MbxDuration;
     'mbx-remaining-time': MbxRemainingTime;

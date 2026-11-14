@@ -1,7 +1,8 @@
 :host {
   display: inline-flex;
 }
-:host([hidden]) {
+:host([hidden]),
+:host([away]) {
   display: none;
 }
 [part~="button"] {

@@ -57,14 +57,6 @@
     aspect-ratio: auto 16 / 9;
   }
 }
-/* The casting attribute is set by @mattebox/player-cast while a receiver
-   plays: its screen has the controls, and the bar and the start button
-   would drive a paused video nobody watches. The attribute is the whole
-   coupling. */
-:host([casting]) ::slotted(mbx-control-bar),
-:host([casting]) ::slotted(mbx-start-button) {
-  display: none;
-}
 /* Nothing is left to skip once the media has ended, even when the page's
    credits run past its last frame. */
 :host([ended]) ::slotted(mbx-marker-button) {

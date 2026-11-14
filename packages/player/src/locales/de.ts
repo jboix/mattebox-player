@@ -76,4 +76,5 @@ export default {
   saidAudio: 'Audio: {track}',
   saidSubtitles: 'Untertitel: {track}',
   saidSubtitlesOff: 'Untertitel aus',
+  castingTo: 'Wiedergabe auf {device}',
 } satisfies PlayerMessages;

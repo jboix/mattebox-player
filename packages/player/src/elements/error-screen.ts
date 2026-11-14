@@ -103,7 +103,7 @@ export class MbxErrorScreen extends Component {
     });
     // Not `emptied`: the old session's teardown fires it after the new
     // source's error, and would hide the error it should leave.
-    this.listen(player.video, ['playing', 'loadstart'], () => {
+    this.listen(player.media, ['playing', 'loadstart'], () => {
       if (this.block === null) this.hidden = true;
     });
     this.listen(player, ['sourcechange'], () => {

@@ -19,13 +19,13 @@ async function mount(
   attributes: Readonly<Record<string, string>> = {},
 ): Promise<MatteboxPlayerElement> {
   const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', 'custom');
   player.setAttribute('src', 'https://cdn.test/source');
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
   document.body.append(player);
   await wait(0);
-  await media(player.video).metadata(10);
+  await media(player.media).metadata(10);
   return player;
 }
 
@@ -55,36 +55,36 @@ describe('the live region', () => {
 
   it('says a play and a pause, and not the pause at the end', async () => {
     const player = await mount();
-    await player.video.play();
+    await player.media.play();
     expect(await spoken(player)).toBe('Playing');
-    player.video.pause();
+    player.media.pause();
     expect(await spoken(player)).toBe('Paused');
-    await player.video.play();
-    await media(player.video).end();
+    await player.media.play();
+    await media(player.media).end();
     expect(await spoken(player)).toBe('Playing');
   });
 
   it('says the same phrase again by emptying the region first', async () => {
     const player = await mount();
-    await player.video.play();
-    player.video.pause();
+    await player.media.play();
+    player.media.pause();
     expect(await spoken(player)).toBe('Paused');
-    await player.video.play();
-    player.video.pause();
+    await player.media.play();
+    player.media.pause();
     expect(region(player).textContent).toBe('');
     expect(await spoken(player)).toBe('Paused');
   });
 
   it('says a wait once it lasts a second, and nothing for a short one', async () => {
     const player = await mount();
-    await player.video.play();
+    await player.media.play();
     await spoken(player);
-    player.video.dispatchEvent(new Event('waiting'));
+    player.media.dispatchEvent(new Event('waiting'));
     await wait(300);
-    player.video.dispatchEvent(new Event('canplay'));
+    player.media.dispatchEvent(new Event('canplay'));
     await wait(1000);
     expect(region(player).textContent).toBe('Playing');
-    player.video.dispatchEvent(new Event('waiting'));
+    player.media.dispatchEvent(new Event('waiting'));
     await wait(1000);
     expect(await spoken(player)).toBe('Loading');
   });
@@ -104,11 +104,11 @@ describe('the live region', () => {
 
   it('says a subtitle change after the first play, and not the tracks a load starts with', async () => {
     const player = await mount();
-    const track = player.video.addTextTrack('subtitles', 'English', 'en');
+    const track = player.media.addTextTrack('subtitles', 'English', 'en');
     track.mode = 'showing';
     await wait(0);
     expect(await spoken(player)).toBe('');
-    await player.video.play();
+    await player.media.play();
     track.mode = 'disabled';
     expect(await spoken(player)).toBe('Subtitles off');
     track.mode = 'showing';
@@ -120,8 +120,8 @@ describe('the live region', () => {
       'label-playing': 'Lecture',
       'label-subtitles': 'Sous-titres : {track}',
     });
-    const track = player.video.addTextTrack('captions', '', 'fr');
-    await player.video.play();
+    const track = player.media.addTextTrack('captions', '', 'fr');
+    await player.media.play();
     expect(await spoken(player)).toBe('Lecture');
     track.mode = 'showing';
     expect(await spoken(player)).toMatch(/^Sous-titres : (French|fr)$/);
@@ -129,8 +129,8 @@ describe('the live region', () => {
 
   it('keeps quiet under announce="off"', async () => {
     const player = await mount({ announce: 'off' });
-    await player.video.play();
-    player.video.pause();
+    await player.media.play();
+    player.media.pause();
     expect(await spoken(player)).toBe('');
   });
 });

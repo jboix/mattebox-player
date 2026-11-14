@@ -76,4 +76,5 @@ export default {
   saidAudio: 'Áudio: {track}',
   saidSubtitles: 'Legendas: {track}',
   saidSubtitlesOff: 'Legendas desativadas',
+  castingTo: 'A transmitir para {device}',
 } satisfies PlayerMessages;

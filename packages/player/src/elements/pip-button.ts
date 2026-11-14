@@ -9,6 +9,7 @@ import { icon } from '../controls/icons.js';
 import type { PictureInPicture } from '../controls/pip.js';
 import { pictureInPicture } from '../controls/pip.js';
 import type { PlayerHost } from '../host.js';
+import { videoOf } from '../host.js';
 import { Component } from './component.js';
 import { BUTTON_STYLE, iconSlots, show, style } from './shared.js';
 
@@ -26,6 +27,8 @@ export class MbxPipButton extends Component {
 
   constructor() {
     super();
+    // The device picks its own: nothing here reaches it.
+    this.leaves = 'device';
     this.api = null;
     const root = this.attachShadow({ mode: 'open' });
     this.button = document.createElement('button');
@@ -42,7 +45,11 @@ export class MbxPipButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    const api = pictureInPicture(player.video);
+    // The node, since the document names the picture-in-picture element by
+    // it and an observer takes nothing else. `player.media` is not a node.
+    const video = videoOf(player);
+    if (video === null) return;
+    const api = pictureInPicture(video);
     this.api = api;
     this.keep(
       api.watch(() => {

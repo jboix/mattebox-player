@@ -22,6 +22,14 @@ import { textIn } from '../text.js';
 
 export abstract class Component extends HTMLElement {
   declare protected player: PlayerHost | null;
+  /**
+   * When the control has nothing to act on while a device plays in the
+   * video's place: `device` for any device, since the control acts on the
+   * picture of the page or on its quality, and `remote` for a device that
+   * is not the video itself, as AirPlay is. The control then carries
+   * `away`, and its stylesheet hides it. Null for a control that stays.
+   */
+  declare protected leaves: 'device' | 'remote' | null;
   declare private offs: Array<() => void>;
   /** Bumped on every connect and disconnect, so a late upgrade attaches only to the current connection. */
   declare private epoch: number;
@@ -29,6 +37,7 @@ export abstract class Component extends HTMLElement {
   constructor() {
     super();
     this.player = null;
+    this.leaves = null;
     this.offs = [];
     this.epoch = 0;
   }
@@ -40,9 +49,9 @@ export abstract class Component extends HTMLElement {
     const epoch = this.epoch;
     const attach = (): void => {
       if (epoch !== this.epoch || !this.isConnected) return;
-      // Defined, and this instance upgraded: `video` is on the prototype.
+      // Defined, and this instance upgraded: `media` is on the prototype.
       customElements.upgrade(found);
-      if (!('video' in found)) return;
+      if (!('media' in found)) return;
       this.player = found as PlayerHost;
       // The player's size tier, on the control itself: a shadow tree cannot
       // match an attribute of an ancestor in every browser, and with it
@@ -59,10 +68,22 @@ export abstract class Component extends HTMLElement {
       this.listen(found, ['localechange'], () => {
         this.render();
       });
+      const cast = (): void => {
+        const gone =
+          this.leaves !== null &&
+          found.hasAttribute('casting') &&
+          (this.leaves === 'device' || this.remote());
+        this.toggleAttribute('away', gone);
+      };
+      this.listen(found, ['castingchange'], () => {
+        cast();
+        this.render();
+      });
       tier();
+      cast();
       this.attach(this.player);
     };
-    if ('video' in found) attach();
+    if ('media' in found) attach();
     else void customElements.whenDefined(PLAYER).then(attach);
   }
 
@@ -90,6 +111,15 @@ export abstract class Component extends HTMLElement {
     this.offs.push(() => {
       for (const name of names) target.removeEventListener(name, fn);
     });
+  }
+
+  /**
+   * Whether a device plays that is not the video itself. Under AirPlay the
+   * video still plays the source and answers every member.
+   */
+  protected remote(): boolean {
+    const target = this.player?.casting ?? null;
+    return target !== null && target.kind !== 'airplay';
   }
 
   /**

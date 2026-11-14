@@ -40,7 +40,7 @@ function fakePlayer() {
     getAttribute: (name: string) => store.get(name) ?? null,
   });
   const player = Object.assign(new EventTarget(), element(attributes), {
-    video,
+    media: video,
     markers: {
       set(list: readonly Marker[]) {
         markers.push(list);

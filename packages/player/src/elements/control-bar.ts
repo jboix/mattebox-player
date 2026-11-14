@@ -45,6 +45,7 @@ import { cueLift, cueStyle } from '../controls/cues.js';
 import type { Fullscreen } from '../controls/fullscreen.js';
 import { fullscreen } from '../controls/fullscreen.js';
 import type { PlayerHost } from '../host.js';
+import { videoOf } from '../host.js';
 import {
   AIRPLAY_BUTTON,
   AUDIO_MENU,
@@ -283,7 +284,7 @@ export class MbxControlBar extends Component {
   private seekBy(player: PlayerHost, by: number): void {
     const asked = new CustomEvent('seekkey', { detail: { by }, cancelable: true });
     if (!player.dispatchEvent(asked)) return;
-    const video = player.video;
+    const video = player.media;
     video.currentTime = Math.min(end(video), Math.max(0, video.currentTime + by));
   }
 
@@ -291,7 +292,7 @@ export class MbxControlBar extends Component {
     this.keyboard = true;
     this.wake(player);
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
-    const video = player.video;
+    const video = player.media;
     const onButton = event.composedPath()[0] instanceof HTMLButtonElement;
     switch (event.key) {
       case ' ':
@@ -338,7 +339,7 @@ export class MbxControlBar extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    const video = player.video;
+    const video = player.media;
     cueStyle();
     this.cues = cueLift(video, player, () => this.covered());
     const screen = fullscreen(player, video);
@@ -368,7 +369,7 @@ export class MbxControlBar extends Component {
     };
     const click = (event: Event): void => {
       // The video and nothing else: a control handles its own click.
-      if (event.composedPath()[0] === video) toggle(video);
+      if (event.composedPath()[0] === videoOf(player)) toggle(video);
     };
     this.listen(player, ['pointermove', 'pointerdown'], pointer);
     player.addEventListener('keydown', key);

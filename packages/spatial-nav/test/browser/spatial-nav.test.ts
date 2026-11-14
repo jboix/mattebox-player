@@ -36,7 +36,7 @@ async function tv(bar = BAR): Promise<MatteboxPlayerElement> {
     <mbx-control-bar idle-ms="600000">${bar}</mbx-control-bar>`;
   document.body.append(player);
   player.setAttribute('src', silence(30));
-  await once(player.video, 'loadedmetadata');
+  await once(player.media, 'loadedmetadata');
   return player;
 }
 
@@ -83,7 +83,7 @@ describe('the arrows', () => {
     const first = key(player, 'ArrowRight');
     expect(first.defaultPrevented).toBe(true);
     expect(host(focused())).toBe('mbx-play-button');
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
   });
 
   it('start from the control `initial` names', async () => {
@@ -136,7 +136,7 @@ describe('the arrows', () => {
     const right = key(focused() as Element, 'ArrowRight');
     expect(right.defaultPrevented).toBe(true);
     expect(host(focused())).toBe('mbx-seek-bar');
-    expect(player.video.currentTime).toBeGreaterThan(0);
+    expect(player.media.currentTime).toBeGreaterThan(0);
   });
 
   it('fire navigateout at an edge, and take the arrow so the bar does not seek', async () => {
@@ -150,7 +150,7 @@ describe('the arrows', () => {
     const right = key(focused() as Element, 'ArrowRight');
     expect(right.defaultPrevented).toBe(true);
     expect(out).toEqual(['right']);
-    expect(player.video.currentTime).toBe(0);
+    expect(player.media.currentTime).toBe(0);
     expect(nav.isConnected).toBe(true);
   });
 
@@ -172,8 +172,8 @@ describe('the arrows', () => {
     expect(control()).toBe(player.querySelectorAll('mbx-skip-button')[1]);
     // Enter by code alone: the element clicks, which a real Enter does itself.
     key(focused() as Element, '', 13);
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBe(10);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBe(10);
   });
 });
 
@@ -181,13 +181,13 @@ describe('the remote keys', () => {
   it('reach the bar under their standard names: play, pause, fast forward', async () => {
     const player = await tv();
     key(player, 'Unidentified', 415);
-    await once(player.video, 'play');
+    await once(player.media, 'play');
     key(player, '', 19);
-    await once(player.video, 'pause');
+    await once(player.media, 'pause');
     // The video may play a moment before the pause, as on WebKit.
-    const paused = player.video.currentTime;
+    const paused = player.media.currentTime;
     key(player, '', 417);
-    expect(player.video.currentTime).toBeCloseTo(paused + 5, 3);
+    expect(player.media.currentTime).toBeCloseTo(paused + 5, 3);
   });
 
   it('go Back a step at a time: the menu closes, focus leaves, then the application has it', async () => {

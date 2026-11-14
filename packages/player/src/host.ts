@@ -21,6 +21,7 @@ import type { Mattebox, Stage } from 'mattebox';
 import type { BreakMarks } from './controls/breaks.js';
 import type { Markers } from './controls/markers.js';
 import type { Messages } from './messages.js';
+import type { CastOptions, CastTarget, Remote } from './remote.js';
 import { PLAYER } from './tags.js';
 
 export type { Block };
@@ -49,7 +50,8 @@ export interface Trackers {
 }
 
 export interface PlayerHost extends HTMLElement {
-  readonly video: HTMLVideoElement;
+  /** What plays: the video, or the device that plays in its place. Not a DOM node. */
+  readonly media: HTMLVideoElement;
   readonly engine: Mattebox | null;
   readonly player: Player | null;
   /** The fatal error of the current load, or null: a control attached after the event still sees it. */
@@ -81,6 +83,10 @@ export interface PlayerHost extends HTMLElement {
   resume(options?: { readonly at?: number | null; readonly playing?: boolean }): Promise<void>;
   /** `interrupt` plays in the programme's place. */
   readonly interrupted: boolean;
+  /** The device that plays in the video's place, or null. The `casting` attribute carries its kind. */
+  readonly casting: CastTarget | null;
+  /** Hands playback to a device, for a cast package. Returns the function that ends the cast. */
+  cast(remote: Remote, options?: CastOptions): () => void;
   /** The language tag the words come from, or empty for English. */
   readonly locale: string;
   /**
@@ -108,6 +114,21 @@ export interface PlayerAddon {
   readonly engine?: boolean;
   /** Runs when a player connects, and the function it returns when it leaves the page. */
   attach?(player: PlayerHost): (() => void) | undefined;
+  /**
+   * What the add-on sends with a load to a device that plays in the
+   * video's place, as plain JSON: it goes under the add-on's `name`. The
+   * page of the device reads it. Undefined sends nothing.
+   */
+  remoteData?(player: PlayerHost): unknown;
+}
+
+/**
+ * The player's `<video>` node, for an API that takes the element itself,
+ * such as an observer, or to tell a click on it. `player.media` is not a
+ * node. Null before the player is in the page.
+ */
+export function videoOf(player: HTMLElement): HTMLVideoElement | null {
+  return player.querySelector<HTMLVideoElement>(':scope > video');
 }
 
 /** The parent, or the host of the shadow root `node` sits in, or null at the document. */

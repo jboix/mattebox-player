@@ -76,4 +76,5 @@ export default {
   saidAudio: '音频：{track}',
   saidSubtitles: '字幕：{track}',
   saidSubtitlesOff: '字幕已关闭',
+  castingTo: '正在投放到 {device}',
 } satisfies PlayerMessages;

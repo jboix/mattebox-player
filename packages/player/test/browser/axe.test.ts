@@ -25,7 +25,7 @@ function settled(): Promise<void> {
 /** The player under custom controls with every control in, and the metadata of a 10 s clip. */
 async function mount(): Promise<MatteboxPlayerElement> {
   const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', 'custom');
   player.setAttribute('layout', 'regular');
   player.setAttribute('src', 'https://cdn.test/source');
@@ -33,7 +33,7 @@ async function mount(): Promise<MatteboxPlayerElement> {
   player.style.width = '800px';
   document.body.append(player);
   await settled();
-  await media(player.video).metadata(10);
+  await media(player.media).metadata(10);
   return player;
 }
 
@@ -57,14 +57,14 @@ describe('axe-core', () => {
 
   it('finds nothing while the video plays', async () => {
     const player = await mount();
-    await player.video.play();
+    await player.media.play();
     expect(await violations(player)).toEqual([]);
   });
 
   it('finds nothing in an open menu', async () => {
     const player = await mount();
     // A track for the subtitles menu, which hides without one.
-    player.video.addTextTrack('subtitles', 'English', 'en');
+    player.media.addTextTrack('subtitles', 'English', 'en');
     await settled();
     let opened = 0;
     for (const tag of MENUS) {

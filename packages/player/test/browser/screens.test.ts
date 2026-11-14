@@ -20,7 +20,7 @@ async function mount(titleAttributes: Readonly<Record<string, string>> = {}): Pr
   spinner: HTMLElement;
 }> {
   const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', 'custom');
   player.setAttribute('src', 'https://cdn.test/source');
   const title = document.createElement('mbx-title');
@@ -59,10 +59,10 @@ describe('<mbx-title>', () => {
     const { player, title } = await mount({ heading: 'The rodents' });
     expect(title.hasAttribute('playing')).toBe(false);
     expect(getComputedStyle(title).display).toBe('flex');
-    await player.video.play();
+    await player.media.play();
     expect(title.hasAttribute('playing')).toBe(true);
     expect(getComputedStyle(title).display).toBe('none');
-    player.video.pause();
+    player.media.pause();
     await settled();
     expect(title.hasAttribute('playing')).toBe(false);
     // The height of the bar's rows, for the text to sit just above them.
@@ -80,8 +80,8 @@ describe('<mbx-title>', () => {
     document.head.append(sheet);
     try {
       expect(getComputedStyle(title).display).toBe('flex');
-      await player.video.play();
-      player.video.pause();
+      await player.media.play();
+      player.media.pause();
       await settled();
       expect(player.hasAttribute('started')).toBe(true);
       expect(getComputedStyle(title).display).toBe('none');
@@ -94,7 +94,7 @@ describe('<mbx-title>', () => {
 describe('<mbx-spinner>', () => {
   it('shows while the video plays and waits for data, and names itself', async () => {
     const { player, spinner } = await mount();
-    const video = player.video;
+    const video = player.media;
     expect(spinner.getAttribute('aria-label')).toBe('Loading');
     expect(getComputedStyle(spinner).display).toBe('none');
     await video.play();
@@ -122,17 +122,17 @@ describe('<mbx-spinner>', () => {
     player.append(start);
     await settled();
     expect(start.hidden).toBe(false);
-    player.video.dispatchEvent(new Event('waiting'));
+    player.media.dispatchEvent(new Event('waiting'));
     expect(player.hasAttribute('waiting')).toBe(true);
     expect(start.hidden).toBe(false);
     expect(spinner.hasAttribute('waiting')).toBe(false);
 
     // Playing, a wait gives the centre to the spinner.
-    await player.video.play();
-    player.video.dispatchEvent(new Event('waiting'));
+    await player.media.play();
+    player.media.dispatchEvent(new Event('waiting'));
     expect(start.hidden).toBe(true);
     expect(spinner.hasAttribute('waiting')).toBe(true);
-    player.video.dispatchEvent(new Event('playing'));
+    player.media.dispatchEvent(new Event('playing'));
     expect(spinner.hasAttribute('waiting')).toBe(false);
   });
 
@@ -145,8 +145,8 @@ describe('<mbx-spinner>', () => {
     spinner.append(glyph);
     await settled();
     expect(spinner.shadowRoot?.querySelector<HTMLElement>('[part~="ring"]')?.hidden).toBe(true);
-    await player.video.play();
-    player.video.dispatchEvent(new Event('waiting'));
+    await player.media.play();
+    player.media.dispatchEvent(new Event('waiting'));
     expect(getComputedStyle(spinner).display).toBe('block');
   });
 });

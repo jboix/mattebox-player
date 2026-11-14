@@ -219,7 +219,7 @@ async function mount(
     player.append(element);
   }
   document.body.append(player);
-  await once(player.video, 'loadedmetadata');
+  await once(player.media, 'loadedmetadata');
   await expect.poll(() => player.player?.session ?? null).not.toBeNull();
   return { player, element };
 }

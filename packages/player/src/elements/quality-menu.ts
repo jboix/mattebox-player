@@ -25,6 +25,8 @@ export class MbxQualityMenu extends MenuElement {
 
   constructor() {
     super(...single('quality'));
+    // The device picks its own: nothing here reaches it.
+    this.leaves = 'device';
     this.engine = null;
     this.playing = undefined;
     show(this.slots, 'default');
@@ -47,9 +49,9 @@ export class MbxQualityMenu extends MenuElement {
       const clock = (): void => {
         if (this.playingName() !== this.playing) this.render();
       };
-      player.video.addEventListener('timeupdate', clock);
+      player.media.addEventListener('timeupdate', clock);
       const offs = [
-        () => player.video.removeEventListener('timeupdate', clock),
+        () => player.media.removeEventListener('timeupdate', clock),
         engine.on('tracks:changed', tick),
         // A switch of the video track, such as to the I-frame track for a
         // scrub and back, changes the renditions without changing the list.

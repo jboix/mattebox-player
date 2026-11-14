@@ -6,10 +6,11 @@
  * sender SDK to the page. The glyph is `icon` or `icon-active`, the name
  * `label-start` or `label-stop`.
  *
- * Before the request goes to the receiver the button dispatches
+ * Before each request goes to the receiver the button dispatches
  * `castload`, cancelable, with the request as `detail`, so a page adds
- * `customData` for its receiver or cancels. The player carries `casting`
- * while the session runs, and the cast screen drives the receiver.
+ * `customData` for its receiver or cancels. The player carries
+ * `casting="chromecast"` while the session runs, and its own controls
+ * drive the receiver.
  */
 import type { Cast } from './cast.js';
 import { cast } from './cast.js';

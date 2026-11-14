@@ -76,4 +76,5 @@ export default {
   saidAudio: 'Audio: {track}',
   saidSubtitles: 'Sottotitoli: {track}',
   saidSubtitlesOff: 'Sottotitoli disattivati',
+  castingTo: 'Trasmissione su {device}',
 } satisfies PlayerMessages;

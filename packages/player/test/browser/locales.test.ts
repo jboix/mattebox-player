@@ -7,7 +7,7 @@ import { compose, fakeMedia } from './helpers.js';
 /** A player under custom controls, with every control, over the native handler. */
 function mount(attributes: Readonly<Record<string, string>> = {}): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   player.setAttribute('controls', 'custom');
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
   player.append(...compose());

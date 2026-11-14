@@ -117,8 +117,8 @@ async function mount(
 
 /** The load the element sees: the video's own events, which the fake handler does not cause. */
 function load(player: MatteboxPlayerElement): void {
-  player.video.dispatchEvent(new Event('loadstart'));
-  player.video.dispatchEvent(new Event('loadedmetadata'));
+  player.media.dispatchEvent(new Event('loadstart'));
+  player.media.dispatchEvent(new Event('loadedmetadata'));
 }
 
 afterEach(() => {
@@ -185,17 +185,17 @@ describe('<mbx-preferences>', () => {
   it('keeps the volume and the mute, but not the mute of a page that autoplays', async () => {
     const key = freshKey();
     const first = await mount(engineWith(tracks), { 'storage-key': key });
-    first.video.volume = 0.25;
-    first.video.muted = true;
+    first.media.volume = 0.25;
+    first.media.muted = true;
     await expect.poll(() => preferences({ key }).get('muted')).toBe(true);
     expect(preferences({ key }).get('volume')).toBe(0.25);
-    first.video.muted = false;
+    first.media.muted = false;
     await expect.poll(() => preferences({ key }).get('muted')).toBe(false);
 
     document.body.replaceChildren();
     const autoplay = await mount(engineWith(tracks), { 'storage-key': key }, { muted: '' });
-    expect(autoplay.video.volume).toBe(0.25);
-    autoplay.video.muted = true;
+    expect(autoplay.media.volume).toBe(0.25);
+    autoplay.media.muted = true;
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(preferences({ key }).get('muted')).toBe(false);
     localStorage.removeItem(key);
@@ -205,23 +205,23 @@ describe('<mbx-preferences>', () => {
     const key = freshKey();
     const player = await mount(engineWith(tracks), { 'storage-key': key });
     load(player);
-    player.video.playbackRate = 1.5;
+    player.media.playbackRate = 1.5;
     await expect.poll(() => preferences({ key }).get('rate')).toBe(1.5);
 
     // A scan moves the rate through the trick play namespace.
     const engine = player.engine as unknown as FakeEngine & { trick?: unknown };
     engine.trick = { rate: 8, scrubbing: false };
-    player.video.playbackRate = 2;
+    player.media.playbackRate = 2;
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(preferences({ key }).get('rate')).toBe(1.5);
     engine.trick = undefined;
 
-    player.video.dispatchEvent(new Event('loadstart'));
-    player.video.playbackRate = 1;
+    player.media.dispatchEvent(new Event('loadstart'));
+    player.media.playbackRate = 1;
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(preferences({ key }).get('rate')).toBe(1.5);
-    player.video.dispatchEvent(new Event('loadedmetadata'));
-    expect(player.video.playbackRate).toBe(1.5);
+    player.media.dispatchEvent(new Event('loadedmetadata'));
+    expect(player.media.playbackRate).toBe(1.5);
     localStorage.removeItem(key);
   });
 
@@ -280,7 +280,7 @@ describe('<mbx-preferences>', () => {
     preferences({ key }).set('audio', { language: 'de', kind: 'main' });
     const player = await mount(engineWith(tracks), { 'storage-key': key, except: 'audio volume' });
     expect(player.engine?.tracks.active('audio')?.id).toBe('a-fr');
-    player.video.volume = 0.5;
+    player.media.volume = 0.5;
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(preferences({ key }).get('volume')).toBeUndefined();
     localStorage.removeItem(key);
@@ -296,9 +296,9 @@ describe('<mbx-preferences>', () => {
       1: { kind: 'main-desc', language: 'de', enabled: false },
       length: 2,
     });
-    Object.defineProperty(player.video, 'audioTracks', { value: audio });
-    const plain = player.video.addTextTrack('subtitles', 'Deutsch', 'de');
-    const captions = player.video.addTextTrack('captions', 'Deutsch (SDH)', 'de');
+    Object.defineProperty(player.media, 'audioTracks', { value: audio });
+    const plain = player.media.addTextTrack('subtitles', 'Deutsch', 'de');
+    const captions = player.media.addTextTrack('captions', 'Deutsch (SDH)', 'de');
     const prefs = document.createElement('mbx-preferences');
     prefs.setAttribute('storage-key', key);
     player.append(prefs);
@@ -309,7 +309,7 @@ describe('<mbx-preferences>', () => {
 
     captions.mode = 'disabled';
     plain.mode = 'showing';
-    player.video.textTracks.dispatchEvent(new Event('change'));
+    player.media.textTracks.dispatchEvent(new Event('change'));
     expect(preferences({ key }).get('subtitles')).toEqual({ language: 'de', kind: 'subtitles' });
     localStorage.removeItem(key);
   });

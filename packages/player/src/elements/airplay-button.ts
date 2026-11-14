@@ -45,7 +45,7 @@ export class MbxAirplayButton extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    const api = airplay(player.video);
+    const api = airplay(player.media);
     this.api = api;
     this.keep(
       api.watch(() => {

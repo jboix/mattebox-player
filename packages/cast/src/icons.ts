@@ -1,15 +1,13 @@
 /**
- * The play, pause and cast glyphs, Mattebox's own drawings and the same
- * ones the player draws: filled paths on a 32-unit viewBox. The cast glyph
- * is a screen with a corner open for three arcs, filled while casting.
+ * The cast glyphs, Mattebox's own drawings: filled paths on a 32-unit
+ * viewBox. A screen with a corner open for three arcs, filled while
+ * casting.
  */
 
-export type IconName = 'play' | 'pause' | 'cast' | 'cast-active';
+export type IconName = 'cast' | 'cast-active';
 
 /** Each glyph's subpaths joined into one `d`, drawn even-odd like the player's. */
 const PATHS: Readonly<Record<IconName, string>> = {
-  play: 'M9 5L26 16L9 27z',
-  pause: 'M8 6h5.5v20h-5.5zM18.5 6h5.5v20h-5.5z',
   cast: 'M4 6H28V26H20V23.5H25.5V8.5H6.5V11H4zM4 23h3v3h-3zM4 17.5A8.5 8.5 0 0 1 12.5 26L10 26A6 6 0 0 0 4 20zM4 12A14 14 0 0 1 18 26L15.5 26A11.5 11.5 0 0 0 4 14.5z',
   'cast-active':
     'M4 6H28V26H20A16 16 0 0 0 4 10zM4 23h3v3h-3zM4 17.5A8.5 8.5 0 0 1 12.5 26L10 26A6 6 0 0 0 4 20zM4 12A14 14 0 0 1 18 26L15.5 26A11.5 11.5 0 0 0 4 14.5z',

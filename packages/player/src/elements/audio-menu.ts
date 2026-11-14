@@ -90,6 +90,8 @@ export class MbxAudioMenu extends MenuElement {
 
   constructor() {
     super(...single('audio'));
+    // It would change the engine of the page, which a device does not play.
+    this.leaves = 'remote';
     this.engine = null;
     show(this.slots, 'default');
   }
@@ -106,7 +108,7 @@ export class MbxAudioMenu extends MenuElement {
         this.render();
       };
       return engine === null
-        ? onNativeTracks(player.video, 'audioTracks', tick)
+        ? onNativeTracks(player.media, 'audioTracks', tick)
         : onTracks(engine, tick);
     });
   }

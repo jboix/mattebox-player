@@ -47,7 +47,7 @@ function build(
   attributes: Readonly<Record<string, string>>,
 ): MatteboxPlayerElement {
   const player = new MatteboxPlayerElement({ handlers });
-  fakeMedia(player.video);
+  fakeMedia(player.media);
   for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
   if (attributes.controls === 'custom') player.append(...compose());
   document.body.append(player);
@@ -65,13 +65,13 @@ async function ready(
     ...attributes,
   });
   await expect.poll(() => player.player?.session ?? null).not.toBeNull();
-  await media(player.video).metadata(10);
+  await media(player.media).metadata(10);
   return player;
 }
 
 /** Three chapters on the video, the way a page adds them from script. */
 function addChapters(player: MatteboxPlayerElement): TextTrack {
-  const track = player.video.addTextTrack('chapters');
+  const track = player.media.addTextTrack('chapters');
   track.mode = 'hidden';
   track.addCue(new VTTCue(0, 4, 'Opening'));
   track.addCue(new VTTCue(4, 7, 'Middle'));
@@ -128,19 +128,19 @@ describe('the chapters attribute', () => {
     'puts a hidden chapters track on the video, swaps its source, and takes it away',
     async () => {
       const player = await ready({ chapters: vtt() });
-      const track = player.video.querySelector('track');
+      const track = player.media.querySelector('track');
       expect(track?.kind).toBe('chapters');
       expect(track?.track.mode).toBe('hidden');
       await expect.poll(() => track?.track.cues?.length ?? 0, { timeout: 5000 }).toBe(3);
       const next = vtt('chapters-two');
       player.setAttribute('chapters', next);
-      expect(player.video.querySelectorAll('track').length).toBe(1);
-      expect(player.video.querySelector('track')?.src).toBe(next);
+      expect(player.media.querySelectorAll('track').length).toBe(1);
+      expect(player.media.querySelector('track')?.src).toBe(next);
       await expect
-        .poll(() => player.video.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
+        .poll(() => player.media.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
         .toBe(2);
       player.removeAttribute('chapters');
-      expect(player.video.querySelector('track')).toBeNull();
+      expect(player.media.querySelector('track')).toBeNull();
     },
   );
 
@@ -172,9 +172,9 @@ describe('the chapters attribute', () => {
       src: SOURCE,
     });
     await expect.poll(() => player.player?.session?.handler ?? null).toBe('emptying');
-    await expect.poll(() => player.video.querySelector('track')?.kind ?? null).toBe('chapters');
+    await expect.poll(() => player.media.querySelector('track')?.kind ?? null).toBe('chapters');
     await expect
-      .poll(() => player.video.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
+      .poll(() => player.media.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
       .toBe(3);
     await expect.poll(() => chaptersMenu(player).hidden).toBe(false);
   });
@@ -188,7 +188,7 @@ describe('the chapters attribute', () => {
     player.setAttribute('chapters', vtt());
     // Until the cues are in: WebKit locks up when a track is torn down mid-load.
     await expect
-      .poll(() => player.video.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
+      .poll(() => player.media.querySelector('track')?.track.cues?.length ?? 0, { timeout: 5000 })
       .toBe(3);
     expect(changes).toBe(0);
   });
@@ -215,7 +215,7 @@ describe('the seek bar with chapters', () => {
     bar.setAttribute('chapters', 'none');
     addChapters(player);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     expect(mask(bar)).toBe('');
     bar.removeAttribute('chapters');
     expect(mask(bar)).toContain('linear-gradient');
@@ -225,7 +225,7 @@ describe('the seek bar with chapters', () => {
     const player = await ready();
     const bar = seekBar(player);
     addChapters(player);
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     hover(bar, 0.5);
     expect(inside(bar, 'preview').hidden).toBe(false);
     expect(inside(bar, 'preview-title').hidden).toBe(false);
@@ -241,7 +241,7 @@ describe('the seek bar with chapters', () => {
     const player = await ready();
     const bar = seekBar(player);
     addChapters(player);
-    player.video.dispatchEvent(new Event('timeupdate'));
+    player.media.dispatchEvent(new Event('timeupdate'));
     bar.setAttribute('chapters', 'titles');
     expect(mask(bar)).toBe('');
     hover(bar, 0.5);
@@ -257,7 +257,7 @@ describe('the seek bar with chapters', () => {
     const player = await ready();
     const bar = seekBar(player);
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const track = player.video.addTextTrack('chapters');
+    const track = player.media.addTextTrack('chapters');
     track.addCue(new VTTCue(0, 5, 'One'));
     track.addCue(new VTTCue(5, 10, 'Two'));
     // A disabled track loads no cues; the readers set it hidden.
@@ -295,14 +295,14 @@ describe('the chapters menu', () => {
     addChapters(player);
     await expect.poll(() => menu.hidden).toBe(false);
     expect(items(menu)[0]?.getAttribute('aria-checked')).toBe('true');
-    player.video.currentTime = 5;
-    await once(player.video, 'seeked');
+    player.media.currentTime = 5;
+    await once(player.media, 'seeked');
     expect(items(menu)[1]?.getAttribute('aria-checked')).toBe('true');
     inside(menu, 'button').click();
     expect(menu.hasAttribute('open')).toBe(true);
     items(menu)[2]?.click();
-    await once(player.video, 'seeked');
-    expect(player.video.currentTime).toBe(7);
+    await once(player.media, 'seeked');
+    expect(player.media.currentTime).toBe(7);
     expect(menu.hasAttribute('open')).toBe(false);
     expect(items(menu)[2]?.getAttribute('aria-checked')).toBe('true');
   });

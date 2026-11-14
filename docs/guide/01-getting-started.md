@@ -38,12 +38,13 @@ Import the package once. The import registers `<mattebox-player>`.
 ```
 
 The element creates a real `<video>` inside itself, in light DOM, with
-native controls. Reach it as `player.video` or with a query. Everything the
-browser already does stays on the video.
+native controls. `player.media` reads and calls it. Everything the browser
+already does stays on the video. `player.media` is not the node: for an
+API that takes the element itself, query the `<video>` child.
 
 | Need                       | Use                                              |
 | -------------------------- | ------------------------------------------------ |
-| Play, pause, seek, volume  | `player.video`                                   |
+| Play, pause, seek, volume  | `player.media`                                   |
 | Native controls            | Nothing. The player sets `controls` on the video |
 | The element's own controls | `controls="custom"`, chapter 03                  |
 | Which source is loaded     | `player.player.session`                          |

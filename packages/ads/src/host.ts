@@ -1,7 +1,7 @@
 /**
  * The contract of a control of the page's own, as guide chapter 03 of the
  * player states it: the nearest <mattebox-player> above, through shadow
- * hosts, then read for `video`, `engine`, `player` and `error`, with
+ * hosts, then read for `media`, `engine`, `player` and `error`, with
  * `sourcechange` heard on it. This package implements the contract from
  * outside, on purpose: the player exports no base class, and a control that
  * needs more than this surface has found a gap in the player's API.

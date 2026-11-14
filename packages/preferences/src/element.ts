@@ -98,7 +98,7 @@ export class MbxPreferences extends Component {
   }
 
   protected attach(player: PlayerHost): void {
-    const video = player.video;
+    const video = player.media;
     const volume = this.stored('volume');
     if (volume !== undefined) video.volume = volume;
     // A page that mutes for autoplay decides the mute itself, until the
@@ -265,7 +265,7 @@ export class MbxPreferences extends Component {
   /** The native session's audio and subtitle tracks, as Safari lists them. */
   private native(player: PlayerHost, kind: Kind): NativeTrack[] {
     const name = kind === 'audio' ? 'audioTracks' : 'textTracks';
-    const list = (player.video as unknown as Record<string, ArrayLike<NativeTrack> | undefined>)[
+    const list = (player.media as unknown as Record<string, ArrayLike<NativeTrack> | undefined>)[
       name
     ];
     const tracks = list === undefined ? [] : Array.from(list);

@@ -192,7 +192,7 @@ function run(reels: readonly PlaylistItem[]): void {
 
   /** Draws how far the reel is, on every frame, so the line moves without steps. */
   function drawProgress(): void {
-    const { currentTime, duration } = player.video;
+    const { currentTime, duration } = player.media;
     const part = duration > 0 && Number.isFinite(duration) ? currentTime / duration : 0;
     fill.style.transform = `scaleX(${Math.min(1, Math.max(0, part))})`;
     progress.setAttribute('aria-valuenow', String(Math.round(part * 100)));
@@ -202,11 +202,11 @@ function run(reels: readonly PlaylistItem[]): void {
 
   /** Seeks to where the pointer is along the bar. */
   function seekTo(event: PointerEvent): void {
-    const { duration } = player.video;
+    const { duration } = player.media;
     if (!(duration > 0) || !Number.isFinite(duration)) return;
     const box = progress.getBoundingClientRect();
     const part = Math.min(1, Math.max(0, (event.clientX - box.left) / box.width));
-    player.video.currentTime = part * duration;
+    player.media.currentTime = part * duration;
   }
   progress.addEventListener('pointerdown', (event) => {
     progress.setPointerCapture(event.pointerId);
@@ -223,7 +223,7 @@ function run(reels: readonly PlaylistItem[]): void {
     const step = event.key === 'ArrowRight' ? 5 : event.key === 'ArrowLeft' ? -5 : 0;
     if (step === 0) return;
     event.preventDefault();
-    player.video.currentTime = Math.max(0, player.video.currentTime + step);
+    player.media.currentTime = Math.max(0, player.media.currentTime + step);
   });
 
   /** Moves the player into the reel on screen and plays its item. */
@@ -238,7 +238,7 @@ function run(reels: readonly PlaylistItem[]): void {
     playlist.select(index);
   }
 
-  player.video.addEventListener('playing', () => {
+  player.media.addEventListener('playing', () => {
     if (selectedAt === null) return;
     const item = playlist.item;
     const slide = slides[playlist.index];
@@ -292,8 +292,8 @@ function run(reels: readonly PlaylistItem[]): void {
   for (const { slide } of slides) observer.observe(slide);
 
   feed.addEventListener('click', () => {
-    if (player.video.paused) player.video.play().catch(() => undefined);
-    else player.video.pause();
+    if (player.media.paused) player.media.play().catch(() => undefined);
+    else player.media.pause();
   });
 
   // On the page, so the arrows work without a click on the feed first.

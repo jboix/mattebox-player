@@ -57,7 +57,7 @@ export class MbxTitle extends Component {
   }
 
   protected override attach(player: PlayerHost): void {
-    this.listen(player.video, ['play', 'pause', 'ended', 'emptied'], () => {
+    this.listen(player.media, ['play', 'pause', 'ended', 'emptied'], () => {
       this.state(player);
     });
     this.observe(player, HELD, () => {

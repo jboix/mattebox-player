@@ -40,14 +40,14 @@ export class MbxChaptersMenu extends MenuElement {
     this.keep(followChapters(player, tick));
     // The clock too: WebKit fires no `cuechange` for a hidden track, and the
     // render is a no-op while the chapter is the same.
-    this.listen(player.video, ['timeupdate', 'seeked', 'emptied', 'loadedmetadata'], tick);
+    this.listen(player.media, ['timeupdate', 'seeked', 'emptied', 'loadedmetadata'], tick);
     this.listen(player, ['sourcechange'], tick);
     this.render();
   }
 
   protected override render(): void {
     super.render();
-    const video = this.player?.video;
+    const video = this.player?.media;
     if (video === undefined) return;
     const list = chapters(video, this.player?.engine ?? null);
     this.hidden = list.length === 0;

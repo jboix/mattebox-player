@@ -29,7 +29,11 @@ module.exports = [
     brotli: true,
     // 31 kB since the languages: the registry, the language the player
     // resolves and watches, and an id at every word took 0.68 kB.
-    limit: '35 kB',
+    // 40 kB since a device can play in the video's place: `media`, the
+    // hand-over of every load, the `casting` state and <mbx-casting> took
+    // 1.87 kB, and the cast package gave its screen up. The owner set the
+    // budget on 2026-11-14, with room for what casting still needs.
+    limit: '40 kB',
   },
   {
     name: '@mattebox/player-diagnostics',
