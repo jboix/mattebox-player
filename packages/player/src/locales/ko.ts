@@ -45,6 +45,8 @@ export default {
   track: '트랙',
   subtitles: '자막',
   subtitlesOff: '끄기',
+  liveCaptions: '실시간 자막',
+  liveCaptionsGenerated: '음성에서 자동 생성됨',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: '설정',

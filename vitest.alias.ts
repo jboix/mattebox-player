@@ -24,6 +24,12 @@ export const alias = [
     replacement: fileURLToPath(new URL('packages/cast/src/locales/$1.ts', import.meta.url)),
   },
   {
+    find: /^@mattebox\/player-live-captions\/locales\/(.+)$/,
+    replacement: fileURLToPath(
+      new URL('packages/live-captions/src/locales/$1.ts', import.meta.url),
+    ),
+  },
+  {
     find: /^@mattebox\/player-diagnostics\/locales\/(.+)$/,
     replacement: fileURLToPath(new URL('packages/diagnostics/src/locales/$1.ts', import.meta.url)),
   },
@@ -62,6 +68,10 @@ export const alias = [
   {
     find: '@mattebox/player-preferences',
     replacement: fileURLToPath(new URL('packages/preferences/src/index.ts', import.meta.url)),
+  },
+  {
+    find: '@mattebox/player-live-captions',
+    replacement: fileURLToPath(new URL('packages/live-captions/src/index.ts', import.meta.url)),
   },
   {
     find: '@mattebox/player-playlist',

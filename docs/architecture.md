@@ -1,21 +1,22 @@
 # Architecture
 
-The Mattebox player is eight packages over the `mattebox` engine. This
+The Mattebox player is nine packages over the `mattebox` engine. This
 document lists what each package owns and the rules between the packages.
 The [guide](guide/README.md) explains how to use them.
 
 ## The packages
 
-| Package                        | Owns                                                                              | Imports                                          |
-| ------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `@mattebox/player-core`        | Source resolution and connectors, the handler chain, the two handlers, the errors | The engine (peer)                                |
-| `@mattebox/player`             | `<mattebox-player>`, the controls over the engine's namespaces                    | The core, the engine (peer)                      |
-| `@mattebox/player-diagnostics` | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report  | The player (peer, types only), the engine (peer) |
-| `@mattebox/player-cast`        | `<mbx-cast-button>`, Chromecast over Google's sender SDK                          | The player (peer, types only), the engine (peer) |
-| `@mattebox/player-spatial-nav` | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back              | The player (peer, types only)                    |
-| `@mattebox/player-playlist`    | The playlist, its controls and the up next card                                   | The player (peer, types only)                    |
-| `@mattebox/player-preferences` | `<mbx-preferences>` and the store of the viewer's preferences                     | The player (peer, types only), the engine (peer) |
-| `@mattebox/player-ads`         | The ads of each player, VAST and VMAP, the beacons, the three ad elements         | The player (peer, types only), the engine (peer) |
+| Package                          | Owns                                                                              | Imports                                                      |
+| -------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `@mattebox/player-core`          | Source resolution and connectors, the handler chain, the two handlers, the errors | The engine (peer)                                            |
+| `@mattebox/player`               | `<mattebox-player>`, the controls over the engine's namespaces                    | The core, the engine (peer)                                  |
+| `@mattebox/player-diagnostics`   | `<mbx-diagnostics>`, the stats, the charts, the browser's support and the report  | The player (peer, types only), the engine (peer)             |
+| `@mattebox/player-cast`          | `<mbx-cast-button>`, Chromecast over Google's sender SDK                          | The player (peer, types only), the engine (peer)             |
+| `@mattebox/player-spatial-nav`   | `<mbx-spatial-nav>`, focus moved by a remote, the TV key codes, Back              | The player (peer, types only)                                |
+| `@mattebox/player-playlist`      | The playlist, its controls and the up next card                                   | The player (peer, types only)                                |
+| `@mattebox/player-preferences`   | `<mbx-preferences>` and the store of the viewer's preferences                     | The player (peer, types only), the engine (peer)             |
+| `@mattebox/player-ads`           | The ads of each player, VAST and VMAP, the beacons, the three ad elements         | The player (peer, types only), the engine (peer)             |
+| `@mattebox/player-live-captions` | `<mbx-live-captions>`, the words the browser recognizes in the video's sound      | The player (peer, types only), the engine (peer, types only) |
 
 The packages follow four rules:
 

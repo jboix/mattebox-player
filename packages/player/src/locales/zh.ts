@@ -45,6 +45,8 @@ export default {
   track: '字幕轨',
   subtitles: '字幕',
   subtitlesOff: '关闭',
+  liveCaptions: '实时字幕',
+  liveCaptionsGenerated: '根据语音自动生成',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: '设置',

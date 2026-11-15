@@ -2950,6 +2950,57 @@ describe('the subtitles menu over a stubbed session', () => {
     expect(player.getAttribute('subtitle-background')).toBe('none');
   });
 
+  it('offers live captions after Off while the player carries `live-captions`', async () => {
+    // The badge keeps its words in the item, for a screen reader, after the name.
+    const live = 'Live captionsGenerated automatically from speech';
+    const engine = tracksEngine(tracks);
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-subtitles-menu');
+    expect(items(menu).map((item) => item.textContent)).toEqual(['Off', 'English', 'Settings']);
+    // A live captions package offers them by setting the attribute.
+    player.setAttribute('live-captions', 'off');
+    await expect
+      .poll(() => items(menu).map((item) => item.textContent))
+      .toEqual(['Off', live, 'English', 'Settings']);
+    // The badge is the sparkle glyph.
+    expect(items(menu)[1]?.querySelector('[part~="item-badge"] svg')).not.toBeNull();
+    // Choosing them turns the track off and writes on.
+    inner(menu).click();
+    items(menu)[1]?.click();
+    expect(player.getAttribute('live-captions')).toBe('on');
+    expect(engine.chosen).toEqual(['off']);
+    expect(shown(menu)).toBe('icon-on');
+    expect(items(menu)[1]?.getAttribute('aria-checked')).toBe('true');
+    // Choosing a track writes off.
+    inner(menu).click();
+    items(menu)[2]?.click();
+    expect(player.getAttribute('live-captions')).toBe('off');
+    expect(engine.chosen).toEqual(['off', 't-en']);
+    // The page names the item.
+    menu.setAttribute('label-live', 'Subtítols automàtics');
+    menu.setAttribute('label-generated', 'Generats a partir de la veu');
+    expect(items(menu)[1]?.textContent).toBe('Subtítols automàticsGenerats a partir de la veu');
+    // Without the attribute the item goes.
+    player.removeAttribute('live-captions');
+    await expect
+      .poll(() => items(menu).map((item) => item.textContent))
+      .toEqual(['Off', 'English', 'Settings']);
+  });
+
+  it('shows with live captions alone, when the stream has no subtitles', async () => {
+    const engine = tracksEngine([{ id: 'a-en', contentType: 'audio', lang: 'en', role: 'main' }]);
+    const player = await over([fakeHandler(engine)]);
+    const menu = control(player, 'mbx-subtitles-menu');
+    expect(menu.hidden).toBe(true);
+    player.setAttribute('live-captions', 'off');
+    await expect.poll(() => menu.hidden).toBe(false);
+    expect(items(menu).map((item) => item.textContent)).toEqual([
+      'Off',
+      'Live captionsGenerated automatically from speech',
+      'Settings',
+    ]);
+  });
+
   it('reads a size the page set in markup, and every word from the attributes', async () => {
     const engine = tracksEngine(tracks);
     const player = await over([fakeHandler(engine)], { 'subtitle-size': 'xlarge' });

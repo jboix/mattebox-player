@@ -45,6 +45,8 @@ export default {
   track: 'Piste',
   subtitles: 'Sous-titres',
   subtitlesOff: 'Désactivés',
+  liveCaptions: 'Sous-titres en direct',
+  liveCaptionsGenerated: 'Générés automatiquement à partir de la parole',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'Réglages',

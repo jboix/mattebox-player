@@ -324,8 +324,7 @@ body {
   margin-bottom: var(--step);
 }
 
-.flag h2,
-.flag legend {
+.flag h2 {
   margin: 0;
   padding: 0;
   font-family: var(--condensed);
@@ -476,14 +475,130 @@ button:hover {
   color: var(--tally);
 }
 
-.group {
-  margin: calc(var(--step) * 2) 0 0;
-  padding: 0;
-  border: 0;
+/* The element's options, one folding section per topic or component. */
+
+.flag-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.group legend + * {
-  margin-top: var(--step);
+.sections {
+  margin-top: calc(var(--step) * 1.5);
+  border-bottom: 1px solid var(--rule);
+}
+
+.section {
+  position: relative;
+  border-top: 1px solid var(--rule);
+}
+
+.section summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Room for the package's switch, which sits over the header's end. */
+.section:has(> .switch) summary {
+  padding-right: 3rem;
+}
+
+.section summary::-webkit-details-marker {
+  display: none;
+}
+
+.chevron {
+  flex: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  transform: rotate(-90deg);
+}
+
+.section details[open] .chevron {
+  transform: none;
+}
+
+.section-title {
+  font-family: var(--condensed);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.section summary:hover .section-title {
+  color: var(--accent);
+}
+
+.section-tag {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* How many settings in the section differ from the default, seen while folded. */
+.changed {
+  flex: none;
+  padding: 0.05rem 0.5rem;
+  border-radius: 1rem;
+  background: var(--accent);
+  color: var(--panel);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.section-body {
+  padding-bottom: calc(var(--step) * 1.5);
+}
+
+.section-body > .hint:first-child {
+  margin-top: 0;
+}
+
+/* The package's on and off, in the header, outside the summary so a click does not fold. */
+.switch {
+  position: absolute;
+  top: 0.75rem;
+  right: 0;
+  display: flex;
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  width: 2.125rem;
+  height: 1.25rem;
+  margin: 0;
+  /* The fields' border and padding would push the circle off centre. */
+  padding: 0;
+  border: 0;
+  border-radius: 0.625rem;
+  /* The circle is a background: Firefox draws no ::after on an input. */
+  background-color: var(--rule);
+  background-image: radial-gradient(circle closest-side, var(--field) 94%, transparent);
+  background-size: 1rem 1rem;
+  background-repeat: no-repeat;
+  background-position: 0.125rem center;
+  cursor: pointer;
+}
+
+.switch input:checked {
+  background-color: var(--accent);
+  background-position: calc(100% - 0.125rem) center;
+}
+
+.switch input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .field {

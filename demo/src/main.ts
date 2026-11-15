@@ -16,6 +16,7 @@ import type { Marker } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
+import '@mattebox/player-live-captions';
 import '@mattebox/player-preferences';
 import '@mattebox/player-spatial-nav';
 import full from 'mattebox/presets/full';
@@ -535,6 +536,8 @@ const nativeHls = byId<HTMLSelectElement>('native-hls');
 const markup = byId<HTMLPreElement>('markup');
 const screens = [...document.querySelectorAll<HTMLInputElement>('[data-screen]')];
 const knobInputs = [...document.querySelectorAll<HTMLInputElement>('[data-knob]')];
+/** The switches of mbx-live-captions: cloud, and each `hide-<state>` a token of its hide list. */
+const captionFlags = [...document.querySelectorAll<HTMLInputElement>('[data-caption]')];
 const language = byId<HTMLSelectElement>('language');
 const setupSelect = byId<HTMLSelectElement>('setup');
 const lists = {
@@ -620,6 +623,7 @@ const KNOB_DEFAULTS: Readonly<Record<string, string>> = {
   scrub: 'true',
   preview: 'frames tiles',
   'key-mode': 'instant',
+  'live-captions-language': '',
 };
 /** The demo's own receiver, from the mattebox-receiver repository. Empty means the Default Media Receiver. */
 const CAST_RECEIVER = '6BCED548';
@@ -641,6 +645,7 @@ function defaults(): void {
   for (const look of looks) look.value = look.dataset.look === 'subtitle-size' ? 'medium' : 'dark';
   controlsSelect.value = 'custom';
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
+  for (const flag of captionFlags) flag.checked = flag.defaultChecked;
   language.value = 'en';
   castReceiver.value = CAST_RECEIVER;
   setupSelect.value = 'default';
@@ -691,6 +696,7 @@ function applySetup(name: string): void {
   for (const screen of screens) screen.checked = screen.defaultChecked;
   controlsSelect.value = 'custom';
   for (const input of knobInputs) input.value = KNOB_DEFAULTS[input.dataset.knob as string] ?? '';
+  for (const flag of captionFlags) flag.checked = flag.defaultChecked;
   SETUPS[name]?.();
   setupSelect.value = name;
 }
@@ -728,7 +734,8 @@ function quoted(value: string): string {
 function tag(name: string, attributes: Readonly<Record<string, string | null>>): string {
   const text = Object.entries(attributes)
     .filter((entry): entry is [string, string] => entry[1] !== null)
-    .map(([key, value]) => ` ${key}="${quoted(value)}"`)
+    // An empty value is a boolean attribute, written bare as a page would.
+    .map(([key, value]) => (value === '' ? ` ${key}` : ` ${key}="${quoted(value)}"`))
     .join('');
   return `<${name}${text}></${name}>`;
 }
@@ -774,6 +781,7 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   title: 'mbx-title',
   'spatial-nav': 'mbx-spatial-nav',
   preferences: 'mbx-preferences',
+  'live-captions': 'mbx-live-captions',
 };
 
 /** Where the demo's player keeps the viewer's choices, apart from the demo's own settings. */
@@ -797,7 +805,19 @@ function composition(): string {
         ? { heading: playing, artwork: poster.value === '' ? null : poster.value }
         : tagName === 'mbx-preferences'
           ? { 'storage-key': PREFERENCES_KEY }
-          : {};
+          : tagName === 'mbx-live-captions'
+            ? {
+                language: knob('live-captions-language'),
+                cloud: captionFlags.some((f) => f.dataset.caption === 'cloud' && f.checked)
+                  ? ''
+                  : null,
+                hide:
+                  captionFlags
+                    .filter((f) => f.checked && f.dataset.caption?.startsWith('hide-'))
+                    .map((f) => (f.dataset.caption as string).slice('hide-'.length))
+                    .join(' ') || null,
+              }
+            : {};
     lines.push(tag(tagName, own));
   }
   // The line that names the device, with either cast button.
@@ -821,8 +841,8 @@ function composition(): string {
 /** A cast button was on the page, so the SDK's context has its receiver id. */
 let castConnected = false;
 
-/** What each element on the page carries, so an unchanged composition is left alone. */
-const applied = new WeakMap<HTMLElement, string>();
+/** The markup of each child each element on the page carries, so an unchanged child is left alone. */
+const applied = new WeakMap<HTMLElement, readonly string[]>();
 
 /**
  * What goes inside the player when the bar does not: the diagnostics alone,
@@ -841,13 +861,31 @@ function childrenFor(): string {
 /** Replaces the controls inside `element` with the composition for the mode. */
 function applyComposition(element: MatteboxPlayerElement): void {
   const wanted = childrenFor();
-  if (applied.get(element) === wanted) return;
-  applied.set(element, wanted);
+  const template = document.createElement('template');
+  template.innerHTML = wanted;
+  const next = [...template.content.children];
+  const markups = next.map((child) => child.outerHTML);
+  const before = applied.get(element) ?? [];
+  applied.set(element, markups);
   // The video and the versions belong to the source, not to the controls.
-  for (const child of [...element.children]) {
-    if (child.localName !== 'video' && child.localName !== 'mbx-video-track') child.remove();
+  const current = [...element.children].filter(
+    (child) => child.localName !== 'video' && child.localName !== 'mbx-video-track',
+  );
+  // The same children in the same order: replace only those whose markup changed. A new
+  // source changes the title alone, and a child replaced for nothing loses its state, such
+  // as live captions that are on or a menu that is open.
+  const same =
+    current.length === next.length &&
+    before.length === next.length &&
+    next.every((child, i) => current[i]?.localName === child.localName);
+  if (same) {
+    next.forEach((child, i) => {
+      if (before[i] !== markups[i]) current[i]?.replaceWith(child);
+    });
+  } else {
+    for (const child of current) child.remove();
+    element.append(...next);
   }
-  if (wanted !== '') element.insertAdjacentHTML('beforeend', wanted);
   if (wanted.includes('<mbx-cast-button')) castConnected = true;
 }
 
@@ -913,7 +951,7 @@ function markupFor(element: MatteboxPlayerElement): string {
           .split('\n')
           .map((line) => `  ${line}`)
           .join('\n')}\n`;
-  // The cast and the diagnostics are packages of their own, so their imports come with them.
+  // The cast, the diagnostics and the live captions are packages of their own, so their imports come with them.
   const extra = [
     ...(controlsSelect.value === 'custom' && enabled.has('cast')
       ? ["\n  import '@mattebox/player-cast';"]
@@ -926,6 +964,9 @@ function markupFor(element: MatteboxPlayerElement): string {
       : []),
     ...(composed.includes('<mbx-preferences')
       ? ["\n  import '@mattebox/player-preferences';"]
+      : []),
+    ...(composed.includes('<mbx-live-captions')
+      ? ["\n  import '@mattebox/player-live-captions';"]
       : []),
   ].join('');
   // At an edge the spatial navigation hands focus to the application.
@@ -978,10 +1019,13 @@ function markupFor(element: MatteboxPlayerElement): string {
     (name) =>
       name === '@mattebox/player' ||
       (name === '@mattebox/player-cast' && extra.includes(name)) ||
-      (name === '@mattebox/player-diagnostics' && extra.includes(name)),
+      (name === '@mattebox/player-diagnostics' && extra.includes(name)) ||
+      (name === '@mattebox/player-live-captions' && extra.includes(name)),
   );
   const words = used.map((name) =>
-    name === '@mattebox/player' ? 'words' : `${name.slice('@mattebox/player-'.length)}Words`,
+    name === '@mattebox/player'
+      ? 'words'
+      : `${name.slice('@mattebox/player-'.length).replace(/-(\w)/g, (_, c: string) => c.toUpperCase())}Words`,
   );
   const locales =
     code === null
@@ -1024,7 +1068,85 @@ function render(): void {
   applyElement(player);
   markup.textContent = markupFor(player);
   savePreferences();
+  countChanges();
 }
+
+// ---- the sections of the options, folded by topic ------------------------------
+
+const sections = [...document.querySelectorAll<HTMLElement>('[data-section]')];
+const foldAll = byId<HTMLButtonElement>('fold-all');
+/** Where the page keeps which sections are open. Apart from the options: Reset leaves it. */
+const SECTIONS = 'mattebox.demo.sections';
+/** The sections a first visit opens: the bar's layout, the thing most visits change. */
+const OPEN_FIRST: readonly string[] = ['bar'];
+
+function detailsOf(section: HTMLElement): HTMLDetailsElement {
+  return section.querySelector('details') as HTMLDetailsElement;
+}
+
+function openSections(): void {
+  let open: unknown = OPEN_FIRST;
+  try {
+    const raw = localStorage.getItem(SECTIONS);
+    if (raw !== null) open = JSON.parse(raw);
+  } catch {
+    // Storage unavailable or malformed: the first visit's sections.
+  }
+  const names = Array.isArray(open) ? open : OPEN_FIRST;
+  for (const section of sections)
+    detailsOf(section).open = names.includes(section.dataset.section ?? '');
+}
+
+function foldChanged(): void {
+  const open = sections.filter((s) => detailsOf(s).open).map((s) => s.dataset.section);
+  foldAll.textContent = open.length > 0 ? 'Fold all' : 'Unfold all';
+  try {
+    localStorage.setItem(SECTIONS, JSON.stringify(open));
+  } catch {
+    // The page still folds; it just forgets.
+  }
+}
+
+/** Whether a field holds something else than the markup's own default. */
+function differs(field: HTMLInputElement | HTMLSelectElement): boolean {
+  if (field instanceof HTMLSelectElement) {
+    const first = [...field.options].find((o) => o.defaultSelected) ?? field.options[0];
+    return field.value !== (first?.value ?? '');
+  }
+  if (field.type === 'checkbox') return field.checked !== field.defaultChecked;
+  return field.value !== field.defaultValue;
+}
+
+/** Whether the bar carries other controls, or in another order, than the demo's own. */
+function layoutDiffers(): boolean {
+  const order = ROWS.some((row) => rows[row].join() !== DEFAULT_ROWS[row].join());
+  const ticks = CONTROLS.some(([name]) => enabled.has(name) === DEFAULT_OFF.has(name));
+  return order || ticks;
+}
+
+/** Writes on each header how many of its settings differ from the default, so a folded section still says it was changed. */
+function countChanges(): void {
+  for (const section of sections) {
+    const fields = [
+      ...section.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select'),
+    ].filter((field) => field.closest('.layout-list') === null);
+    let count = fields.filter(differs).length;
+    if (section.dataset.section === 'bar' && layoutDiffers()) count += 1;
+    const badge = section.querySelector<HTMLElement>('.changed');
+    if (badge === null) continue;
+    badge.hidden = count === 0;
+    badge.textContent = `${count} changed`;
+  }
+}
+
+openSections();
+for (const section of sections) detailsOf(section).addEventListener('toggle', foldChanged);
+foldAll.addEventListener('click', () => {
+  const open = sections.every((s) => !detailsOf(s).open);
+  for (const section of sections) detailsOf(section).open = open;
+  foldChanged();
+});
+foldChanged();
 
 // ---- the preferences, kept per browser so the page opens the way it was left ----
 
@@ -1041,6 +1163,7 @@ interface Preferences {
   readonly enabled: string[];
   readonly screens: Record<string, boolean>;
   readonly knobs: Record<string, string>;
+  readonly captions: Record<string, boolean>;
   readonly language: string;
   readonly castReceiver: string;
   readonly setup: string;
@@ -1058,6 +1181,7 @@ function savePreferences(): void {
     enabled: [...enabled],
     screens: Object.fromEntries(screens.map((s) => [s.dataset.screen as string, s.checked])),
     knobs: Object.fromEntries(knobInputs.map((k) => [k.dataset.knob as string, k.value])),
+    captions: Object.fromEntries(captionFlags.map((f) => [f.dataset.caption as string, f.checked])),
     language: language.value,
     castReceiver: castReceiver.value,
     setup: setupSelect.value,
@@ -1118,6 +1242,10 @@ function loadPreferences(): void {
   for (const k of knobInputs) {
     const value = prefs.knobs?.[k.dataset.knob as string];
     if (typeof value === 'string') k.value = value;
+  }
+  for (const f of captionFlags) {
+    const value = prefs.captions?.[f.dataset.caption as string];
+    if (typeof value === 'boolean') f.checked = value;
   }
   if (
     typeof prefs.language === 'string' &&
@@ -1239,6 +1367,7 @@ for (const [code, name] of Object.entries(LANGUAGES)) {
 controlsSelect.addEventListener('change', edited);
 for (const screen of screens) screen.addEventListener('change', edited);
 for (const input of knobInputs) input.addEventListener('input', edited);
+for (const flag of captionFlags) flag.addEventListener('change', edited);
 setupSelect.addEventListener('change', () => {
   applySetup(setupSelect.value);
   renderLists();

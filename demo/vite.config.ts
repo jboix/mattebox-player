@@ -23,6 +23,12 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../packages/cast/src/locales/$1.ts', import.meta.url)),
       },
       {
+        find: /^@mattebox\/player-live-captions\/locales\/(.+)$/,
+        replacement: fileURLToPath(
+          new URL('../packages/live-captions/src/locales/$1.ts', import.meta.url),
+        ),
+      },
+      {
         find: /^@mattebox\/player-playlist\/locales\/(.+)$/,
         replacement: fileURLToPath(
           new URL('../packages/playlist/src/locales/$1.ts', import.meta.url),
@@ -57,6 +63,12 @@ export default defineConfig({
       {
         find: '@mattebox/player-ads',
         replacement: fileURLToPath(new URL('../packages/ads/src/index.ts', import.meta.url)),
+      },
+      {
+        find: '@mattebox/player-live-captions',
+        replacement: fileURLToPath(
+          new URL('../packages/live-captions/src/index.ts', import.meta.url),
+        ),
       },
       {
         find: '@mattebox/player-preferences',

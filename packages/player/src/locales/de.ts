@@ -45,6 +45,8 @@ export default {
   track: 'Spur',
   subtitles: 'Untertitel',
   subtitlesOff: 'Aus',
+  liveCaptions: 'Live-Untertitel',
+  liveCaptionsGenerated: 'Automatisch aus der Sprache erzeugt',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'Einstellungen',

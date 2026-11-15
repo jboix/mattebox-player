@@ -45,6 +45,8 @@ export default {
   track: 'Traccia',
   subtitles: 'Sottotitoli',
   subtitlesOff: 'Disattivati',
+  liveCaptions: 'Sottotitoli in diretta',
+  liveCaptionsGenerated: 'Generati automaticamente dal parlato',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'Impostazioni',

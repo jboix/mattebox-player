@@ -44,6 +44,15 @@ const page = new DOMParser().parseFromString(html, 'text/html');
 /** One import per mount: the demo's script runs on import, and holds the page's state. */
 let mounts = 0;
 
+// Live captions probe the speech recognizer once a video has a language, and
+// headless Chromium crashes on SpeechRecognition.available(), which takes the
+// suite down with it. The package's own browser suite tests the recognizer
+// with a stand-in. Here the class is gone, so the element reports the browser
+// unsupported and probes nothing.
+for (const name of ['SpeechRecognition', 'webkitSpeechRecognition']) {
+  Object.defineProperty(window, name, { value: undefined, configurable: true });
+}
+
 function query<T extends Element>(selector: string, root: ParentNode): T {
   const node = root.querySelector<T>(selector);
   if (node === null) throw new Error(`${selector} is not on the page`);

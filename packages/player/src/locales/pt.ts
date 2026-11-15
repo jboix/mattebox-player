@@ -45,6 +45,8 @@ export default {
   track: 'Faixa',
   subtitles: 'Legendas',
   subtitlesOff: 'Desligadas',
+  liveCaptions: 'Legendas em direto',
+  liveCaptionsGenerated: 'Geradas automaticamente a partir da fala',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'Definições',

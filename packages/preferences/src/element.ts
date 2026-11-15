@@ -9,6 +9,12 @@
  * back itself, a forced subtitle track the engine chose, the rate of a
  * scan or of a live catch-up, and the `muted` a page sets for autoplay.
  * `except` names the keys the element leaves alone.
+ *
+ * Live captions count as a subtitle choice, of kind `live`, read from the
+ * player's `live-captions-language`, which a live captions package sets
+ * while they run. At the next load, a source with subtitles in that
+ * language shows them; else the element sets the attribute again, and the
+ * package turns live captions back on where the audio is in that language.
  */
 import type { Mattebox } from 'mattebox';
 import { Component } from './component.js';
@@ -20,6 +26,11 @@ import { best, engineChoice, nativeChoice } from './tracks.js';
 /** The keys the element saves, in the words `except` takes. */
 const KEYS = ['volume', 'muted', 'rate', 'quality', 'audio', 'subtitles', 'subtitle-look'] as const;
 const SIZE = 'subtitle-size';
+/** The player's attributes for live captions: on or off, and the language the viewer wants them in. */
+const LIVE = 'live-captions';
+const LIVE_LANGUAGE = 'live-captions-language';
+/** The kind a subtitle choice takes for live captions. */
+const LIVE_KIND = 'live';
 const BACKGROUND = 'subtitle-background';
 
 /** What the element reads of the engine's trick play and live namespaces. */
@@ -128,6 +139,23 @@ export class MbxPreferences extends Component {
     this.keep(() => {
       watch.disconnect();
     });
+    // Live captions in a language replace the subtitles; their off leaves the subtitles as they are.
+    const live = new MutationObserver(() => {
+      const language = player.getAttribute(LIVE_LANGUAGE);
+      const now =
+        language === null
+          ? this.engine === null
+            ? this.nativeActive(player, 'subtitles')
+            : this.engineActive(this.engine, 'subtitles')
+          : { language, kind: LIVE_KIND };
+      if (same(now, this.put.subtitles)) return;
+      this.put.subtitles = now;
+      this.save('subtitles', now as TrackChoice);
+    });
+    live.observe(player, { attributes: true, attributeFilter: [LIVE_LANGUAGE] });
+    this.keep(() => {
+      live.disconnect();
+    });
 
     this.on(video, 'loadstart', () => {
       this.loading = true;
@@ -215,6 +243,11 @@ export class MbxPreferences extends Component {
         if (pick !== undefined) {
           tracks.select(pick.id);
           this.put[kind] = engineChoice(pick);
+        } else if (wanted.kind === LIVE_KIND) {
+          // No subtitles in the language: live captions, where the audio is in it.
+          if (!(tracks.active('text')?.forced ?? false)) tracks.deselect('text');
+          this.put[kind] = null;
+          this.wantLive(wanted.language);
         }
       }
     }
@@ -236,6 +269,20 @@ export class MbxPreferences extends Component {
     this.pinned = quality.pinned;
   }
 
+  /** Asks the live captions package for live captions in `language`, as the viewer's choice. */
+  private wantLive(language: string): void {
+    const player = this.player;
+    if (player === null || player.getAttribute(LIVE_LANGUAGE) === language) return;
+    // Put back, not chosen: the attribute's observer then finds nothing new to save.
+    this.put.subtitles = { language, kind: LIVE_KIND };
+    player.setAttribute(LIVE_LANGUAGE, language);
+  }
+
+  /** Whether live captions run, which turns the subtitle track off without the viewer choosing off. */
+  private live(): boolean {
+    return this.player?.getAttribute(LIVE) === 'on';
+  }
+
   /** The active track of `kind` as a choice: null for subtitles off, or for a forced track. */
   private engineActive(engine: Mattebox, kind: Kind): TrackChoice | null {
     const track = engine.tracks.active(kind === 'audio' ? 'audio' : 'text');
@@ -248,6 +295,7 @@ export class MbxPreferences extends Component {
       // A forced track replaces "off" on its own; the viewer's "off" came first.
       if (kind === 'subtitles' && now === null && engine.tracks.active('text') !== null) continue;
       if (kind === 'audio' && now === null) continue;
+      if (kind === 'subtitles' && now === null && this.live()) continue;
       if (same(now, this.put[kind])) continue;
       this.put[kind] = now;
       this.save(kind, now as TrackChoice);
@@ -285,11 +333,12 @@ export class MbxPreferences extends Component {
     for (const kind of ['audio', 'subtitles'] as const) {
       const tracks = this.native(player, kind);
       const wanted = this.stored(kind);
-      if (wanted !== undefined && tracks.length > 0) {
+      const live = kind === 'subtitles' && wanted?.kind === LIVE_KIND;
+      if (wanted !== undefined && (tracks.length > 0 || live)) {
         const choices = tracks.map(nativeChoice);
         const index = wanted === null ? -1 : best(choices, wanted);
-        // One audio track plays; a subtitle track shows, or none for off.
-        if (index !== -1 || (kind === 'subtitles' && wanted === null)) {
+        // One audio track plays; a subtitle track shows, or none for off or for live captions.
+        if (index !== -1 || (kind === 'subtitles' && (wanted === null || live))) {
           tracks.forEach((track, at) => {
             if (kind === 'audio') track.enabled = at === index;
             else track.mode = at === index ? 'showing' : 'disabled';
@@ -297,6 +346,8 @@ export class MbxPreferences extends Component {
         }
       }
       this.put[kind] = this.nativeActive(player, kind);
+      // Subtitles in the language show instead; without them, live captions.
+      if (live && wanted != null && this.put[kind] === null) this.wantLive(wanted.language);
     }
   }
 
@@ -305,6 +356,7 @@ export class MbxPreferences extends Component {
     for (const kind of ['audio', 'subtitles'] as const) {
       const now = this.nativeActive(player, kind);
       if ((kind === 'audio' && now === null) || same(now, this.put[kind])) continue;
+      if (kind === 'subtitles' && now === null && this.live()) continue;
       this.put[kind] = now;
       this.save(kind, now as TrackChoice);
     }

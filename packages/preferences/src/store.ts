@@ -11,7 +11,10 @@
 /** A track the viewer chose: its language, and its kind in HTML's words. */
 export interface TrackChoice {
   readonly language: string;
-  /** `main`, `description` or `enhanced-speech` for audio; `subtitles` or `captions` for text. */
+  /**
+   * `main`, `description` or `enhanced-speech` for audio; `subtitles` or
+   * `captions` for text, or `live` for live captions in the language.
+   */
   readonly kind: string;
 }
 

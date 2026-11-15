@@ -71,10 +71,11 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
     // The engine is a peer for its track helpers, and the player for its
     // types alone. The plan proposed 2 kB; the store, the element, and both
-    // the engine's and Safari's tracks measured 2.93 kB.
+    // the engine's and Safari's tracks measured 2.93 kB, and 3.15 kB with
+    // live captions as a subtitle choice.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '3 kB',
+    limit: '3.5 kB',
   },
   {
     name: '@mattebox/player-ads',
@@ -88,6 +89,18 @@ module.exports = [
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
     limit: '20 kB',
+  },
+  {
+    name: '@mattebox/player-live-captions',
+    path: 'packages/live-captions/dist/cdn/mattebox-player-live-captions.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The engine and the player are peers, read for their types alone. The
+    // element, its language probe, the recognizer, the capture and the
+    // transcript measured 4.01 kB, and 4.5 kB with the language the viewer
+    // chose and the covered state.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '4.5 kB',
   },
   {
     name: '@mattebox/player-playlist',

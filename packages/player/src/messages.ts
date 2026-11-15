@@ -85,6 +85,10 @@ export interface PlayerMessages {
   readonly subtitles: string;
   /** "Off": subtitles off. */
   readonly subtitlesOff: string;
+  /** "Live captions": the subtitles menu's entry for words recognized from the speech. */
+  readonly liveCaptions: string;
+  /** "Generated automatically from speech": the badge of that entry, so no one takes the words for a person's. */
+  readonly liveCaptionsGenerated: string;
   /** "SDH": the badge of subtitles for the deaf and hard of hearing. */
   readonly sdh: string;
   /** "CC": the badge of closed captions. */

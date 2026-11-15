@@ -6,7 +6,19 @@
  */
 import { afterEach, expect, it } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import { accessibleName, mount, unmount, visible } from './harness.js';
+import { accessibleName, mount as mountPage, unmount, visible } from './harness.js';
+
+/**
+ * The demo page with every section of the options unfolded, as a visitor
+ * unfolds the ones they change. The page saves the open sections on their
+ * toggle event, which fires a task later, so the wait lets a remount see them.
+ */
+async function mount(options?: Parameters<typeof mountPage>[0]): ReturnType<typeof mountPage> {
+  const demo = await mountPage(options);
+  for (const details of demo.$$<HTMLDetailsElement>('.section details')) details.open = true;
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return demo;
+}
 
 /** Sets a checkbox the way a pointer would, and only when it has to change. */
 async function setChecked(box: HTMLInputElement, checked: boolean): Promise<void> {
@@ -44,7 +56,7 @@ it('the chooser opens from the masthead and lists the demo streams', async () =>
   await userEvent.click($('#open-content'));
   expect(visible($('#content-dialog'))).toBe(true);
   const entries = $$('#stream-list li');
-  expect(entries).toHaveLength(27);
+  expect(entries).toHaveLength(28);
   expect(entries.at(-1)?.textContent).toContain('Extensionless URL');
   // Each entry names what it carries.
   const tags = (text: string) =>
@@ -76,6 +88,20 @@ it('the extensionless entry falls through to the native handler', async () => {
   // Native playback means no engine, so nothing of the engine's shows.
   const root = player().shadowRoot;
   expect(root === null ? -1 : root.querySelectorAll('[part~="quality"]').length).toBe(0);
+});
+
+it('a new source replaces the title alone, so live captions and the bar keep their state', async () => {
+  const { $, $$ } = await mount({ row: 'none' });
+  await setChecked($('[data-screen="live-captions"]'), true);
+  const captions = $('mattebox-player > mbx-live-captions');
+  const bar = $('mattebox-player > mbx-control-bar');
+  const title = $('mattebox-player > mbx-title');
+  await userEvent.click($('#open-content'));
+  const entry = $$('#stream-list button').find((b) => b.textContent?.includes('Extensionless URL'));
+  await userEvent.click(entry as HTMLElement);
+  await expect.poll(() => $('mattebox-player > mbx-title') !== title).toBe(true);
+  expect($('mattebox-player > mbx-live-captions')).toBe(captions);
+  expect($('mattebox-player > mbx-control-bar')).toBe(bar);
 });
 
 it('the controls option swaps the bar for the native controls, and the markup follows', async () => {
@@ -127,7 +153,14 @@ it('the layout lists, the knobs and the language shape the bar and the markup', 
   expect(accessibleName($$('mbx-skip-button', bar())[0] as HTMLElement)).toBe('Enrere 10 segons');
   expect($('#markup').textContent).toContain('language="ca"');
   expect($('#markup').textContent).toContain("import words from '@mattebox/player/locales/ca';");
-  expect($('#markup').textContent).toContain("MatteboxPlayerElement.addLocale('ca', words);");
+  // The live captions bring their own words.
+  await setChecked($('[data-screen="live-captions"]'), true);
+  expect($('#markup').textContent).toContain(
+    "import liveCaptionsWords from '@mattebox/player-live-captions/locales/ca';",
+  );
+  expect($('#markup').textContent).toContain(
+    "MatteboxPlayerElement.addLocale('ca', words, liveCaptionsWords);",
+  );
   await userEvent.selectOptions($<HTMLSelectElement>('#language'), 'ja');
   await expect.poll(() => accessibleName(play())).toBe('再生');
   expect($$('#language option')).toHaveLength(12);
@@ -266,6 +299,48 @@ it('the options are remembered across a reload', async () => {
   expect($<HTMLInputElement>('#layout-right li[data-name="fullscreen"] input').checked).toBe(true);
   expect($<HTMLSelectElement>('#language').value).toBe('en');
   expect($$('mbx-fullscreen-button', bar())).toHaveLength(1);
+});
+
+it('the options fold by topic, count what changed, and remember what is open', async () => {
+  const first = await mountPage({ row: 'none' });
+  const section = (name: string) => first.$(`[data-section="${name}"]`);
+  const details = (name: string) => first.$<HTMLDetailsElement>('details', section(name));
+  // A first visit opens the bar's layout alone.
+  expect(details('bar').open).toBe(true);
+  expect(details('live-captions').open).toBe(false);
+  // The count shows on the folded header too.
+  const badge = first.$('.changed', section('live-captions'));
+  expect(badge.hidden).toBe(true);
+  await userEvent.click(first.$('summary', section('live-captions')));
+  expect(details('live-captions').open).toBe(true);
+  // The package's switch sits in the header and does not fold it. Off by default.
+  expect(first.$$('mbx-live-captions')).toHaveLength(0);
+  await userEvent.click(first.$('[data-screen="live-captions"]'));
+  expect(details('live-captions').open).toBe(true);
+  expect(first.$$('mbx-live-captions')).toHaveLength(1);
+  expect(badge.textContent).toBe('1 changed');
+  await userEvent.selectOptions(
+    first.$<HTMLSelectElement>('[data-knob="live-captions-language"]'),
+    'de',
+  );
+  await userEvent.click(first.$('[data-caption="hide-unavailable"]'));
+  expect(first.$('mbx-live-captions').getAttribute('language')).toBe('de');
+  expect(first.$('mbx-live-captions').getAttribute('hide')).toBe('unavailable');
+  expect(first.$('#markup').textContent).toContain(
+    '<mbx-live-captions language="de" hide="unavailable">',
+  );
+  expect(badge.hidden).toBe(false);
+  expect(badge.textContent).toBe('3 changed');
+  await userEvent.click(first.$('summary', section('bar')));
+  const again = await first.remount();
+  expect(again.$<HTMLDetailsElement>('[data-section="live-captions"] details').open).toBe(true);
+  expect(again.$<HTMLDetailsElement>('[data-section="bar"] details').open).toBe(false);
+  // Fold all, then Unfold all.
+  await userEvent.click(again.$('#fold-all'));
+  expect(again.$$<HTMLDetailsElement>('.section details').some((d) => d.open)).toBe(false);
+  expect(again.$('#fold-all').textContent).toBe('Unfold all');
+  await userEvent.click(again.$('#fold-all'));
+  expect(again.$$<HTMLDetailsElement>('.section details').every((d) => d.open)).toBe(true);
 });
 
 it('the Broadcasters route lists the connectors, SRG SSR first with its units and search', async () => {

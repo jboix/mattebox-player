@@ -14,6 +14,8 @@
  * `label-background`, one per size and one per background, `label-sdh`
  * for the badge on subtitles for the deaf and hard of hearing, and
  * `label-cc` for the badge on closed captions carried in the video.
+ * `label-live` names live captions, and `label-generated` is their badge, a
+ * sparkle glyph that says a machine wrote them.
  * `label-track` also names a track that has no name and no language.
  *
  * Forced tracks are not listed. The engine's forced-subtitles stage shows
@@ -21,6 +23,12 @@
  * chapter 06). In a native session Safari shows them itself. A native
  * `captions` track carries the SDH badge: Safari gives that kind to the
  * subtitles that describe music and sound.
+ *
+ * Live captions: where a package such as `@mattebox/player-live-captions`
+ * sets `live-captions` on the player, the menu lists them after Off.
+ * Choosing them turns the selected track off and writes `on`; choosing a
+ * track or Off writes `off`. The player only reads and writes the
+ * attribute, and never knows the package.
  */
 import type { Mattebox } from 'mattebox';
 import { isSdh } from 'mattebox';
@@ -37,6 +45,10 @@ import { MenuElement } from './menu-element.js';
 import { show } from './shared.js';
 
 const OFF = 'off';
+/** The live captions' item, a value no track id or native index takes. */
+const LIVE = 'live-captions';
+/** The player's attribute a live captions package sets: absent, `off` or `on`. */
+const LIVE_CAPTIONS = 'live-captions';
 export const SUBTITLE_SIZE = 'subtitle-size';
 export const SUBTITLE_BACKGROUND = 'subtitle-background';
 
@@ -70,6 +82,8 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
       'label-background',
       'label-sdh',
       'label-cc',
+      'label-live',
+      'label-generated',
       ...SIZES.map(([id]) => `label-${id}`),
       ...BACKGROUNDS.map(([id]) => `label-${id}`),
     ];
@@ -132,6 +146,9 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
   }
 
   protected override attach(player: PlayerHost): void {
+    this.observe(player, [LIVE_CAPTIONS], () => {
+      this.render();
+    });
     this.follow(player, (engine) => {
       this.engine = engine;
       this.render();
@@ -191,8 +208,26 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
             (track) => track.forced !== true,
           );
     const word = this.word('label-track', 'track', 'Track');
+    const live = player.getAttribute(LIVE_CAPTIONS);
+    // A badge says the live captions are a machine's, so no one takes them for a person's.
+    const generated = this.word(
+      'label-generated',
+      'liveCaptionsGenerated',
+      'Generated automatically from speech',
+    );
     const items: MenuGroup['items'] = [
       [OFF, this.word('label-off', 'subtitlesOff', 'Off')],
+      ...(live === null
+        ? []
+        : [
+            [
+              LIVE,
+              this.word('label-live', 'liveCaptions', 'Live captions'),
+              undefined,
+              undefined,
+              [generated],
+            ] as const,
+          ]),
       ...trackNames(tracks, word, player.locale || undefined),
     ];
     this.menu.fill([
@@ -206,15 +241,17 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         badgeGlyphs: {
           [cc]: () => icon('closed-captions'),
           [sdh]: () => icon('sdh'),
+          [generated]: () => icon('generated'),
         },
-        value: active ?? OFF,
+        value: live === 'on' ? LIVE : (active ?? OFF),
         onSelect: (value) => {
+          if (live !== null) player.setAttribute(LIVE_CAPTIONS, value === LIVE ? 'on' : 'off');
           if (listed !== undefined) {
             // Off first, so two tracks never show at once.
             for (const track of listed) track.mode = 'disabled';
             const chosen = listed[Number(value)];
             if (chosen !== undefined) chosen.mode = 'showing';
-          } else if (value === OFF) engine?.tracks.deselect('text');
+          } else if (value === OFF || value === LIVE) engine?.tracks.deselect('text');
           else engine?.tracks.select(value);
           this.render();
         },
@@ -246,7 +283,7 @@ export class MbxSubtitlesMenu extends MenuElement<State> {
         ],
       },
     ]);
-    show(this.slots, active === null ? 'off' : 'on');
-    this.hidden = tracks.length === 0;
+    show(this.slots, active === null && live !== 'on' ? 'off' : 'on');
+    this.hidden = tracks.length === 0 && live === null;
   }
 }

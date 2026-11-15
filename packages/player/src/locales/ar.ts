@@ -45,6 +45,8 @@ export default {
   track: 'المسار',
   subtitles: 'الترجمة',
   subtitlesOff: 'إيقاف',
+  liveCaptions: 'ترجمة مباشرة',
+  liveCaptionsGenerated: 'مُنشأة تلقائيًا من الكلام',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'الإعدادات',

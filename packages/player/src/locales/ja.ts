@@ -45,6 +45,8 @@ export default {
   track: 'トラック',
   subtitles: '字幕',
   subtitlesOff: 'オフ',
+  liveCaptions: 'ライブ字幕',
+  liveCaptionsGenerated: '音声から自動生成',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: '設定',

@@ -48,6 +48,7 @@
         "packages/spatial-nav/src/**",
         "packages/preferences/src/**",
         "packages/ads/src/**",
+        "packages/live-captions/src/**",
         "packages/playlist/src/**",
         "packages/diagnostics/src/**"
       ],

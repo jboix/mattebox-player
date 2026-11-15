@@ -182,6 +182,49 @@ describe('<mbx-preferences>', () => {
     localStorage.removeItem(key);
   });
 
+  it('saves live captions as a subtitle choice in their language, and their off as subtitles off', async () => {
+    const key = freshKey();
+    const player = await mount(engineWith(tracks), { 'storage-key': key });
+    const engine = player.engine as unknown as FakeEngine;
+    engine.tracks.select('t-de');
+    // What the menu and a live captions package do: the subtitles off, live captions on in Italian.
+    player.setAttribute('live-captions', 'on');
+    engine.tracks.deselect();
+    player.setAttribute('live-captions-language', 'it');
+    await expect
+      .poll(() => preferences({ key }).get('subtitles'))
+      .toEqual({ language: 'it', kind: 'live' });
+    // The viewer's off: the package takes the language away.
+    player.setAttribute('live-captions', 'off');
+    player.removeAttribute('live-captions-language');
+    await expect.poll(() => preferences({ key }).get('subtitles')).toBeNull();
+    localStorage.removeItem(key);
+  });
+
+  it('asks for live captions in the stored language when the source has no subtitles in it', async () => {
+    const key = freshKey();
+    preferences({ key }).set('subtitles', { language: 'it', kind: 'live' });
+    const fresh = engineWith(tracks);
+    fresh.tracks.select('t-de');
+    const player = await mount(fresh, { 'storage-key': key });
+    expect(player.getAttribute('live-captions-language')).toBe('it');
+    expect(player.engine?.tracks.active('text')).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(preferences({ key }).get('subtitles')).toEqual({ language: 'it', kind: 'live' });
+    localStorage.removeItem(key);
+  });
+
+  it('shows the subtitles in the stored live captions language, and keeps the choice live', async () => {
+    const key = freshKey();
+    preferences({ key }).set('subtitles', { language: 'de', kind: 'live' });
+    const player = await mount(engineWith(tracks), { 'storage-key': key });
+    expect(player.engine?.tracks.active('text')?.id).toBe('t-de');
+    expect(player.hasAttribute('live-captions-language')).toBe(false);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(preferences({ key }).get('subtitles')).toEqual({ language: 'de', kind: 'live' });
+    localStorage.removeItem(key);
+  });
+
   it('keeps the volume and the mute, but not the mute of a page that autoplays', async () => {
     const key = freshKey();
     const first = await mount(engineWith(tracks), { 'storage-key': key });

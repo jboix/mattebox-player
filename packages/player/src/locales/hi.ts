@@ -45,6 +45,8 @@ export default {
   track: 'ट्रैक',
   subtitles: 'उपशीर्षक',
   subtitlesOff: 'बंद',
+  liveCaptions: 'लाइव कैप्शन',
+  liveCaptionsGenerated: 'बोली से अपने आप बनाए गए',
   sdh: 'SDH',
   closedCaptions: 'CC',
   subtitleSettings: 'सेटिंग',

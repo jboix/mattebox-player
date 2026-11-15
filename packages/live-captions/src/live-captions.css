@@ -1,0 +1,52 @@
+/* Over the picture, above the control bar, in the look the subtitles
+   menu sets: the size scales the font, the background is the box's. */
+:host {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: var(--mbx-live-captions-lift, 4%);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  font: 500 var(--mbx-live-captions-size, 18px) / 1.3 var(--mbx-font, sans-serif);
+  color: #fff;
+}
+:host([hidden]) {
+  display: none;
+}
+/* Two lines of a few words each, which the element breaks itself. The
+   newest is at the bottom; older lines leave at the top. */
+[part~="box"] {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  max-width: 80%;
+  text-align: center;
+}
+/* A flex item is a block, so the words sit in a paragraph inside it and
+   stay inline, where a background can follow each line. */
+[part~="line"] {
+  margin: 0;
+}
+/* The background follows each line, with room around the letters. */
+[part~="text"] {
+  padding: 0.1em 0.4em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 0.15em;
+}
+:host([background="solid"]) [part~="text"] {
+  background: #000;
+}
+:host([background="none"]) [part~="text"] {
+  background: transparent;
+  text-shadow:
+    0 0 0.15em #000,
+    0 0 0.3em #000;
+}
+/* A notice, such as a failed download, reads as the player's words, not speech. */
+:host([notice]) [part~="text"] {
+  font-style: italic;
+}

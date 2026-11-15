@@ -43,15 +43,15 @@ Place `<mbx-preferences>` anywhere inside the player. It renders nothing.
 
 It keeps these keys:
 
-| Key             | What it keeps                                                                 | Put back                                    |
-| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------- |
-| `volume`        | The volume                                                                    | When the element attaches                   |
-| `muted`         | The mute, unless the page set `muted` for autoplay                            | When the element attaches                   |
-| `rate`          | The playback rate                                                             | At each load's `loadedmetadata`             |
-| `quality`       | The height of the quality the viewer pinned, or null for Auto                 | The tallest quality at or under that height |
-| `audio`         | The audio track's language and kind: `main`, `description`, `enhanced-speech` | Once the track list arrives                 |
-| `subtitles`     | The subtitle track's language and kind, `subtitles` or `captions`, or null    | Once the track list arrives                 |
-| `subtitle-look` | The player's `subtitle-size` and `subtitle-background`                        | When the element attaches                   |
+| Key             | What it keeps                                                                      | Put back                                    |
+| --------------- | ---------------------------------------------------------------------------------- | ------------------------------------------- |
+| `volume`        | The volume                                                                         | When the element attaches                   |
+| `muted`         | The mute, unless the page set `muted` for autoplay                                 | When the element attaches                   |
+| `rate`          | The playback rate                                                                  | At each load's `loadedmetadata`             |
+| `quality`       | The height of the quality the viewer pinned, or null for Auto                      | The tallest quality at or under that height |
+| `audio`         | The audio track's language and kind: `main`, `description`, `enhanced-speech`      | Once the track list arrives                 |
+| `subtitles`     | The subtitle track's language and kind, `subtitles`, `captions` or `live`, or null | Once the track list arrives                 |
+| `subtitle-look` | The player's `subtitle-size` and `subtitle-background`                             | When the element attaches                   |
 
 - A track matches by language and kind first, then by language. An audio
   description or an enhanced speech track matches by its kind alone too,
@@ -63,6 +63,12 @@ It keeps these keys:
   catch-up, and the reset of the rate at a load.
 - A native session in Safari reads the same keys from the video's
   `audioTracks` and `textTracks`.
+- Live captions are a subtitle choice of kind `live`, in the language the
+  player's `live-captions-language` names. At the next load, a source with
+  subtitles in that language shows them. Without them, the element sets
+  `live-captions-language`, and live captions turn on where the audio is
+  in that language (chapter 15). The element does not import the live
+  captions package: it reads and writes the player's attribute.
 
 ## Storage and consent
 

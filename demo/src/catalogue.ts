@@ -193,6 +193,16 @@ export const STREAMS: readonly StreamEntry[] = [
     licenseUrl: 'https://cwip-shaka-proxy.appspot.com/no_auth',
   },
   {
+    // ByteArk's test pair for its WisePlay sample app
+    // (github.com/byteark/huawei-wiseplay-example-app).
+    label: 'ByteArk · Big Buck Bunny (WisePlay DASH)',
+    url: 'https://byteark-dev-video-sample.st-th-1.byteark.com/wiseplay/big_buck_bunny/playlist.mpd',
+    licenseUrl:
+      'https://byteark-drm.develop.poring.arkcube.com/wp/license/testwiseplayservice/bunnywiseplay',
+    tags: ['WisePlay'],
+    note: 'plays only with a WisePlay CDM (LG webOS, Huawei) and a mattebox release with eme-wiseplay',
+  },
+  {
     label: 'Axinom · ClearKey DASH',
     url: 'https://media.axprod.net/TestVectors/v7-MultiDRM-SingleKey/Manifest_1080p_ClearKey.mpd',
     clearKeys: { nrQFDeRLSAKTLifXUIPiZg: 'ABEiM0RVZneImaq7zN3u_w' },
