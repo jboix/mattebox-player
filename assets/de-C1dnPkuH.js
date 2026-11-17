@@ -1,0 +1,1 @@
+var e={liveCaptionsPreparing:`Live-Untertitel werden vorbereitet`,liveCaptionsLanguage:`Live-Untertitel sind in dieser Sprache nicht verfügbar`,liveCaptionsDownload:`Live-Untertitel konnten nicht heruntergeladen werden`,liveCaptionsError:`Live-Untertitel wurden beendet`,liveCaptionsSource:`Live-Untertitel können dieses Video nicht hören`};export{e as default};

@@ -1,0 +1,1 @@
+var e={liveCaptionsPreparing:`ライブ字幕を準備しています`,liveCaptionsLanguage:`この言語ではライブ字幕を利用できません`,liveCaptionsDownload:`ライブ字幕をダウンロードできませんでした`,liveCaptionsError:`ライブ字幕が停止しました`,liveCaptionsSource:`ライブ字幕はこの動画を聞き取れません`};export{e as default};

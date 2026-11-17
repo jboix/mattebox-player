@@ -1,0 +1,1 @@
+var e={liveCaptionsPreparing:`Preparant els subtítols en directe`,liveCaptionsLanguage:`Els subtítols en directe no estan disponibles en aquest idioma`,liveCaptionsDownload:`No s'han pogut baixar els subtítols en directe`,liveCaptionsError:`Els subtítols en directe s'han aturat`,liveCaptionsSource:`Els subtítols en directe no poden escoltar aquest vídeo`};export{e as default};

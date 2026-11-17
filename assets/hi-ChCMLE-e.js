@@ -1,0 +1,1 @@
+var e={liveCaptionsPreparing:`लाइव कैप्शन तैयार हो रहे हैं`,liveCaptionsLanguage:`इस भाषा में लाइव कैप्शन उपलब्ध नहीं हैं`,liveCaptionsDownload:`लाइव कैप्शन डाउनलोड नहीं हो सके`,liveCaptionsError:`लाइव कैप्शन रुक गए`,liveCaptionsSource:`लाइव कैप्शन इस वीडियो को नहीं सुन सकते`};export{e as default};

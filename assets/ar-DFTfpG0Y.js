@@ -1,0 +1,1 @@
+var e={liveCaptionsPreparing:`جارٍ تجهيز الترجمة المباشرة`,liveCaptionsLanguage:`الترجمة المباشرة غير متاحة بهذه اللغة`,liveCaptionsDownload:`تعذّر تنزيل الترجمة المباشرة`,liveCaptionsError:`توقفت الترجمة المباشرة`,liveCaptionsSource:`لا تستطيع الترجمة المباشرة الاستماع إلى هذا الفيديو`};export{e as default};
