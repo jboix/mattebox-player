@@ -43,7 +43,7 @@
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     },
     "packages/spatial-nav": {
-      "entry": ["src/index.ts", "cdn/*.ts"],
+      "entry": ["src/index.ts", "src/gamepad-index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     },
     "packages/ads": {

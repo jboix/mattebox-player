@@ -17,7 +17,7 @@
   outline-offset: -2px;
 }
 :host(:focus:not(:focus-visible)) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="icon"],
 ::slotted(*) {

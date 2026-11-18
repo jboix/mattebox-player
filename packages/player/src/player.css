@@ -145,6 +145,15 @@
 [hidden] {
   display: none;
 }
+/* focus-ring: every focus shows its ring and tooltip, also one a script
+   gave. A gamepad's keys are synthetic, and the browser counts focus after
+   them as a pointer's, so <mbx-gamepad> sets it. The controls read the two
+   properties in their :not(:focus-visible) rules: they inherit through
+   the shadow roots, where the player's attribute does not reach. */
+:host([focus-ring]) {
+  --mbx-focus-ring: solid;
+  --mbx-focus-tooltip: 1;
+}
 /* tooltips="off": no control shows its name over itself. */
 :host([tooltips="off"]) {
   --mbx-tooltip: none;

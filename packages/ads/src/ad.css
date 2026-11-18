@@ -76,7 +76,7 @@
   outline-offset: 2px;
 }
 [part~="button"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="chevron"] {
   width: 1.25em;
@@ -119,7 +119,7 @@
   border-radius: 50%;
 }
 [part~="icon-button"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="icon"],
 ::slotted([slot="icon"]) {

@@ -37,7 +37,7 @@
   outline-offset: -2px;
 }
 [part~="button"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="icon"],
 ::slotted(*) {
@@ -144,7 +144,7 @@
 [part~="copy"]:focus:not(:focus-visible),
 [part~="close"]:focus:not(:focus-visible),
 [part~="window"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="body"] {
   min-height: 0;
@@ -157,7 +157,7 @@
   outline-offset: -2px;
 }
 [part~="body"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="page"][hidden] {
   display: none;

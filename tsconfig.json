@@ -30,6 +30,7 @@
       "@mattebox/player-diagnostics": ["./packages/diagnostics/src/index.ts"],
       "@mattebox/player-cast": ["./packages/cast/src/index.ts"],
       "@mattebox/player-spatial-nav": ["./packages/spatial-nav/src/index.ts"],
+      "@mattebox/player-spatial-nav/gamepad": ["./packages/spatial-nav/src/gamepad-index.ts"],
       "@mattebox/player-preferences": ["./packages/preferences/src/index.ts"],
       "@mattebox/player-ads": ["./packages/ads/src/index.ts"],
       "@mattebox/player-playlist": ["./packages/playlist/src/index.ts"],

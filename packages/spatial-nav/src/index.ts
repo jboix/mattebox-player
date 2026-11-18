@@ -3,6 +3,9 @@
  * on a TV. Importing this module registers the element; that is the
  * package's one side effect. It is a package of its own because most pages
  * never run on a TV, and a page that does not pays nothing for it.
+ *
+ * The game controller is the `./gamepad` entry, so a page with a remote
+ * alone pays nothing for it.
  */
 import { MbxSpatialNav } from './spatial-nav.js';
 

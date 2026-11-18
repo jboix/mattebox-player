@@ -56,5 +56,5 @@
   outline-offset: -2px;
 }
 [part~="action"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }

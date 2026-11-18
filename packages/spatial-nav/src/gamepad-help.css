@@ -1,0 +1,55 @@
+:host {
+  position: absolute;
+  right: var(--mbx-gap, 12px);
+  bottom: 72px;
+  z-index: 3;
+  display: none;
+  max-width: calc(100% - 2 * var(--mbx-gap, 12px));
+  color: var(--mbx-text, #fff);
+  font-family: var(--mbx-font, system-ui, sans-serif);
+  font-size: 14px;
+  pointer-events: none;
+}
+:host([open]) {
+  display: block;
+}
+[part~="bubble"] {
+  padding: var(--mbx-pad, 12px) calc(var(--mbx-pad, 12px) * 1.5);
+  border-radius: var(--mbx-radius, 8px);
+  background: rgba(0, 0, 0, 0.82);
+}
+[part~="heading"] {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+[part~="list"] {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 6px 16px;
+  align-items: center;
+  margin: 0;
+}
+dt {
+  text-align: right;
+  white-space: nowrap;
+}
+dd {
+  margin: 0;
+}
+[part~="button"] {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+/* Not flex gap: Chromium 76 has none. */
+dt [part~="button"] + [part~="button"] {
+  margin-left: 4px;
+}

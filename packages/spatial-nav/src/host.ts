@@ -26,3 +26,14 @@ export function findPlayer(node: Node): HTMLElement | null {
   }
   return null;
 }
+
+/** The element focused inside `player`, through shadow roots, or null when focus is elsewhere. */
+export function focusedIn(player: HTMLElement): HTMLElement | null {
+  let active = document.activeElement;
+  while (active?.shadowRoot?.activeElement != null) active = active.shadowRoot.activeElement;
+  if (!(active instanceof HTMLElement) || active === player) return null;
+  for (let node: Node | null = active; node !== null; node = above(node)) {
+    if (node === player) return active;
+  }
+  return null;
+}

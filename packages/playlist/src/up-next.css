@@ -82,7 +82,7 @@
 }
 [part~="play"]:focus:not(:focus-visible),
 [part~="button"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="button"] {
   align-self: flex-start;

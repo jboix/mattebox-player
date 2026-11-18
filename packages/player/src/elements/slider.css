@@ -16,7 +16,7 @@
   outline-offset: -2px;
 }
 [part~="slider"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="rail"] {
   position: absolute;

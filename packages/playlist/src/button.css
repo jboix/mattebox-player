@@ -48,7 +48,7 @@
 }
 /* Focus a pointer gave shows nothing; before Chromium 86, any focus does. */
 [part~="button"][aria-label]:focus:not(:focus-visible)::after {
-  opacity: 0;
+  opacity: var(--mbx-focus-tooltip, 0);
   transition-delay: 0s;
 }
 @media (hover: hover) {
@@ -72,7 +72,7 @@
   outline-offset: -2px;
 }
 [part~="button"]:focus:not(:focus-visible) {
-  outline: none;
+  outline-style: var(--mbx-focus-ring, none);
 }
 [part~="icon"],
 ::slotted(*) {

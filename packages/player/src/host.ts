@@ -49,6 +49,15 @@ export interface Trackers {
   readonly list: readonly Tracker[];
 }
 
+/** A chapter of the programme, in seconds. */
+export interface Chapter {
+  readonly start: number;
+  readonly end: number;
+  readonly title: string;
+  /** The URL of the chapter's picture. Only the engine's chapters carry one. */
+  readonly image?: string;
+}
+
 export interface PlayerHost extends HTMLElement {
   /** What plays: the video, or the device that plays in its place. Not a DOM node. */
   readonly media: HTMLVideoElement;
@@ -60,6 +69,8 @@ export interface PlayerHost extends HTMLElement {
   readonly blocked: Block | null;
   /** The ranges the page named: credits to skip, parts that must not play. */
   readonly markers: Markers;
+  /** The programme's chapters, in order: the engine's, else the video's chapters track. */
+  readonly chapters: readonly Chapter[];
   /** Where the programme's ad breaks are, for the seek bar, by owner. */
   readonly breaks: BreakMarks;
   /** What the current load resolved to, with what a connector said of the programme; null without one. */

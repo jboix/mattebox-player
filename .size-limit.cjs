@@ -66,6 +66,16 @@ module.exports = [
     limit: '2 kB',
   },
   {
+    name: '@mattebox/player-spatial-nav/gamepad',
+    path: 'packages/spatial-nav/dist/cdn/mattebox-player-spatial-nav-gamepad.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The game controller and its help bubble, with the spatial navigation
+    // they move focus with. A page with a remote alone loads the bundle above.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '5.5 kB',
+  },
+  {
     name: '@mattebox/player-preferences',
     path: 'packages/preferences/dist/cdn/mattebox-player-preferences.min.js',
     disablePlugins: ['@size-limit/esbuild'],

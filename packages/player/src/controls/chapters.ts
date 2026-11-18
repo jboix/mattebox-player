@@ -16,16 +16,10 @@
  * hidden draws nothing, and the cues arrive.
  */
 import type { Mattebox } from 'mattebox';
-import type { PlayerHost } from '../host.js';
+import type { Chapter, PlayerHost } from '../host.js';
 import { optional } from './session.js';
 
-export interface Chapter {
-  readonly start: number;
-  readonly end: number;
-  readonly title: string;
-  /** The URL of the chapter's picture. Only the engine's chapters carry one. */
-  readonly image?: string;
-}
+export type { Chapter };
 
 /** The first chapters track on the video, or null. */
 export function chapterTrack(video: HTMLVideoElement): TextTrack | null {

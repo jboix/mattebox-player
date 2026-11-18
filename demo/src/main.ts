@@ -18,7 +18,7 @@ import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
 import '@mattebox/player-live-captions';
 import '@mattebox/player-preferences';
-import '@mattebox/player-spatial-nav';
+import '@mattebox/player-spatial-nav/gamepad';
 import full from 'mattebox/presets/full';
 import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
 import emeCore from 'mattebox/stages/eme-core';
@@ -780,6 +780,7 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   spinner: 'mbx-spinner',
   title: 'mbx-title',
   'spatial-nav': 'mbx-spatial-nav',
+  gamepad: 'mbx-gamepad',
   preferences: 'mbx-preferences',
   'live-captions': 'mbx-live-captions',
 };
@@ -819,6 +820,13 @@ function composition(): string {
               }
             : {};
     lines.push(tag(tagName, own));
+    // The bubble rides with the controller; the controller needs the spatial navigation.
+    if (tagName === 'mbx-gamepad') {
+      lines.push(tag('mbx-gamepad-help', {}));
+      if (!screens.some((each) => each.dataset.screen === 'spatial-nav' && each.checked)) {
+        lines.push(tag('mbx-spatial-nav', {}));
+      }
+    }
   }
   // The line that names the device, with either cast button.
   if (enabled.has('cast') || enabled.has('airplay')) lines.unshift(tag('mbx-casting', {}));
@@ -959,9 +967,11 @@ function markupFor(element: MatteboxPlayerElement): string {
     ...(composed.includes('<mbx-diagnostics')
       ? ["\n  import '@mattebox/player-diagnostics';"]
       : []),
-    ...(composed.includes('<mbx-spatial-nav')
-      ? ["\n  import '@mattebox/player-spatial-nav';"]
-      : []),
+    ...(composed.includes('<mbx-gamepad')
+      ? ["\n  import '@mattebox/player-spatial-nav/gamepad';"]
+      : composed.includes('<mbx-spatial-nav')
+        ? ["\n  import '@mattebox/player-spatial-nav';"]
+        : []),
     ...(composed.includes('<mbx-preferences')
       ? ["\n  import '@mattebox/player-preferences';"]
       : []),

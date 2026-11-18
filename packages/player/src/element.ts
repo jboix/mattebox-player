@@ -41,6 +41,7 @@ import type { AttachEmeOptions } from 'mattebox/eme';
 import type { Announcer } from './announcer.js';
 import { announcer } from './announcer.js';
 import { type BreakMarks, createBreakMarks } from './controls/breaks.js';
+import { type Chapter, chapters as chaptersOf } from './controls/chapters.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { live as liveOf } from './controls/session.js';
@@ -523,6 +524,14 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
    */
   get media(): HTMLVideoElement {
     return this.playback.media;
+  }
+
+  /**
+   * The programme's chapters, in order: the engine's when its session holds
+   * some, else the video's chapters track. Read again on each access.
+   */
+  get chapters(): readonly Chapter[] {
+    return chaptersOf(this.node, this.engine);
   }
 
   /** The ranges the page named in this source: credits to skip, parts that must not play. */
@@ -1255,7 +1264,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       return;
     }
     if (name === CHAPTERS) {
-      this.chapters();
+      this.chaptersAttribute();
       return;
     }
     if (name === LAYOUT) {
@@ -1311,7 +1320,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   }
 
   /** Hands the `chapters` attribute to the engine, or keeps a hidden chapters track on the video for it. */
-  private chapters(): void {
+  private chaptersAttribute(): void {
     const url = this.getAttribute(CHAPTERS);
     const engine = this.current?.engine ?? null;
     const api = engine === null ? undefined : namespaces(engine).chapters;
@@ -1476,7 +1485,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Had to: put it back once the session is in. The surface that would
     // make it one call: an attach that removes `<source>` children alone.
     // A session with the engine's chapters takes the URL there instead.
-    this.chapters();
+    this.chaptersAttribute();
   }
 
   private async ensure(): Promise<Player> {

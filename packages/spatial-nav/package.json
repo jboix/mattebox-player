@@ -1,7 +1,7 @@
 {
   "name": "@mattebox/player-spatial-nav",
   "version": "0.2.0",
-  "description": "<mbx-spatial-nav>: remote control navigation for <mattebox-player> on Tizen, webOS and other TV browsers.",
+  "description": "<mbx-spatial-nav> and <mbx-gamepad>: remote control and game controller navigation for <mattebox-player> on TVs, consoles and desktops.",
   "author": "Josep Boix Requesens",
   "repository": {
     "type": "git",
@@ -19,7 +19,8 @@
     "tv",
     "spatial-navigation",
     "tizen",
-    "webos"
+    "webos",
+    "gamepad"
   ],
   "license": "MIT",
   "type": "module",
@@ -35,6 +36,11 @@
       "modern": "./dist/index.js",
       "default": "./dist/es2015/index.js"
     },
+    "./gamepad": {
+      "types": "./dist/gamepad-index.d.ts",
+      "modern": "./dist/gamepad-index.js",
+      "default": "./dist/es2015/gamepad-index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -43,7 +49,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "npm run clean && npm run build:modern && npm run build:es2015 && npm run build:cdn",
-    "build:modern": "tsc -p tsconfig.build.json",
+    "build:modern": "tsc -p tsconfig.build.json --emitDeclarationOnly && rolldown -c rolldown.modern.config.mjs",
     "build:es2015": "rolldown -c rolldown.dist.config.mjs",
     "build:cdn": "rolldown -c rolldown.cdn.config.mjs",
     "check:package": "publint && attw --pack . --format table --no-emoji",

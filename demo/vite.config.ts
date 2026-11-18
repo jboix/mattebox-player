@@ -55,6 +55,13 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../packages/cast/src/index.ts', import.meta.url)),
       },
       {
+        // Before the package name, which would match the subpath too.
+        find: '@mattebox/player-spatial-nav/gamepad',
+        replacement: fileURLToPath(
+          new URL('../packages/spatial-nav/src/gamepad-index.ts', import.meta.url),
+        ),
+      },
+      {
         find: '@mattebox/player-spatial-nav',
         replacement: fileURLToPath(
           new URL('../packages/spatial-nav/src/index.ts', import.meta.url),

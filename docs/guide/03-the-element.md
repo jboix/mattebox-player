@@ -50,6 +50,7 @@ the video plays.
 | `casting`                    | The player                       | A device plays in the video's place. The value is its kind: `chromecast` or `airplay`                                                                         |
 | `airplay`                    | The AirPlay button               | The video plays on an AirPlay target. Kept for one minor version: read `casting`                                                                              |
 | `idle`                       | The bar                          | The bar is hidden after a time without input                                                                                                                  |
+| `focus-ring`                 | `<mbx-gamepad>`                  | Every focused control shows its ring and its name, also after focus a script gave. Set it yourself when your own code moves focus for a remote                |
 | `live`                       | The seek bar                     | The stream has an availability window                                                                                                                         |
 | `seekable`                   | The seek bar                     | The viewer can seek: VOD, or a live window that is wide enough                                                                                                |
 | `scrubbing`                  | The seek bar                     | A pointer holds the seek bar and the video is paused for the drag. The value is the state before the drag, `playing` or `paused`, which the play buttons show |
@@ -112,6 +113,7 @@ version, with `<mbx-video-track>` children. See
 | `video`        | The `<video>` inside, in light DOM                                                                                      |
 | `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                                |
 | `markers`      | The ranges the page named in this source: see [Markers](#markers)                                                       |
+| `chapters`     | The programme's chapters in order, each with `start`, `end` and `title`: the engine's, else the video's chapters track  |
 | `breaks`       | Where the programme's ad breaks are, which the seek bar draws as ticks. `breaks.set(owner, list)` sets one owner's list |
 | `interrupted`  | True while `interrupt()` plays a source in the programme's place                                                        |
 | `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                                      |

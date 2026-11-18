@@ -38,7 +38,7 @@
  */
 import { Component } from './component.js';
 import type { PlayerHost } from './host.js';
-import { above } from './host.js';
+import { above, focusedIn } from './host.js';
 import { isBack, keyOf } from './keys.js';
 import type { Direction } from './navigate.js';
 import { candidates, DIRECTIONS, nearest, OPPOSITE } from './navigate.js';
@@ -84,13 +84,7 @@ export class MbxSpatialNav extends Component {
 
   /** The control focused inside the player, through shadow roots, or null. */
   private focused(player: PlayerHost): HTMLElement | null {
-    let active = document.activeElement;
-    while (active?.shadowRoot?.activeElement != null) active = active.shadowRoot.activeElement;
-    if (!(active instanceof HTMLElement) || active === player) return null;
-    for (let node: Node | null = active; node !== null; node = above(node)) {
-      if (node === player) return active;
-    }
-    return null;
+    return focusedIn(player);
   }
 
   /** Whether `element` sits inside something that carries `open`, below the player. */
