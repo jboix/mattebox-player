@@ -36,6 +36,9 @@ the players that show ads:
 - On Safari, `ads()` keeps HLS on the engine (ManagedMediaSource on iOS
   17.1 and later): Safari's own HLS plays interstitials itself and reports
   nothing, so no ad controls and no beacons. An older iOS stays native.
+- Adding `ads()` changes the player's default for `native-hls` to `off`.
+  Set `native-hls="on"` on a player to give Safari its own HLS back, with
+  the ads as Safari plays them.
 
 ## Where the ads come from
 

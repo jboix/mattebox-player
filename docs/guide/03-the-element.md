@@ -13,7 +13,7 @@ over the picture under `controls="custom"`.
 | `preset`                  | Names the engine preset. The default is `full`                                                                                                                               |
 | `license-url`             | Sets the DRM license URL. The player gives it to `engine.drm.setLicenseUrl`, or to `attachEme` for a native session                                                          |
 | `certificate-url`         | Sets the FairPlay application certificate URL. The player gives it to `engine.drm.setCertificateUrl`, or to `attachEme` for a native session.                                |
-| `native-hls`              | `off` keeps HLS on the engine in Safari. By default Safari plays HLS itself. Changes reload the source                                                                       |
+| `native-hls`              | `off` keeps HLS on the engine in Safari, `on` plays it natively. Unset, Safari plays it, unless something needs the engine. Changes reload the source                        |
 | `tooltips`                | `off` hides the name each button shows over itself on hover and keyboard focus. The name is the button's label, so a translated label translates it                          |
 | `announce`                | `off` silences the live region, for a page that announces changes itself. See [Labels](#labels)                                                                              |
 | `language`                | Names the language of the words, over the nearest `lang`. See [Languages](#languages). Changing it never reloads                                                             |
@@ -272,8 +272,11 @@ on the engine. DASH stays on the engine in every browser.
 
 `native-hls="off"` keeps HLS on the engine. So does an add-on that sets
 `engine`, such as `ads()`: Safari's own HLS plays interstitials itself and
-reports nothing a page can read. A page with its own `handlers` decides the
-order itself.
+reports nothing a page can read. So does an element inside the player whose
+`needsEngine` is true, such as `<mbx-360>`: over Safari's own HLS its video
+shows flat. `native-hls="on"` prefers Safari's own HLS again, over an
+add-on and an element. A page with its own `handlers` decides the order
+itself.
 
 A native session has no engine, so `player.engine` is null. The controls
 read the video instead:

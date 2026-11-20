@@ -120,7 +120,9 @@ export interface PlayerAddon {
   stages?(): readonly Stage[];
   /**
    * The add-on needs the engine: where MediaSource plays HLS, Safari's own
-   * HLS is not preferred, since it reports nothing the add-on reads.
+   * HLS is not preferred, since it reports nothing the add-on reads. An
+   * element inside the player asks the same with a `needsEngine` property
+   * that is true. `native-hls="on"` on the player prefers it again.
    */
   readonly engine?: boolean;
   /** Runs when a player connects, and the function it returns when it leaves the page. */

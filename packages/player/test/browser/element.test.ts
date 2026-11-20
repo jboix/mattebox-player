@@ -1,3 +1,4 @@
+import type { PlayerAddon } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Handler, PlayerError, Source } from '@mattebox/player-core';
 import { matteboxHandler, nativeHandler } from '@mattebox/player-core';
@@ -718,12 +719,15 @@ describe('native HLS on Apple WebKit', () => {
     src: string,
     attributes: Readonly<Record<string, string>> = {},
     stages: readonly Stage[] = [hlsCmaf(), dashCmaf()],
+    addons: readonly PlayerAddon[] = [],
+    inside?: HTMLElement,
   ) {
     Object.defineProperty(navigator, 'vendor', {
       value: 'Apple Computer, Inc.',
       configurable: true,
     });
-    const player = new MatteboxPlayerElement({ stages });
+    const player = new MatteboxPlayerElement({ stages, addons });
+    if (inside !== undefined) player.append(inside);
     player.media.canPlayType = (type: string) => (type.includes('mpegurl') ? 'maybe' : '');
     player.setAttribute('muted', '');
     for (const [name, value] of Object.entries(attributes)) player.setAttribute(name, value);
@@ -758,6 +762,28 @@ describe('native HLS on Apple WebKit', () => {
 
   it('keeps HLS on the engine with native-hls="off"', async () => {
     const player = safari(HLS, { 'native-hls': 'off' });
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
+  });
+
+  it('keeps HLS on the engine for an add-on that needs it, and native-hls="on" gives it back', async () => {
+    const addon: PlayerAddon = { name: 'needs-engine', engine: true };
+    const kept = safari(HLS, {}, undefined, [addon]);
+    await expect.poll(() => kept.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
+    kept.remove();
+    const back = safari(HLS, { 'native-hls': 'on' }, undefined, [addon]);
+    await expect.poll(() => back.player?.session?.handler, { timeout: 10_000 }).toBe('native');
+  });
+
+  it('keeps HLS on the engine for an element inside that needs it, and native-hls="on" gives it back', async () => {
+    const control = (): HTMLElement =>
+      Object.assign(document.createElement('div'), { needsEngine: true });
+    const player = safari(HLS, {}, undefined, [], control());
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
+    // The attribute reloads the source, now natively.
+    player.setAttribute('native-hls', 'on');
+    await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('native');
+    // And back: the element still asks for the engine.
+    player.removeAttribute('native-hls');
     await expect.poll(() => player.player?.session?.handler, { timeout: 10_000 }).toBe('mattebox');
   });
 

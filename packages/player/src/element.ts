@@ -1561,6 +1561,18 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   }
 
   /**
+   * An add-on or an element inside the player needs the engine, so Safari's
+   * own HLS is not the default. Read at each load: an element may come later.
+   */
+  private needsEngine(): boolean {
+    if ((this.options.addons ?? []).some((addon) => addon.engine === true)) return true;
+    for (const element of this.querySelectorAll('*')) {
+      if ((element as { needsEngine?: unknown }).needsEngine === true) return true;
+    }
+    return false;
+  }
+
+  /**
    * Read at each use, not once in the constructor. Importing the package
    * registers the element, and the parser's elements are constructed then,
    * before the page's own `define()` call can run.
@@ -1576,10 +1588,12 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const native = (stages: () => readonly Stage[]): Handler =>
       nativeHandler({
         // Read on every load, so the attribute applies without a new chain.
-        prefer: (source, env) =>
-          this.getAttribute(NATIVE_HLS) !== 'off' &&
-          !(this.options.addons ?? []).some((addon) => addon.engine === true) &&
-          preferNativeHls(source, env),
+        prefer: (source, env) => {
+          const asked = this.getAttribute(NATIVE_HLS);
+          if (asked === 'off') return false;
+          if (asked !== 'on' && this.needsEngine()) return false;
+          return preferNativeHls(source, env);
+        },
         drm: () => this.drm(stages),
       });
     if (this.isConnected) this.attachAddons();
