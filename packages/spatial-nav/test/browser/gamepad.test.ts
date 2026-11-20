@@ -296,12 +296,14 @@ describe('<mbx-gamepad>', () => {
     // A disabled track lists no cues; the player hides it on its own a little later.
     track.mode = 'hidden';
     const pad = plug();
-    // Each press waits for the time it seeks to. The seek may start after the
-    // tap returns, and WebKit reads 0 while one is pending, which took over
-    // the poll's default second under a full run.
+    // Each press waits for its seek to end. WebKit reads 0 while a seek is
+    // pending, so a press during the last one's would skip from 0: the time
+    // alone can read right before the seek is done.
     const press = async (button: string, to: number): Promise<void> => {
+      const seeked = once(player.media, 'seeked');
       await tap(pad, button);
-      await expect.poll(() => player.media.currentTime, { timeout: 5_000 }).toBe(to);
+      await seeked;
+      expect(player.media.currentTime).toBe(to);
     };
     await press('rb', 10);
     await press('rb', 20);

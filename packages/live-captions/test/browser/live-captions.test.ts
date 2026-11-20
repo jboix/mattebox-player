@@ -182,7 +182,9 @@ async function play(media: HTMLMediaElement): Promise<void> {
 
 /** The recognizer the last start made, once `prepare` resolved. */
 async function recognizer(): Promise<FakeRecognition> {
-  await expect.poll(() => ctx.instances.length).toBeGreaterThan(0);
+  // The recognizer starts after the player's own async steps, which took over
+  // the poll's default second in WebKit under a full run.
+  await expect.poll(() => ctx.instances.length, { timeout: 5_000 }).toBeGreaterThan(0);
   const last = ctx.instances[ctx.instances.length - 1];
   if (last === undefined) throw new Error('no recognizer');
   return last;
