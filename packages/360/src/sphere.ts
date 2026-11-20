@@ -1,6 +1,7 @@
 /**
  * Draws a 360° picture as the inside of a sphere, with WebGL 1, which every
- * browser down to Chromium 76 has.
+ * browser down to Chromium 76 has. The same program draws each eye of a
+ * WebXR headset into the session's layer.
  *
  * There is no sphere mesh. One rectangle covers the canvas, and the
  * fragment shader turns each pixel into a direction from the viewer, then
@@ -9,7 +10,8 @@
  * field of view.
  */
 import type { Projection, View } from './view.js';
-import { rotation } from './view.js';
+import { frustum, headset, rotation } from './view.js';
+import type { XRLayer, XRView } from './xr.js';
 
 const VERTEX = `
 attribute vec2 a_xy;
@@ -31,11 +33,12 @@ precision mediump float;
 uniform sampler2D u_picture;
 uniform mat3 u_turn;
 uniform vec2 u_scale;
+uniform vec2 u_shift;
 uniform float u_span;
 varying vec2 v_xy;
 const float PI = 3.14159265;
 void main() {
-  vec3 d = normalize(u_turn * vec3(v_xy * u_scale, -1.0));
+  vec3 d = normalize(u_turn * vec3(v_xy * u_scale + u_shift, -1.0));
   float lon = atan(d.x, -d.z);
   float lat = asin(clamp(d.y, -1.0, 1.0));
   float u = lon / u_span + 0.5;
@@ -54,9 +57,11 @@ function compile(gl: WebGLRenderingContext, type: number, source: string): WebGL
 }
 
 export class Sphere {
-  declare private gl: WebGLRenderingContext;
+  /** The context, which a headset's layer draws through. */
+  declare readonly gl: WebGLRenderingContext;
   declare private turn: WebGLUniformLocation | null;
   declare private scale: WebGLUniformLocation | null;
+  declare private shift: WebGLUniformLocation | null;
   declare private span: WebGLUniformLocation | null;
 
   /** Throws when the browser gives no WebGL context. */
@@ -85,6 +90,7 @@ export class Sphere {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     this.turn = gl.getUniformLocation(program, 'u_turn');
     this.scale = gl.getUniformLocation(program, 'u_scale');
+    this.shift = gl.getUniformLocation(program, 'u_shift');
     this.span = gl.getUniformLocation(program, 'u_span');
   }
 
@@ -95,12 +101,50 @@ export class Sphere {
   draw(picture: TexImageSource, view: View, projection: Projection): void {
     const gl = this.gl;
     const canvas = gl.canvas as HTMLCanvasElement;
+    // After a headset session the layer's framebuffer may still be bound.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, picture);
+    this.upload(picture, projection);
     const tan = Math.tan(view.fov / 2);
-    gl.uniformMatrix3fv(this.turn, false, rotation(view));
-    gl.uniform2f(this.scale, (tan * canvas.width) / Math.max(1, canvas.height), tan);
+    this.paint(rotation(view), [(tan * canvas.width) / Math.max(1, canvas.height), tan, 0, 0]);
+  }
+
+  /**
+   * Draws `picture` once for each eye of a headset, into the WebXR layer's
+   * framebuffer. `yaw` is the turn the viewer had on the screen, so the
+   * headset starts where the screen looked.
+   */
+  drawEyes(
+    picture: TexImageSource,
+    layer: XRLayer,
+    eyes: readonly XRView[],
+    yaw: number,
+    projection: Projection,
+  ): void {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
+    this.upload(picture, projection);
+    for (const eye of eyes) {
+      const box = layer.getViewport(eye);
+      if (box == null) continue;
+      gl.viewport(box.x, box.y, box.width, box.height);
+      this.paint(headset(eye.transform.matrix, yaw), frustum(eye.projectionMatrix));
+    }
+  }
+
+  /** Sends the picture's current frame to the texture, and how much of the sphere it spans. */
+  private upload(picture: TexImageSource, projection: Projection): void {
+    const gl = this.gl;
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, picture);
     gl.uniform1f(this.span, projection === 'half-equirectangular' ? Math.PI : 2 * Math.PI);
+  }
+
+  /** Draws the viewport with the camera turned by `turn`, at a scale and a shift from `frustum`. */
+  private paint(turn: Float32Array, [sx, sy, ox, oy]: readonly number[]): void {
+    const gl = this.gl;
+    gl.uniformMatrix3fv(this.turn, false, turn);
+    gl.uniform2f(this.scale, sx as number, sy as number);
+    gl.uniform2f(this.shift, ox as number, oy as number);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 

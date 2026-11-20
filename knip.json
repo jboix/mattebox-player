@@ -64,7 +64,7 @@
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     },
     "packages/360": {
-      "entry": ["src/index.ts", "cdn/*.ts"],
+      "entry": ["src/index.ts", "cdn/*.ts", "src/locales/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }

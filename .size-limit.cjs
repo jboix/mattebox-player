@@ -117,11 +117,12 @@ module.exports = [
     path: 'packages/360/dist/cdn/mattebox-player-360.min.js',
     disablePlugins: ['@size-limit/esbuild'],
     // The engine and the player are peers, read for their types alone. The
-    // element, the view's math, the WebGL renderer and its shaders measured
-    // 3.53 kB.
+    // element, the view's math, the WebGL renderer and its shaders, the
+    // device's motion, the WebXR headset session and <mbx-vr-button> with
+    // its style measured 5.63 kB.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '3.6 kB',
+    limit: '5.63 kB',
   },
   {
     name: '@mattebox/player-playlist',

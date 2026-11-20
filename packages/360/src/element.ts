@@ -1,8 +1,10 @@
 /**
  * <mbx-360>: a 360° video, seen from inside. Placed in the player, it draws
  * the picture onto the inside of a sphere over the video, and the viewer
- * looks around: a drag, the mouse wheel to zoom, and a game controller's
- * right stick. A tap without a drag plays or pauses, as on the video.
+ * looks around: a drag, the mouse wheel to zoom, a game controller's right
+ * stick, and the motion of a phone or a tablet. A tap without a drag plays
+ * or pauses, as on the video. `enterVR()` shows the view in a WebXR
+ * headset, which `<mbx-vr-button>` offers.
  *
  * - It shows while the source is 360°: its own `projection` attribute, else
  *   the player's, which comes from the source or the manifest.
@@ -27,8 +29,10 @@ import type { PlayerHost } from '@mattebox/player';
 import { findPlayer, PLAYER } from './host.js';
 import { Sphere } from './sphere.js';
 import type { Projection, View } from './view.js';
-import { clamp, DEFAULT_FOV, drag } from './view.js';
+import { clamp, DEFAULT_FOV, drag, orientation } from './view.js';
 import CSS from './view-360.css?inline';
+import type { XRFrame, XRLayer, XRLayerConstructor, XRSession } from './xr.js';
+import { compatible, webxr } from './xr.js';
 
 /** Why the view does not show for a 360° source. */
 export type Unavailable = 'drm' | 'source' | 'webgl';
@@ -49,6 +53,17 @@ const STICK_SPEED = Math.PI / 2;
 /** The canvas draws at the screen's pixel ratio, up to this, so a 3x phone does not draw 9 times the pixels. */
 const MAX_RATIO = 2;
 
+/** iOS's `DeviceOrientationEvent.requestPermission()`, which TypeScript's DOM library does not type. */
+interface Permission {
+  requestPermission?: () => Promise<string>;
+}
+
+/** The screen's turn from the device's natural orientation, in degrees. */
+function screenAngle(): number {
+  // `window.orientation` is the older iOS Safari's, before `screen.orientation` (Safari 16.4).
+  return screen.orientation?.angle ?? (window as { orientation?: number }).orientation ?? 0;
+}
+
 /** One press on the view: where it started, where it was last, and whether it became a drag. */
 interface Press {
   readonly id: number;
@@ -61,7 +76,7 @@ interface Press {
 
 export class Mbx360 extends HTMLElement {
   static get observedAttributes(): string[] {
-    return ['projection', 'fov'];
+    return ['projection', 'fov', 'motion'];
   }
 
   declare private player: PlayerHost | null;
@@ -92,6 +107,18 @@ export class Mbx360 extends HTMLElement {
   declare private drawn: boolean;
   /** The source played or seeked since it loaded: a video then no longer shows its poster. */
   declare private started: boolean;
+  /** Where the device points, from its last `deviceorientation`; null while motion does not turn the view. */
+  declare private device: View | null;
+  /** The turn a drag, the wheel or the page added on top of the device's motion. */
+  declare private offset: { readonly yaw: number; readonly pitch: number };
+  /** The element listens to the device's motion. */
+  declare private moving: boolean;
+  /** The element asked iOS for the motion permission. */
+  declare private asked: boolean;
+  /** The `deviceorientation` listener, one function so it can be removed. */
+  declare private readonly turned: (event: Event) => void;
+  /** The headset session that shows the view, or null. */
+  declare private session: XRSession | null;
 
   constructor() {
     super();
@@ -111,6 +138,12 @@ export class Mbx360 extends HTMLElement {
     this.said = '';
     this.drawn = false;
     this.started = false;
+    this.device = null;
+    this.offset = { yaw: 0, pitch: 0 };
+    this.moving = false;
+    this.asked = false;
+    this.session = null;
+    this.turned = (event) => this.turn(event as DeviceOrientationEvent);
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = CSS;
@@ -124,6 +157,20 @@ export class Mbx360 extends HTMLElement {
     this.words.setAttribute('part', 'subtitles');
     this.words.setAttribute('aria-hidden', 'true');
     root.append(style, this.canvas, this.words);
+    // A context the browser lost comes back only when the page asks.
+    // Entering a headset can lose it, on a computer with two GPUs.
+    this.canvas.addEventListener('webglcontextlost', (event) => event.preventDefault());
+    this.canvas.addEventListener('webglcontextrestored', () => {
+      if (this.sphere === null) return;
+      try {
+        this.sphere = new Sphere(this.canvas);
+      } catch {
+        this.sphere = null;
+        this.failed = 'webgl';
+        this.update();
+      }
+      this.dirty = true;
+    });
   }
 
   /** Degrees the view is turned right of the picture's centre. */
@@ -151,6 +198,38 @@ export class Mbx360 extends HTMLElement {
 
   set fov(value: number) {
     this.look({ yaw: this.view.yaw, pitch: this.view.pitch, fov: value / DEGREES });
+  }
+
+  /** A headset shows the view. The element carries `vr` meanwhile. */
+  get immersive(): boolean {
+    return this.session !== null;
+  }
+
+  /**
+   * Shows the view in a WebXR headset, from where the screen looks. Call
+   * it from a click or a key press: the browser starts a session only
+   * then. Rejects where there is no WebXR, no view showing, or the browser
+   * refuses the session.
+   */
+  enterVR(): Promise<void> {
+    const api = webxr();
+    if (
+      api === null ||
+      this.sphere === null ||
+      this.session !== null ||
+      !this.hasAttribute('active')
+    ) {
+      return Promise.reject(new DOMException('No 360° view to show', 'InvalidStateError'));
+    }
+    // Before any wait: the click's permission to start a session ends with the click.
+    return api.xr
+      .requestSession('immersive-vr')
+      .then((session) => this.immerse(session, api.Layer));
+  }
+
+  /** Ends the headset session, if one runs. */
+  exitVR(): Promise<void> {
+    return this.session?.end() ?? Promise.resolve();
   }
 
   /**
@@ -189,13 +268,16 @@ export class Mbx360 extends HTMLElement {
     for (const off of this.offs) off();
     this.offs = [];
     this.show(false);
+    this.leave();
     this.sphere?.dispose();
     this.sphere = null;
     this.player = null;
+    this.motion();
   }
 
   attributeChangedCallback(name: string): void {
     if (name === 'fov') this.look(this.start());
+    else if (name === 'motion') this.motion();
     else this.update();
   }
 
@@ -207,6 +289,8 @@ export class Mbx360 extends HTMLElement {
     this.on(player, 'sourcechange', () => {
       this.encrypted = false;
       if (this.failed !== 'webgl') this.failed = null;
+      // The next motion event takes the new source's straight ahead as the device's.
+      this.device = null;
       this.view = this.start();
       this.blank();
       this.update();
@@ -230,6 +314,8 @@ export class Mbx360 extends HTMLElement {
     this.on(canvas, 'pointercancel', () => {
       this.press = null;
     });
+    // iOS asks for the motion permission only during a touch.
+    this.on(canvas, 'touchend', () => this.ask());
     this.on(
       canvas,
       'wheel',
@@ -269,9 +355,143 @@ export class Mbx360 extends HTMLElement {
     return clamp({ yaw: 0, pitch: 0, fov: fov > 0 ? fov / DEGREES : DEFAULT_FOV });
   }
 
+  /**
+   * Turns the view. While the device's motion turns it too, the change is
+   * kept as an offset over the device, so the next motion event keeps it.
+   */
   private look(view: View): void {
-    this.view = clamp(view);
+    const next = clamp({
+      yaw: view.yaw,
+      pitch: view.pitch,
+      fov: view.fov,
+      roll: this.view.roll ?? 0,
+    });
+    if (this.device !== null) {
+      this.offset = {
+        yaw: this.offset.yaw + next.yaw - this.view.yaw,
+        pitch: this.offset.pitch + next.pitch - this.view.pitch,
+      };
+    }
+    this.view = next;
     this.dirty = true;
+  }
+
+  /** Listens to the device's motion while the view shows, unless `motion="off"`. */
+  private motion(): void {
+    const want =
+      this.player !== null &&
+      this.hasAttribute('active') &&
+      this.getAttribute('motion') !== 'off' &&
+      typeof DeviceOrientationEvent !== 'undefined';
+    if (want === this.moving) return;
+    this.moving = want;
+    if (want) {
+      window.addEventListener('deviceorientation', this.turned);
+    } else {
+      window.removeEventListener('deviceorientation', this.turned);
+      this.device = null;
+      this.view = clamp({ yaw: this.view.yaw, pitch: this.view.pitch, fov: this.view.fov });
+      this.dirty = true;
+    }
+  }
+
+  /**
+   * Points the view where the device points, plus the offset. The first
+   * event keeps the yaw the view has, so the view does not jump; the pitch
+   * and the roll are the device's from then on, level with the ground.
+   */
+  private turn(event: DeviceOrientationEvent): void {
+    const { alpha, beta, gamma } = event;
+    // A computer without the sensors fires one event with nulls.
+    if (alpha === null || beta === null || gamma === null) return;
+    const device = orientation(alpha, beta, gamma, screenAngle());
+    if (this.device === null) this.offset = { yaw: this.view.yaw - device.yaw, pitch: 0 };
+    this.device = device;
+    this.view = clamp({
+      yaw: device.yaw + this.offset.yaw,
+      pitch: device.pitch + this.offset.pitch,
+      fov: this.view.fov,
+      roll: device.roll ?? 0,
+    });
+    this.dirty = true;
+  }
+
+  /**
+   * Asks iOS for the device's motion, once, at the viewer's first touch on
+   * the view: iOS 13 and later sends no `deviceorientation` before the
+   * page asks, and lets it ask only during a touch. A refusal is final for
+   * the element. A touch outside a gesture fails, and the next touch asks
+   * again.
+   */
+  private ask(): void {
+    const api = (typeof DeviceOrientationEvent === 'undefined'
+      ? {}
+      : DeviceOrientationEvent) as unknown as Permission;
+    if (
+      this.asked ||
+      !this.moving ||
+      this.device !== null ||
+      typeof api.requestPermission !== 'function'
+    )
+      return;
+    this.asked = true;
+    api.requestPermission().catch(() => {
+      this.asked = false;
+    });
+  }
+
+  /**
+   * Draws the view into the headset from now on, until the session ends.
+   * A promise chain, not `async`: the ES2015 build would lower `async` into
+   * helpers, which the emit check bans.
+   */
+  private immerse(session: XRSession, Layer: XRLayerConstructor): Promise<void> {
+    this.session = session;
+    session.addEventListener('end', () => {
+      this.session = null;
+      this.removeAttribute('vr');
+      // The screen view draws again, where it shows.
+      if (this.hasAttribute('active') && this.frame === 0) {
+        this.dirty = true;
+        this.frame = requestAnimationFrame((now) => this.tick(now));
+      }
+    });
+    let layer: XRLayer;
+    return compatible((this.sphere as Sphere).gl)
+      .then(() => {
+        // Rebuilt, if making it compatible lost the context; the context object stays the same.
+        layer = new Layer(session, (this.sphere as Sphere).gl);
+        session.updateRenderState({ baseLayer: layer });
+        return session.requestReferenceSpace('local');
+      })
+      .then((space) => {
+        // The headset starts where the screen looked; its own pitch is the head's.
+        const yaw = this.view.yaw;
+        const frame = (_time: number, now: XRFrame): void => {
+          if (this.session !== session) return;
+          session.requestAnimationFrame(frame);
+          const pose = now.getViewerPose(space);
+          const media = this.video();
+          const projection = this.projection;
+          if (pose === null || media === null || projection === null || this.sphere === null)
+            return;
+          if (media.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+          this.sphere.drawEyes(media, layer, pose.views, yaw, projection);
+        };
+        session.requestAnimationFrame(frame);
+        // The headset draws every frame; the screen view rests meanwhile.
+        this.stop();
+        this.setAttribute('vr', '');
+      })
+      .catch((error: unknown) => {
+        this.leave();
+        throw error;
+      });
+  }
+
+  /** Ends the headset session, if one runs. An ended session refuses to end again, which is fine. */
+  private leave(): void {
+    this.session?.end().catch(() => undefined);
   }
 
   /** Decides whether the view shows, and why not. */
@@ -315,7 +535,10 @@ export class Mbx360 extends HTMLElement {
       this.words.textContent = '';
       this.said = '';
       this.stop();
+      // A flat source in a headset would show nothing.
+      this.leave();
     }
+    this.motion();
   }
 
   /**
@@ -455,8 +678,7 @@ export class Mbx360 extends HTMLElement {
     const dy = event.clientY - press.lastY;
     press.lastX = event.clientX;
     press.lastY = event.clientY;
-    this.view = drag(this.view, dx, dy, this.canvas.clientHeight);
-    this.dirty = true;
+    this.look(drag(this.view, dx, dy, this.canvas.clientHeight));
   }
 
   private up(event: PointerEvent): void {

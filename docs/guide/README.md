@@ -3,24 +3,24 @@
 Each chapter explains one topic and ends with a working example. Read the
 chapters in order the first time, then use the table.
 
-| Chapter                                                 | You will learn                                                                 |
-| ------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [01 Getting started](01-getting-started.md)             | Install, the element, the core, the engine as a peer                           |
-| [02 Handlers](02-handlers.md)                           | The chain, the two handlers, native HLS, type inference, fallthrough           |
-| [03 The element](03-the-element.md)                     | Attributes, properties, events, native HLS in Safari, the controls, styling    |
-| [04 CDN](04-cdn.md)                                     | Script tags, the engine bundle first, pinning                                  |
-| [05 Diagnostics](05-diagnostics.md)                     | The stats panel, the charts, the browser, the report                           |
-| [06 TV](06-tv.md)                                       | The remote: moving focus, seeking with a target, the key codes                 |
-| [07 Playlist](07-playlist.md)                           | The list from markup or a script, what plays next, the list, the up next card  |
-| [08 Preferences](08-preferences.md)                     | The viewer's choices kept across programmes and visits, the store, your keys   |
-| [09 Connectors](09-connectors.md)                       | A programme by its id or its data, with the core or the element, and preloaded |
-| [10 Languages](10-languages.md)                         | The controls in your viewer's language, loaded only when shown                 |
-| [11 Blocks and markers](11-blocks-and-markers.md)       | Credits to skip, parts that must not play, why a programme does not play       |
-| [12 Fallback and versions](12-fallback-and-versions.md) | Several sources in order, versions of the picture such as sign language        |
-| [13 Trackers](13-trackers.md)                           | The trackers your page adds, what they read, the session and device ids        |
-| [14 Ads](14-ads.md)                                     | Interstitials, VAST and VMAP, the ad controls, the beacons and the events      |
-| [15 Live captions](15-live-captions.md)                 | What is said, written over the video by the browser, on the device             |
-| [16 360° video](16-360-video.md)                        | A 360° picture seen from inside, turned by a drag, the wheel or a controller   |
+| Chapter                                                 | You will learn                                                                                             |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [01 Getting started](01-getting-started.md)             | Install, the element, the core, the engine as a peer                                                       |
+| [02 Handlers](02-handlers.md)                           | The chain, the two handlers, native HLS, type inference, fallthrough                                       |
+| [03 The element](03-the-element.md)                     | Attributes, properties, events, native HLS in Safari, the controls, styling                                |
+| [04 CDN](04-cdn.md)                                     | Script tags, the engine bundle first, pinning                                                              |
+| [05 Diagnostics](05-diagnostics.md)                     | The stats panel, the charts, the browser, the report                                                       |
+| [06 TV](06-tv.md)                                       | The remote: moving focus, seeking with a target, the key codes                                             |
+| [07 Playlist](07-playlist.md)                           | The list from markup or a script, what plays next, the list, the up next card                              |
+| [08 Preferences](08-preferences.md)                     | The viewer's choices kept across programmes and visits, the store, your keys                               |
+| [09 Connectors](09-connectors.md)                       | A programme by its id or its data, with the core or the element, and preloaded                             |
+| [10 Languages](10-languages.md)                         | The controls in your viewer's language, loaded only when shown                                             |
+| [11 Blocks and markers](11-blocks-and-markers.md)       | Credits to skip, parts that must not play, why a programme does not play                                   |
+| [12 Fallback and versions](12-fallback-and-versions.md) | Several sources in order, versions of the picture such as sign language                                    |
+| [13 Trackers](13-trackers.md)                           | The trackers your page adds, what they read, the session and device ids                                    |
+| [14 Ads](14-ads.md)                                     | Interstitials, VAST and VMAP, the ad controls, the beacons and the events                                  |
+| [15 Live captions](15-live-captions.md)                 | What is said, written over the video by the browser, on the device                                         |
+| [16 360° video](16-360-video.md)                        | A 360° picture seen from inside, turned by a drag, the wheel, a controller or the device, and in a headset |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.
