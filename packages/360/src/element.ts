@@ -153,6 +153,14 @@ export class Mbx360 extends HTMLElement {
     this.look({ yaw: this.view.yaw, pitch: this.view.pitch, fov: value / DEGREES });
   }
 
+  /**
+   * Over Safari's own HLS the video shows flat, so the player keeps HLS on
+   * the engine while the view is inside it. `native-hls="on"` overrides it.
+   */
+  get needsEngine(): boolean {
+    return true;
+  }
+
   /** The projection the view draws, or null while the source is flat. */
   get projection(): Projection | null {
     const value =

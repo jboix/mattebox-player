@@ -185,4 +185,8 @@ describe('<mbx-360>', () => {
     await new Promise((resolve) => setTimeout(resolve, 200));
     expect(words.textContent).toBe('Hello there');
   });
+
+  it("asks its player for the engine, since Safari's own HLS shows flat", () => {
+    expect((document.createElement('mbx-360') as Mbx360).needsEngine).toBe(true);
+  });
 });
