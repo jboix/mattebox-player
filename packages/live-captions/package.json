@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-live-captions",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Live captions in <mattebox-player>: the browser's speech recognition writes what is said, word by word, over the video, on the device.",
   "author": "Josep Boix Requesens",
   "repository": {
