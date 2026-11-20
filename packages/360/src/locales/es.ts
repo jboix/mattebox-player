@@ -7,4 +7,5 @@ import type { Player360Messages } from '../messages.js';
 export default {
   enterVr: 'Entrar en RV',
   exitVr: 'Salir de RV',
+  deviceMotion: 'Girar con el dispositivo',
 } satisfies Player360Messages;

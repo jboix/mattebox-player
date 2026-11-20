@@ -8,7 +8,8 @@
 drawn onto the inside of a sphere, and the viewer looks around.
 
 - A drag turns the view, the wheel zooms, and a game controller's right stick turns it.
-- On a phone or a tablet, the view turns with the device. `motion="off"` turns that off.
+- On a phone or a tablet, the view turns with the device, unless the system asks for reduced motion.
+- `<mbx-motion-button>` lets the viewer turn the device's motion on or off. `motion="on"` or `"off"` sets where it starts.
 - `<mbx-vr-button>` shows the view in a WebXR headset. It is hidden without one.
 - A tap plays or pauses, as on a flat video.
 - The source says it is 360°: your connector, or HLS `REQ-VIDEO-LAYOUT`.

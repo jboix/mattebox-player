@@ -7,4 +7,5 @@ import type { Player360Messages } from '../messages.js';
 export default {
   enterVr: 'الدخول إلى الواقع الافتراضي',
   exitVr: 'الخروج من الواقع الافتراضي',
+  deviceMotion: 'التدوير مع الجهاز',
 } satisfies Player360Messages;

@@ -6,6 +6,11 @@
  * or pauses, as on the video. `enterVR()` shows the view in a WebXR
  * headset, which `<mbx-vr-button>` offers.
  *
+ * - The device's motion turns the view unless `motion="off"`, or unless the
+ *   system asks for reduced motion and `motion` is not `on`. The viewer's
+ *   own choice, through `setMotion()` and `<mbx-motion-button>`, wins until
+ *   the page sets `motion` again. `motionchange` says the state changed.
+ *
  * - It shows while the source is 360°: its own `projection` attribute, else
  *   the player's, which comes from the source or the manifest.
  *   `projection="none"` keeps a source flat.
@@ -40,6 +45,16 @@ export type Unavailable = 'drm' | 'source' | 'webgl';
 const PROJECTIONS: readonly string[] = ['equirectangular', 'half-equirectangular'];
 
 const DEGREES = 180 / Math.PI;
+
+/** The system's setting for people whom moving pictures make ill. */
+const REDUCED = '(prefers-reduced-motion: reduce)';
+
+/** iOS's `DeviceOrientationEvent`, which asks before it sends motion, or an empty object elsewhere. */
+function permission(): Permission {
+  return (typeof DeviceOrientationEvent === 'undefined'
+    ? {}
+    : DeviceOrientationEvent) as unknown as Permission;
+}
 
 /** A press that moves less than this, in CSS pixels, is a tap: it plays or pauses. */
 const TAP_PX = 6;
@@ -111,10 +126,16 @@ export class Mbx360 extends HTMLElement {
   declare private device: View | null;
   /** The turn a drag, the wheel or the page added on top of the device's motion. */
   declare private offset: { readonly yaw: number; readonly pitch: number };
-  /** The element listens to the device's motion. */
+  /** The element listens to `deviceorientation`: the view shows and the browser has the event. */
   declare private moving: boolean;
   /** The element asked iOS for the motion permission. */
   declare private asked: boolean;
+  /** The viewer's choice through `setMotion()`, or null until they make one or after the page sets `motion`. */
+  declare private chosen: boolean | null;
+  /** An event with angles came: the device has the sensors. */
+  declare private sensed: boolean;
+  /** `motionOn` and `motionAvailable` as `motionchange` last told them. */
+  declare private reported: string;
   /** The `deviceorientation` listener, one function so it can be removed. */
   declare private readonly turned: (event: Event) => void;
   /** The headset session that shows the view, or null. */
@@ -142,6 +163,9 @@ export class Mbx360 extends HTMLElement {
     this.offset = { yaw: 0, pitch: 0 };
     this.moving = false;
     this.asked = false;
+    this.chosen = null;
+    this.sensed = false;
+    this.reported = '';
     this.session = null;
     this.turned = (event) => this.turn(event as DeviceOrientationEvent);
     const root = this.attachShadow({ mode: 'open' });
@@ -198,6 +222,42 @@ export class Mbx360 extends HTMLElement {
 
   set fov(value: number) {
     this.look({ yaw: this.view.yaw, pitch: this.view.pitch, fov: value / DEGREES });
+  }
+
+  /**
+   * The device's motion turns the view while it shows: the viewer's
+   * choice, else `motion="on"` or `"off"`, else on unless the system asks
+   * for reduced motion.
+   */
+  get motionOn(): boolean {
+    if (this.chosen !== null) return this.chosen;
+    const asked = this.getAttribute('motion');
+    if (asked === 'on' || asked === 'off') return asked === 'on';
+    return !(typeof matchMedia === 'function' && matchMedia(REDUCED).matches);
+  }
+
+  /**
+   * The device can turn the view: it sent angles, or it is a touch device
+   * that sends them only once the page asks (iOS).
+   */
+  get motionAvailable(): boolean {
+    return (
+      this.sensed ||
+      (typeof permission().requestPermission === 'function' &&
+        typeof matchMedia === 'function' &&
+        matchMedia('(pointer: coarse)').matches)
+    );
+  }
+
+  /**
+   * The viewer turns the device's motion on or off, until the page sets
+   * `motion` again. Call it from a click to turn it on: iOS asks for the
+   * permission then, and a refusal turns it back off.
+   */
+  setMotion(on: boolean): void {
+    this.chosen = on;
+    this.sync();
+    if (on) this.ask(true);
   }
 
   /** A headset shows the view. The element carries `vr` meanwhile. */
@@ -277,8 +337,11 @@ export class Mbx360 extends HTMLElement {
 
   attributeChangedCallback(name: string): void {
     if (name === 'fov') this.look(this.start());
-    else if (name === 'motion') this.motion();
-    else this.update();
+    else if (name === 'motion') {
+      // The page's newer word replaces the viewer's choice.
+      this.chosen = null;
+      this.sync();
+    } else this.update();
   }
 
   private attach(player: PlayerHost): void {
@@ -286,6 +349,22 @@ export class Mbx360 extends HTMLElement {
     const watch = new MutationObserver(() => this.update());
     watch.observe(player, { attributes: true, attributeFilter: ['projection'] });
     this.offs.push(() => watch.disconnect());
+    // The system's reduced motion turns the default off and on while the page is open.
+    if (typeof matchMedia === 'function') {
+      const query = matchMedia(REDUCED) as MediaQueryList & {
+        addListener(listener: () => void): void;
+        removeListener(listener: () => void): void;
+      };
+      const changed = (): void => this.sync();
+      // Safari before 14 has only addListener on a MediaQueryList.
+      if (typeof query.addEventListener === 'function') {
+        query.addEventListener('change', changed);
+        this.offs.push(() => query.removeEventListener('change', changed));
+      } else {
+        query.addListener(changed);
+        this.offs.push(() => query.removeListener(changed));
+      }
+    }
     this.on(player, 'sourcechange', () => {
       this.encrypted = false;
       if (this.failed !== 'webgl') this.failed = null;
@@ -376,23 +455,39 @@ export class Mbx360 extends HTMLElement {
     this.dirty = true;
   }
 
-  /** Listens to the device's motion while the view shows, unless `motion="off"`. */
+  /**
+   * Listens to the device's motion while the view shows, on or off: an
+   * event with angles is how the element learns the device has sensors.
+   */
   private motion(): void {
     const want =
       this.player !== null &&
       this.hasAttribute('active') &&
-      this.getAttribute('motion') !== 'off' &&
       typeof DeviceOrientationEvent !== 'undefined';
-    if (want === this.moving) return;
-    this.moving = want;
-    if (want) {
-      window.addEventListener('deviceorientation', this.turned);
-    } else {
-      window.removeEventListener('deviceorientation', this.turned);
+    if (want !== this.moving) {
+      this.moving = want;
+      if (want) window.addEventListener('deviceorientation', this.turned);
+      else window.removeEventListener('deviceorientation', this.turned);
+    }
+    this.sync();
+  }
+
+  /**
+   * Lets go of the device when motion turns off, keeping where the view
+   * looks, and fires `motionchange` when `motionOn` or `motionAvailable`
+   * changed.
+   */
+  private sync(): void {
+    const on = this.motionOn;
+    if ((!on || !this.moving) && this.device !== null) {
       this.device = null;
       this.view = clamp({ yaw: this.view.yaw, pitch: this.view.pitch, fov: this.view.fov });
       this.dirty = true;
     }
+    const state = `${on} ${this.motionAvailable}`;
+    if (state === this.reported) return;
+    this.reported = state;
+    this.dispatchEvent(new Event('motionchange', { bubbles: true, composed: true }));
   }
 
   /**
@@ -404,6 +499,11 @@ export class Mbx360 extends HTMLElement {
     const { alpha, beta, gamma } = event;
     // A computer without the sensors fires one event with nulls.
     if (alpha === null || beta === null || gamma === null) return;
+    if (!this.sensed) {
+      this.sensed = true;
+      this.sync();
+    }
+    if (!this.motionOn) return;
     const device = orientation(alpha, beta, gamma, screenAngle());
     if (this.device === null) this.offset = { yaw: this.view.yaw - device.yaw, pitch: 0 };
     this.device = device;
@@ -417,27 +517,34 @@ export class Mbx360 extends HTMLElement {
   }
 
   /**
-   * Asks iOS for the device's motion, once, at the viewer's first touch on
-   * the view: iOS 13 and later sends no `deviceorientation` before the
-   * page asks, and lets it ask only during a touch. A refusal is final for
-   * the element. A touch outside a gesture fails, and the next touch asks
-   * again.
+   * Asks iOS for the device's motion: iOS 13 and later sends no
+   * `deviceorientation` before the page asks, and lets it ask only during
+   * a touch or a click. The first touch on the view asks once; the
+   * viewer's `setMotion(true)` asks `again`, and iOS answers a refusal it
+   * remembers without a prompt. A refusal turns motion off. A touch
+   * outside a gesture fails, and the next touch asks again.
    */
-  private ask(): void {
-    const api = (typeof DeviceOrientationEvent === 'undefined'
-      ? {}
-      : DeviceOrientationEvent) as unknown as Permission;
+  private ask(again = false): void {
+    const api = permission();
     if (
-      this.asked ||
+      (this.asked && !again) ||
       !this.moving ||
+      !this.motionOn ||
       this.device !== null ||
       typeof api.requestPermission !== 'function'
     )
       return;
     this.asked = true;
-    api.requestPermission().catch(() => {
-      this.asked = false;
-    });
+    api.requestPermission().then(
+      (state) => {
+        if (state === 'granted') return;
+        this.chosen = false;
+        this.sync();
+      },
+      () => {
+        this.asked = false;
+      },
+    );
   }
 
   /**

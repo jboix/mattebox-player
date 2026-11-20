@@ -7,4 +7,5 @@ import type { Player360Messages } from '../messages.js';
 export default {
   enterVr: '进入 VR',
   exitVr: '退出 VR',
+  deviceMotion: '随设备转动',
 } satisfies Player360Messages;

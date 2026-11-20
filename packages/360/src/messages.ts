@@ -8,6 +8,8 @@ export interface Player360Messages {
   readonly enterVr: string;
   /** "Exit VR": the headset button, while a headset shows the view. */
   readonly exitVr: string;
+  /** "Turn with the device": the toggle for the device's motion, pressed while it turns the view. */
+  readonly deviceMotion: string;
 }
 
 declare module '@mattebox/player' {

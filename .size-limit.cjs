@@ -118,11 +118,12 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
     // The engine and the player are peers, read for their types alone. The
     // element, the view's math, the WebGL renderer and its shaders, the
-    // device's motion, the WebXR headset session and <mbx-vr-button> with
-    // its style measured 5.63 kB.
+    // device's motion with its reduced-motion default, the WebXR headset
+    // session, <mbx-vr-button> and <mbx-motion-button> with their style
+    // measured 6.34 kB.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '5.63 kB',
+    limit: '6.34 kB',
   },
   {
     name: '@mattebox/player-playlist',

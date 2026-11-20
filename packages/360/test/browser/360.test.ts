@@ -4,7 +4,7 @@
  * the element runs over a short silence, which is enough for its states.
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
-import type { Mbx360, MbxVrButton } from '@mattebox/player-360';
+import type { Mbx360, MbxMotionButton, MbxVrButton } from '@mattebox/player-360';
 import { nativeHandler } from '@mattebox/player-core';
 import '@mattebox/player-360';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -271,6 +271,202 @@ describe('<mbx-360> and the device', () => {
     } finally {
       delete (DeviceOrientationEvent as { requestPermission?: unknown }).requestPermission;
     }
+  });
+});
+
+/**
+ * Answers `matchMedia` as a system would: reduced motion as `reduce` says,
+ * and a coarse pointer as `touch` says. `set` changes reduced motion and
+ * tells the listeners, as a change in the system's settings does.
+ */
+function fakeMedia(
+  reduce: boolean,
+  touch = false,
+): { set: (to: boolean) => void; restore: () => void } {
+  const real = window.matchMedia;
+  const listeners = new Set<() => void>();
+  let reduced = reduce;
+  window.matchMedia = ((query: string) => ({
+    media: query,
+    get matches() {
+      if (query.includes('prefers-reduced-motion')) return reduced;
+      if (query.includes('pointer: coarse')) return touch;
+      return real.call(window, query).matches;
+    },
+    addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
+    removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
+  })) as unknown as typeof window.matchMedia;
+  return {
+    set: (to) => {
+      reduced = to;
+      for (const listener of listeners) listener();
+    },
+    restore: () => {
+      window.matchMedia = real;
+    },
+  };
+}
+
+/** Makes this browser iOS's: `DeviceOrientationEvent.requestPermission` answers `answer`. */
+function fakePermission(answer: string): { asked: ReturnType<typeof vi.fn>; restore: () => void } {
+  const asked = vi.fn(() => Promise.resolve(answer));
+  Object.defineProperty(DeviceOrientationEvent, 'requestPermission', {
+    configurable: true,
+    value: asked,
+  });
+  return {
+    asked,
+    restore: () => {
+      delete (DeviceOrientationEvent as { requestPermission?: unknown }).requestPermission;
+    },
+  };
+}
+
+describe("<mbx-360> and the viewer's choice", () => {
+  it('starts without motion when the system asks for reduced motion, and follows the setting', async () => {
+    const media = fakeMedia(true);
+    try {
+      const { view } = await rig('projection="equirectangular"');
+      expect(view.motionOn).toBe(false);
+      tilt(0, 90, 0);
+      tilt(-90, 90, 0);
+      expect(view.yaw).toBeCloseTo(0);
+      const changes = vi.fn();
+      view.addEventListener('motionchange', changes);
+      media.set(false);
+      expect(view.motionOn).toBe(true);
+      expect(changes).toHaveBeenCalledTimes(1);
+      tilt(0, 90, 0);
+      tilt(-90, 90, 0);
+      expect(view.yaw).toBeCloseTo(90);
+    } finally {
+      media.restore();
+    }
+  });
+
+  it('turns with the device under reduced motion when motion="on"', async () => {
+    const media = fakeMedia(true);
+    try {
+      const { view } = await rig('projection="equirectangular" motion="on"');
+      expect(view.motionOn).toBe(true);
+      tilt(0, 90, 0);
+      tilt(-90, 90, 0);
+      expect(view.yaw).toBeCloseTo(90);
+    } finally {
+      media.restore();
+    }
+  });
+
+  it("keeps the viewer's choice over the attribute until the page sets it again", async () => {
+    const { view } = await rig('projection="equirectangular" motion="off"');
+    const changes = vi.fn();
+    view.addEventListener('motionchange', changes);
+    view.setMotion(true);
+    expect(view.motionOn).toBe(true);
+    expect(changes).toHaveBeenCalledTimes(1);
+    view.setAttribute('motion', 'off');
+    expect(view.motionOn).toBe(false);
+    expect(changes).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps where the view looks when motion turns off, and does not jump when it turns on', async () => {
+    const { view } = await rig('projection="equirectangular"');
+    tilt(0, 90, 0);
+    tilt(-30, 90, 0);
+    expect(view.yaw).toBeCloseTo(30);
+    view.setMotion(false);
+    tilt(-90, 90, 0);
+    expect(view.yaw).toBeCloseTo(30);
+    view.setMotion(true);
+    tilt(-90, 90, 0);
+    expect(view.yaw).toBeCloseTo(30);
+    tilt(-100, 90, 0);
+    expect(view.yaw).toBeCloseTo(40);
+  });
+
+  it('learns the device has sensors from the first event with angles', async () => {
+    const { view } = await rig('projection="equirectangular"');
+    const changes = vi.fn();
+    view.addEventListener('motionchange', changes);
+    tilt(null, null, null);
+    expect(view.motionAvailable).toBe(false);
+    tilt(0, 90, 0);
+    expect(view.motionAvailable).toBe(true);
+    expect(changes).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns motion back off when iOS refuses it', async () => {
+    const ios = fakePermission('denied');
+    try {
+      const { view } = await rig('projection="equirectangular" motion="off"');
+      view.setMotion(true);
+      expect(ios.asked).toHaveBeenCalledTimes(1);
+      await settle();
+      expect(view.motionOn).toBe(false);
+    } finally {
+      ios.restore();
+    }
+  });
+});
+
+describe('<mbx-motion-button>', () => {
+  async function rigMotion(attributes = 'projection="equirectangular"'): Promise<{
+    view: Mbx360;
+    button: MbxMotionButton;
+    inner: HTMLButtonElement;
+  }> {
+    const { player, view } = await rig(attributes);
+    const button = document.createElement('mbx-motion-button');
+    player.append(button);
+    await settle();
+    const inner = button.shadowRoot?.querySelector('button') as HTMLButtonElement;
+    return { view, button, inner };
+  }
+
+  it('stays hidden on a device without sensors, which is every browser here', async () => {
+    const { button } = await rigMotion();
+    tilt(null, null, null);
+    expect(button.hidden).toBe(true);
+  });
+
+  it('shows once the device sends angles, and switches the motion', async () => {
+    const { view, button, inner } = await rigMotion();
+    tilt(0, 90, 0);
+    expect(button.hidden).toBe(false);
+    expect(inner.getAttribute('aria-label')).toBe('Turn with the device');
+    expect(inner.getAttribute('aria-pressed')).toBe('true');
+    inner.click();
+    expect(view.motionOn).toBe(false);
+    expect(inner.getAttribute('aria-pressed')).toBe('false');
+    const off = button.shadowRoot?.querySelector('slot[name="icon-off"]') as HTMLSlotElement;
+    expect(off.hidden).toBe(false);
+    tilt(-90, 90, 0);
+    expect(view.yaw).toBeCloseTo(0);
+    inner.click();
+    expect(inner.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('shows on iOS before any motion, and asks for the permission from its click', async () => {
+    const ios = fakePermission('granted');
+    const media = fakeMedia(false, true);
+    try {
+      const { view, button, inner } = await rigMotion('projection="equirectangular" motion="off"');
+      expect(button.hidden).toBe(false);
+      inner.click();
+      expect(view.motionOn).toBe(true);
+      expect(ios.asked).toHaveBeenCalledTimes(1);
+    } finally {
+      media.restore();
+      ios.restore();
+    }
+  });
+
+  it('takes its label from its attribute, and hides while the source is flat', async () => {
+    const { button, inner } = await rigMotion('');
+    tilt(0, 90, 0);
+    expect(button.hidden).toBe(true);
+    button.setAttribute('label', 'Gir');
+    expect(inner.getAttribute('aria-label')).toBe('Gir');
   });
 });
 

@@ -15,31 +15,14 @@
 import type { Messages, PlayerHost } from '@mattebox/player';
 import BUTTON_CSS from './button.css?inline';
 import type { Mbx360 } from './element.js';
+import { glyph } from './glyph.js';
 import { findPlayer, PLAYER } from './host.js';
 import type {} from './messages.js';
 import { headsets, webxr } from './xr.js';
 
-const SVG = 'http://www.w3.org/2000/svg';
-
 /** A headset seen from the front, its two lenses cut out: a filled path on a 32-unit viewBox. */
 const HEADSET =
   'M5 9H27A3 3 0 0 1 30 12V21A3 3 0 0 1 27 24H20.5L18 20H14L11.5 24H5A3 3 0 0 1 2 21V12A3 3 0 0 1 5 9zM10 13.5A3 3 0 1 0 10 19.5A3 3 0 1 0 10 13.5zM22 13.5A3 3 0 1 0 22 19.5A3 3 0 1 0 22 13.5z';
-
-/** A slot named `icon-<state>` with the headset glyph as its fallback, so a page drops its own SVG in. */
-function slot(state: 'enter' | 'exit'): HTMLSlotElement {
-  const node = document.createElement('slot');
-  node.name = `icon-${state}`;
-  const svg = document.createElementNS(SVG, 'svg');
-  svg.setAttribute('viewBox', '0 0 32 32');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('part', 'icon');
-  const path = document.createElementNS(SVG, 'path');
-  path.setAttribute('fill-rule', 'evenodd');
-  path.setAttribute('d', HEADSET);
-  svg.append(path);
-  node.append(svg);
-  return node;
-}
 
 export class MbxVrButton extends HTMLElement {
   static get observedAttributes(): string[] {
@@ -68,8 +51,8 @@ export class MbxVrButton extends HTMLElement {
     this.button = document.createElement('button');
     this.button.type = 'button';
     this.button.setAttribute('part', 'button');
-    this.enter = slot('enter');
-    this.exit = slot('exit');
+    this.enter = glyph('icon-enter', [{ d: HEADSET }]);
+    this.exit = glyph('icon-exit', [{ d: HEADSET }]);
     this.button.append(this.enter, this.exit);
     this.button.addEventListener('click', () => {
       const view = this.view();

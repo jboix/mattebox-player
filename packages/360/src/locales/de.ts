@@ -7,4 +7,5 @@ import type { Player360Messages } from '../messages.js';
 export default {
   enterVr: 'VR starten',
   exitVr: 'VR beenden',
+  deviceMotion: 'Mit dem Gerät drehen',
 } satisfies Player360Messages;
