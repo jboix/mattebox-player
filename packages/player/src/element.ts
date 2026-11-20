@@ -1405,6 +1405,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
 
   private async run(): Promise<void> {
     this.unmount();
+    // The last programme's poster goes now, not when the next programme's
+    // metadata comes, which a connector fetches first. The page's own stays.
+    if (!this.hasAttribute('poster')) this.node.removeAttribute('poster');
     if (!this.isConnected) return;
     const sources = this.wanted();
     this.tried = JSON.stringify(sources);

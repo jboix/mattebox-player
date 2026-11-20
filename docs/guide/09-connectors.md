@@ -115,13 +115,13 @@ player.sources = [{ type: 'example/episode', id: 'ep-1042' }];
 
 The element applies the resolution before the session starts:
 
-| Field of `metadata`    | Where it goes                                                                                      |
-| ---------------------- | -------------------------------------------------------------------------------------------------- |
-| `title`, `subtitle`    | `<mbx-title>`, for each attribute the page leaves out: `heading`, `subheading`                     |
-| `poster`               | The video's poster, unless the player has a `poster` attribute                                     |
-| `chapters`             | `engine.chapters.set`, unless the player has a `chapters` attribute. An engine session only        |
-| `markers`              | `player.markers`, as [chapter 11](11-blocks-and-markers.md) describes                              |
-| `image`, `description` | Nothing. Read them from `player.programme`. Set `artwork` on `<mbx-title>` to show the image there |
+| Field of `metadata`    | Where it goes                                                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `title`, `subtitle`    | `<mbx-title>`, for each attribute the page leaves out: `heading`, `subheading`                             |
+| `poster`               | The video's poster, unless the player has a `poster` attribute. The last programme's goes as a load starts |
+| `chapters`             | `engine.chapters.set`, unless the player has a `chapters` attribute. An engine session only                |
+| `markers`              | `player.markers`, as [chapter 11](11-blocks-and-markers.md) describes                                      |
+| `image`, `description` | Nothing. Read them from `player.programme`. Set `artwork` on `<mbx-title>` to show the image there         |
 
 A `block` shows on the error screen as `block()` shows it: see
 [chapter 11](11-blocks-and-markers.md).

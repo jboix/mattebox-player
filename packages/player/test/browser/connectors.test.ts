@@ -100,6 +100,35 @@ describe('a connector source', () => {
     );
   });
 
+  it('drops the poster of the last programme as the next one loads, before its fetch answers', async () => {
+    let answer: (show: Show) => void = () => undefined;
+    const slow: Connector<Show> = {
+      ...shows,
+      type: 'example/slow',
+      fetch: async (id) => {
+        if (id === 'show:1') return SHOWS['show:1'] as Show;
+        return new Promise<Show>((resolve) => {
+          answer = resolve;
+        });
+      },
+    };
+    const player = new MatteboxPlayerElement({ handlers: [stub], connectors: [slow] });
+    fakeMedia(player.media);
+    player.setAttribute('type', 'example/slow');
+    player.setAttribute('src', 'show:1');
+    document.body.append(player);
+    await expect
+      .poll(() => player.media.getAttribute('poster'))
+      .toBe('https://cdn.example/poster.jpg');
+
+    player.setAttribute('src', 'show:2');
+    await expect.poll(() => player.media.hasAttribute('poster')).toBe(false);
+    answer(SHOWS['show:2'] as Show);
+    await expect
+      .poll(() => player.media.getAttribute('poster'))
+      .toBe('https://cdn.example/poster.jpg');
+  });
+
   it('plays injected data through sources, and keeps the page poster and title', async () => {
     const player = mount();
     player.setAttribute('poster', 'https://page.example/own.jpg');
