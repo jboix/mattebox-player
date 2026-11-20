@@ -347,7 +347,18 @@ describe('the controls during a cast', () => {
     expect(player.hasAttribute('idle')).toBe(false);
     end();
     await player.media.play();
-    vi.advanceTimersByTime(10_000);
+    // The video takes the device's time and play state back after the
+    // cast, and its events can wake the bar after any one step of the
+    // clock. So the clock moves a second at a time, with a task between
+    // steps for those events, until the bar hides.
+    for (let step = 0; step < 20 && !player.hasAttribute('idle'); step += 1) {
+      vi.advanceTimersByTime(1_000);
+      await new Promise((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = resolve;
+        channel.port2.postMessage(null);
+      });
+    }
     expect(player.hasAttribute('idle')).toBe(true);
   });
 

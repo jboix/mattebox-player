@@ -295,24 +295,22 @@ describe('<mbx-gamepad>', () => {
     // A disabled track lists no cues; the player hides it on its own a little later.
     track.mode = 'hidden';
     const pad = plug();
-    // Each press waits for its seek: WebKit reads 0 while a seek is pending.
-    const press = async (button: string): Promise<number> => {
+    // Each press waits for the time it seeks to. The seek may start after the
+    // tap returns, and WebKit reads 0 while one is pending, which took over
+    // the poll's default second under a full run.
+    const press = async (button: string, to: number): Promise<void> => {
       await tap(pad, button);
-      if (player.media.seeking)
-        await new Promise((resolve) =>
-          player.media.addEventListener('seeked', resolve, { once: true }),
-        );
-      return player.media.currentTime;
+      await expect.poll(() => player.media.currentTime, { timeout: 5_000 }).toBe(to);
     };
-    expect(await press('rb')).toBe(10);
-    expect(await press('rb')).toBe(20);
+    await press('rb', 10);
+    await press('rb', 20);
     player.media.currentTime = 25;
     await new Promise((resolve) =>
       player.media.addEventListener('seeked', resolve, { once: true }),
     );
     // Past the first seconds of a chapter, previous goes to its start.
-    expect(await press('lb')).toBe(20);
-    expect(await press('lb')).toBe(10);
+    await press('lb', 20);
+    await press('lb', 10);
   });
 
   it('selects with A, the right button, on a Nintendo pad', async () => {

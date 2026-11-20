@@ -105,6 +105,10 @@ async function mount(attributes: Record<string, string> = {}): Promise<Mounted> 
   player.setAttribute('controls', 'custom');
   // A blob URL has no extension, so the type is the page's to give.
   player.setAttribute('type', 'audio/wav');
+  // Muted through the player, which gives its attribute to the video: a
+  // muted video alone can play the next source unmuted, and WebKit refuses
+  // that play without a gesture. A capture still hears a muted video.
+  player.setAttribute('muted', '');
   const captions = document.createElement('mbx-live-captions');
   for (const [name, value] of Object.entries(attributes)) captions.setAttribute(name, value);
   const bar = document.createElement('mbx-control-bar');
@@ -119,9 +123,8 @@ async function mount(attributes: Record<string, string> = {}): Promise<Mounted> 
   if (frameWindow !== undefined) {
     Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', frameWindow);
   }
-  // Playing, so the capture carries an audio track; muted, which a capture still hears.
-  player.media.muted = true;
-  await player.media.play();
+  // Playing, so the capture carries an audio track.
+  await play(player.media);
   return {
     player,
     captions,
@@ -158,7 +161,23 @@ async function source(player: MatteboxPlayerElement): Promise<void> {
   const loaded = once(player.media, 'loadedmetadata');
   player.setAttribute('src', silence(3));
   await loaded;
-  await player.media.play();
+  await play(player.media);
+}
+
+/**
+ * Plays `media`. WebKit can take a play() back with an AbortError before it
+ * starts, under load, though nothing here pauses or loads. The play is the
+ * rig's, not what a test asserts, so it plays again, three times at most.
+ */
+async function play(media: HTMLMediaElement): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      await media.play();
+      return;
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError' || attempt === 3) throw error;
+    }
+  }
 }
 
 /** The recognizer the last start made, once `prepare` resolved. */
@@ -284,7 +303,7 @@ describe('<mbx-live-captions>', () => {
       const loaded = once(player.media, 'loadedmetadata');
       player.setAttribute('src', silence(3));
       await loaded;
-      await player.media.play();
+      await play(player.media);
       // Firefox's capture adds another audio track once the media plays, and the recognizer moves to it.
       await expect.poll(() => ctx.instances.length).toBeGreaterThanOrEqual(2);
       expect(captures).toBe(before + 1);
