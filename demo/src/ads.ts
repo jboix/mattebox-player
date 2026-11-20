@@ -5,9 +5,11 @@
  * instead of sending them. The markup that builds the same player is
  * written out under it.
  */
+
 import { MatteboxPlayerElement } from '@mattebox/player';
 import { ads, adsOf } from '@mattebox/player-ads';
 import logoUrl from '../../docs/logo.svg';
+import { setChildren } from './dom.js';
 import { eventLog } from './event-log.js';
 import { wireTheme } from './theme.js';
 
@@ -220,7 +222,8 @@ const clock = (seconds: number): string => {
 };
 
 player.addEventListener('breakschange', () => {
-  breaks.replaceChildren(
+  setChildren(
+    breaks,
     ...player.breaks.list.map((mark) => {
       const item = document.createElement('li');
       const span = mark.end === undefined ? '' : ` to ${clock(mark.end)}`;

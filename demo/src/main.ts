@@ -9,8 +9,10 @@
  * ClearKey: keys are not an attribute, so that entry swaps in an element
  * built from JavaScript with a stage list.
  */
+
 import type { SourceVideoTrack } from '@mattebox/player-core';
 import { inferType } from '@mattebox/player-core';
+import { setChildren } from './dom.js';
 import '@mattebox/player';
 import type { Marker } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
@@ -370,7 +372,7 @@ function loadProgramme(
   }
 
   function renderExamples(list: readonly Example[]): void {
-    examples.replaceChildren();
+    setChildren(examples);
     for (const example of list) {
       const item = document.createElement('li');
       const button = document.createElement('button');
@@ -400,7 +402,7 @@ function loadProgramme(
       tell(found.length === 0 ? 'nothing found' : `${found.length} programmes`);
     } catch (error) {
       if ((error as Error).name === 'AbortError') return;
-      examples.replaceChildren();
+      setChildren(examples);
       tell(`could not list: ${String((error as Error).message)}`, true);
     }
   }
@@ -413,7 +415,7 @@ function loadProgramme(
     unit.hidden = entry.units === undefined;
     query.hidden = entry.search === undefined;
     query.value = '';
-    unit.replaceChildren();
+    setChildren(unit);
     for (const name of entry.units ?? []) {
       const option = document.createElement('option');
       option.value = name;
@@ -1324,7 +1326,7 @@ function layoutItem(name: string): HTMLLIElement {
 
 function renderLists(): void {
   for (const row of ROWS) {
-    lists[row].replaceChildren();
+    setChildren(lists[row]);
     for (const name of rows[row]) lists[row].append(layoutItem(name));
   }
 }

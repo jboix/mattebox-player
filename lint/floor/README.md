@@ -4,8 +4,9 @@ Biome plugins that fail the lint on browser features newer than Chromium 76,
 the floor of AGENTS.md rule 9. Chromium 76 is Samsung Tizen 6.0, the 2021
 sets; LG webOS 6 is Chromium 79.
 
-`biome.json` loads both files for the `src` of every package. The demo and
-the tests run in current browsers and are not checked.
+`biome.json` loads both files for the `src` of every package and for
+`demo/src`. The hosted demo is how you try the player on a TV, so it keeps
+the floor too. The tests run in current browsers and are not checked.
 
 | File       | Checks                                           |
 | ---------- | ------------------------------------------------ |

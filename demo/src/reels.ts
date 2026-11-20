@@ -14,6 +14,7 @@
  * The surface that would make it one call: an option of the playlist that
  * preloads the next item from the start.
  */
+import { setChildren } from './dom.js';
 import '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import type { PlaylistItem } from '@mattebox/player-playlist';
@@ -323,5 +324,5 @@ function run(reels: readonly PlaylistItem[]): void {
   playlist.load(reels);
 }
 
-feed.replaceChildren();
+setChildren(feed);
 run(rtsReels());

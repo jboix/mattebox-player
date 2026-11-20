@@ -5,6 +5,8 @@
  * lines in a dialog the size of the window, with a filter and a copy button.
  */
 
+import { setChildren } from './dom.js';
+
 export type Level = 'info' | 'warn' | 'error';
 
 export interface EventLog {
@@ -81,7 +83,7 @@ export function eventLog(host: HTMLElement, title: string): EventLog {
   list.setAttribute('role', 'log');
   list.setAttribute('aria-label', title);
   host.classList.add('event-log');
-  host.replaceChildren(bar, list);
+  setChildren(host, bar, list);
 
   const dialog = element('dialog', 'log-dialog');
   dialog.setAttribute('aria-label', title);
@@ -109,14 +111,14 @@ export function eventLog(host: HTMLElement, title: string): EventLog {
       filter === '' ? total : `${lines.filter(matches).length} of ${lines.length}`;
   };
   const render = (): void => {
-    big.replaceChildren(...lines.filter(matches).map(row));
+    setChildren(big, ...lines.filter(matches).map(row));
     big.scrollTop = big.scrollHeight;
     counts();
   };
   const empty = (): void => {
     lines.length = 0;
-    list.replaceChildren();
-    big.replaceChildren();
+    setChildren(list);
+    setChildren(big);
     counts();
   };
 

@@ -72,8 +72,8 @@ you had to reach around.
    floor, so one rule covers them all. Do not use a browser feature newer than Chromium 76 without a fallback in the
    same place.
    - The Biome plugins in `lint/floor/` fail the lint on the known ones, in
-     these packages' `src`: `css.grit` for the CSS files, `js.grit` for the
-     TypeScript. `lint/floor/README.md` lists each rule and its fix.
+     these packages' `src` and in `demo/src`: `css.grit` for the CSS files,
+     `js.grit` for the TypeScript. `lint/floor/README.md` lists each rule and its fix.
    - A focus ring is styled on `:focus` and removed with
      `:focus:not(:focus-visible)`, so a browser without `:focus-visible`
      keeps it: on a TV the focus is the only cursor.

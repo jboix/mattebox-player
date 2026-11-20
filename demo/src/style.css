@@ -128,9 +128,12 @@ body {
   flex: none;
   display: flex;
   align-items: center;
-  gap: calc(var(--step) * 1.5);
   padding: 0.5rem calc(var(--step) * 2);
   border-bottom: 1px solid var(--rule);
+}
+/* Flex gap needs Chromium 84: margins space the items. */
+.masthead > :not(:last-child) {
+  margin-right: calc(var(--step) * 1.5);
 }
 
 /* The mark leads to the website. */
@@ -161,11 +164,13 @@ body {
   flex: none;
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
   padding: 0.4rem 0.8rem;
   line-height: 1;
   color: var(--ink-soft);
   background: transparent;
+}
+.chooser > * + * {
+  margin-left: 0.5rem;
 }
 
 /* The room toggle is an icon alone, the size of the repository link beside it. */
@@ -210,10 +215,12 @@ body {
 
 .pages-list {
   position: static;
-  inset: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
   display: flex;
   align-items: center;
-  gap: calc(var(--step) * 1.5);
   width: auto;
   height: auto;
   margin: 0;
@@ -222,6 +229,9 @@ body {
   border: 0;
   background: none;
   color: inherit;
+}
+.pages-list > :not(:last-child) {
+  margin-right: calc(var(--step) * 1.5);
 }
 
 .page-link {
@@ -320,8 +330,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--step);
   margin-bottom: var(--step);
+}
+.flag-head > :not(:last-child) {
+  margin-right: var(--step);
 }
 
 .flag h2 {
@@ -367,6 +379,7 @@ mattebox-player[fullscreen] > video {
 }
 
 mattebox-player::part(error) {
+  /* biome-ignore lint/plugin: the items are in the player's shadow root, out of reach of a margin; below Chromium 84 they only sit closer. */
   gap: calc(var(--step) * 1.5);
   padding: 0.55rem var(--step);
   background: var(--code);
@@ -457,8 +470,10 @@ button:hover {
 
 .row {
   display: flex;
-  gap: var(--step);
   margin-top: var(--step);
+}
+.row > :not(:last-child) {
+  margin-right: var(--step);
 }
 
 .grow {
@@ -479,7 +494,9 @@ button:hover {
 
 .flag-actions {
   display: flex;
-  gap: 0.5rem;
+}
+.flag-actions > :not(:last-child) {
+  margin-right: 0.5rem;
 }
 
 .sections {
@@ -495,14 +512,16 @@ button:hover {
 .section summary {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   min-height: 2.75rem;
   cursor: pointer;
   list-style: none;
 }
+.section summary > :not(:last-child) {
+  margin-right: 0.6rem;
+}
 
 /* Room for the package's switch, which sits over the header's end. */
-.section:has(> .switch) summary {
+.section.with-switch summary {
   padding-right: 3rem;
 }
 
@@ -596,17 +615,23 @@ button:hover {
   background-position: calc(100% - 0.125rem) center;
 }
 
-.switch input:focus-visible {
+/* :focus-visible needs Chromium 86: an older browser rings every focus. */
+.switch input:focus {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+.switch input:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
   margin-top: var(--step);
   font-size: 0.9375rem;
+}
+.field > * + * {
+  margin-top: 0.3rem;
 }
 
 .field > span {
@@ -627,16 +652,26 @@ button:hover {
 .checks {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem calc(var(--step) * 1.5);
   margin-top: var(--step);
+}
+.checks > * {
+  margin: 0 0 0.5rem calc(var(--step) * 1.5);
+}
+/* The first item's left margin and the last line's are not the row's: they
+   go back, on the left so nothing overflows where the page would scroll. */
+.checks {
+  margin-bottom: -0.5rem;
+  margin-left: calc(var(--step) * -1.5);
 }
 
 .check {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   font-size: 0.9375rem;
   cursor: pointer;
+}
+.check > * + * {
+  margin-left: 0.5rem;
 }
 
 .check input {
@@ -644,14 +679,13 @@ button:hover {
   height: 1rem;
   margin: 0;
   padding: 0;
-  accent-color: var(--accent);
 }
 
 /* The chooser: one dialog, one size, whichever route is showing. */
 
 #content-dialog {
-  width: min(58rem, calc(100vw - 2rem));
-  height: min(38rem, calc(100vh - 2rem));
+  width: 58rem;
+  height: 38rem;
   margin: auto;
   padding: 0;
   display: none;
@@ -660,6 +694,17 @@ button:hover {
   color: var(--ink);
   border: 1px solid var(--rule);
   border-top: 3px solid var(--hinge);
+}
+/* min() needs Chromium 79: the window's edge takes over from the fixed size. */
+@media (max-width: 60rem) {
+  #content-dialog {
+    width: calc(100vw - 2rem);
+  }
+}
+@media (max-height: 40rem) {
+  #content-dialog {
+    height: calc(100vh - 2rem);
+  }
 }
 
 #content-dialog[open] {
@@ -745,8 +790,16 @@ button:hover {
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
   margin-top: 0.25rem;
+}
+.tags > * {
+  margin: 0 0 0.25rem 0.25rem;
+}
+/* The first item's left margin and the last line's are not the row's: they
+   go back, on the left so nothing overflows where the page would scroll. */
+.tags {
+  margin-bottom: -0.25rem;
+  margin-left: -0.25rem;
 }
 
 .tags:empty {
@@ -788,8 +841,10 @@ button:hover {
 .log-bar {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
   margin-bottom: 0.4rem;
+}
+.log-bar > * + * {
+  margin-left: 0.4rem;
 }
 
 .log-count {
@@ -820,9 +875,11 @@ button:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0 0.6rem;
   padding: 0.1rem 0.6rem;
   border-bottom: 1px solid rgba(233, 227, 217, 0.07);
+}
+.log-row > * + * {
+  margin-left: 0.6rem;
 }
 
 .log-row:hover {
@@ -882,11 +939,13 @@ button:hover {
 .log-head {
   display: flex;
   align-items: center;
-  gap: var(--step);
   flex: none;
   margin: 0;
   padding: calc(var(--step) * 1.25) calc(var(--step) * 1.5);
   border-bottom: 1px solid var(--rule);
+}
+.log-head > * + * {
+  margin-left: var(--step);
 }
 
 .log-title {
@@ -929,8 +988,12 @@ button:hover {
 }
 
 .picks button:hover,
-.picks button:focus-visible {
+.picks button:focus {
   background: var(--ground);
+}
+/* :focus-visible needs Chromium 86: an older browser marks every focus. */
+.picks button:focus:not(:focus-visible):not(:hover) {
+  background: transparent;
 }
 
 .segments button[aria-selected="true"] {
@@ -976,11 +1039,13 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
   padding: 0.35rem 0.5rem;
   background: var(--field);
   border-bottom: 1px solid var(--rule);
   cursor: grab;
+}
+.layout-list li > :not(:last-child) {
+  margin-right: 0.5rem;
 }
 
 .layout-list li:last-child {
@@ -994,10 +1059,12 @@ button:hover {
 .layout-list label {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   min-width: 0;
   font-size: 0.9375rem;
   cursor: pointer;
+}
+.layout-list label > :not(:last-child) {
+  margin-right: 0.5rem;
 }
 
 .layout-list label span {
@@ -1012,7 +1079,6 @@ button:hover {
   margin: 0;
   padding: 0;
   flex: none;
-  accent-color: var(--accent);
 }
 
 .layout-list .handle {
@@ -1072,7 +1138,8 @@ button:hover {
 
 @media (max-width: 52rem) {
   body {
-    padding-inline: var(--step);
+    padding-right: var(--step);
+    padding-left: var(--step);
   }
 
   .chooser span {
@@ -1117,13 +1184,18 @@ label[title] > span {
 
 .feed {
   height: 100%;
-  aspect-ratio: 9 / 16;
   max-width: 100%;
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;
   background: #000;
   border: 1px solid var(--rule);
+}
+/* aspect-ratio needs Chromium 88: an older browser shows the feed as wide as it can. */
+@supports (aspect-ratio: 1) {
+  .feed {
+    aspect-ratio: 9 / 16;
+  }
 }
 
 .reel {
@@ -1139,7 +1211,8 @@ label[title] > span {
 /* The artwork shows until the picture starts. */
 .reel-art {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1150,7 +1223,8 @@ label[title] > span {
 /* Over the artwork, which comes after it in the reel. */
 .reel mattebox-player {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   z-index: 1;
   width: 100%;
   height: 100%;
@@ -1236,9 +1310,14 @@ label[title] > span {
 
 .reel-progress:hover::before,
 .reel-progress:hover .reel-progress-fill,
-.reel-progress:focus-visible::before,
-.reel-progress:focus-visible .reel-progress-fill {
+.reel-progress:focus::before,
+.reel-progress:focus .reel-progress-fill {
   height: 6px;
+}
+/* :focus-visible needs Chromium 86: an older browser thickens every focus. */
+.reel-progress:focus:not(:focus-visible):not(:hover)::before,
+.reel-progress:focus:not(:focus-visible):not(:hover) .reel-progress-fill {
+  height: 3px;
 }
 
 /* The two medians the page compares. */
@@ -1269,13 +1348,16 @@ label[title] > span {
    view. The masthead wraps and scrolls away to leave the picture the room. */
 @media (max-width: 40rem) {
   body {
-    padding-inline: 0;
+    padding-right: 0;
+    padding-left: 0;
   }
 
   .masthead {
     position: static;
-    gap: calc(var(--step) * 0.75);
     padding: 0.5rem var(--step);
+  }
+  .masthead > :not(:last-child) {
+    margin-right: calc(var(--step) * 0.75);
   }
 
   /* One row: the title gives way before the buttons do. */
@@ -1310,14 +1392,20 @@ label[title] > span {
 
   .pages-list:popover-open {
     position: fixed;
-    inset: 3.25rem var(--step) auto auto;
+    top: 3.25rem;
+    right: var(--step);
+    bottom: auto;
+    left: auto;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.5rem;
     padding: var(--step);
     border: 1px solid var(--rule);
     background: var(--panel);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  }
+  .pages-list:popover-open > :not(:last-child) {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
   }
 
   .rig {
@@ -1344,7 +1432,8 @@ label[title] > span {
   }
 
   .status {
-    padding-inline: var(--step);
+    padding-right: var(--step);
+    padding-left: var(--step);
   }
 
   .flag,
@@ -1354,5 +1443,15 @@ label[title] > span {
 
   .reels-stage {
     height: 78vh;
+  }
+}
+
+/* accent-color needs Chromium 93: an older browser draws its own boxes. */
+/* biome-ignore lint/plugin: the condition is how an older browser skips the block. */
+@supports (accent-color: red) {
+  .check input,
+  .layout-list input {
+    /* biome-ignore lint/plugin: only a browser with accent-color reads this block. */
+    accent-color: var(--accent);
   }
 }

@@ -50,7 +50,8 @@
         "packages/ads/src/**",
         "packages/live-captions/src/**",
         "packages/playlist/src/**",
-        "packages/diagnostics/src/**"
+        "packages/diagnostics/src/**",
+        "demo/src/**"
       ],
       "plugins": ["./lint/floor/css.grit", "./lint/floor/js.grit"]
     }
