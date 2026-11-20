@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-spatial-nav",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "<mbx-spatial-nav> and <mbx-gamepad>: remote control and game controller navigation for <mattebox-player> on TVs, consoles and desktops.",
   "author": "Josep Boix Requesens",
   "repository": {
