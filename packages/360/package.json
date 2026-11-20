@@ -1,6 +1,6 @@
 {
   "name": "@mattebox/player-360",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "360° video in <mattebox-player>: the picture drawn on the inside of a sphere, turned by a drag, the wheel or a game controller.",
   "author": "Josep Boix Requesens",
   "repository": {
