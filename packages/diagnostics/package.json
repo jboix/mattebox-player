@@ -57,7 +57,7 @@
     "@mattebox/player-core": "^0.10.0"
   },
   "peerDependencies": {
-    "@mattebox/player": ">=0.15.0",
+    "@mattebox/player": ">=0.16.0",
     "mattebox": "^0.18.0"
   }
 }
