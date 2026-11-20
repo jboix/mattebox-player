@@ -480,8 +480,8 @@ does not hide during the cast, and a tap on the picture plays or pauses.
   and the name of the device, or null.
 - `<mbx-casting>` covers the picture with the programme's poster, dimmed,
   and shows the device's glyph over a line that names it: "Casting to
-  Living room", or "AirPlay", since Safari does not name the target. Place
-  it before the other screens.
+  Living room". Under AirPlay the line is "Playing on AirPlay", since Safari
+  does not name the target. Place it before the other screens.
 - The quality menu, the video menu, the scan buttons, fullscreen and
   picture in picture hide during a cast. The device picks its own quality.
 - The speed menu hides during any cast: a Chromecast plays its own engine,
@@ -525,10 +525,10 @@ not load the SDK when the page already has it, or when the button has
 uses the Default Media Receiver. The first button on the page decides the
 receiver, because the SDK keeps one context per page.
 
-| Element           | Attributes        | Labels                      | Icon slots            |
-| ----------------- | ----------------- | --------------------------- | --------------------- |
-| `mbx-cast-button` | `receiver`, `sdk` | `label-start`, `label-stop` | `icon`, `icon-active` |
-| `mbx-casting`     |                   | `label` with `{device}`     |                       |
+| Element           | Attributes        | Labels                                   | Icon slots            |
+| ----------------- | ----------------- | ---------------------------------------- | --------------------- |
+| `mbx-cast-button` | `receiver`, `sdk` | `label-start`, `label-stop`              | `icon`, `icon-active` |
+| `mbx-casting`     |                   | `label` with `{device}`, `label-airplay` |                       |
 
 When a session starts, the player does this:
 

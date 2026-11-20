@@ -1,7 +1,8 @@
-import type { MatteboxPlayerElement, Remote, RemoteLoad, RemoteMedia } from '@mattebox/player';
-import '@mattebox/player';
+import type { Remote, RemoteLoad, RemoteMedia } from '@mattebox/player';
+import { MatteboxPlayerElement } from '@mattebox/player';
 import type { Source } from '@mattebox/player-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import de from '../../src/locales/de.js';
 import { silence } from './helpers.js';
 
 /** A device that plays nothing: it keeps what it is told and reports it. */
@@ -377,7 +378,7 @@ describe('the controls during a cast', () => {
     const player = await withBar();
     airplay(player, true);
     const label = player.querySelector('mbx-casting')?.shadowRoot?.querySelector('[part~="label"]');
-    expect(label?.textContent).toBe('AirPlay');
+    expect(label?.textContent).toBe('Playing on AirPlay');
     const forAirplay = glyph(player);
     expect(forAirplay).not.toBeNull();
     airplay(player, false);
@@ -387,6 +388,22 @@ describe('the controls during a cast', () => {
     expect(player.querySelector('mbx-casting')?.shadowRoot?.querySelectorAll('svg')).toHaveLength(
       1,
     );
+    end();
+  });
+
+  it("says the line in the player's language, and takes the page's words over it", async () => {
+    MatteboxPlayerElement.addLocale('de', de);
+    const player = await withBar();
+    player.language = 'de';
+    airplay(player, true);
+    const cover = player.querySelector('mbx-casting');
+    const label = cover?.shadowRoot?.querySelector('[part~="label"]');
+    expect(label?.textContent).toBe('Wiedergabe über AirPlay');
+    cover?.setAttribute('label-airplay', 'Auf dem Apple TV');
+    expect(label?.textContent).toBe('Auf dem Apple TV');
+    airplay(player, false);
+    const end = player.cast(fakeRemote());
+    expect(label?.textContent).toBe('Wiedergabe auf Living room');
     end();
   });
 });

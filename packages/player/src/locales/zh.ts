@@ -79,4 +79,5 @@ export default {
   saidSubtitles: '字幕：{track}',
   saidSubtitlesOff: '字幕已关闭',
   castingTo: '正在投放到 {device}',
+  playingOnAirplay: '正在通过 AirPlay 播放',
 } satisfies PlayerMessages;

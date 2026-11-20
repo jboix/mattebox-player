@@ -153,6 +153,8 @@ export interface PlayerMessages {
   readonly saidSubtitlesOff: string;
   /** "Casting to {device}": the line over the picture while a device plays. */
   readonly castingTo: string;
+  /** "Playing on AirPlay": that line under AirPlay, since Safari does not name the device. */
+  readonly playingOnAirplay: string;
 }
 
 /**

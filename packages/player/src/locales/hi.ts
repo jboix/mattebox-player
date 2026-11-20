@@ -79,4 +79,5 @@ export default {
   saidSubtitles: 'उपशीर्षक: {track}',
   saidSubtitlesOff: 'उपशीर्षक बंद',
   castingTo: '{device} पर कास्ट हो रहा है',
+  playingOnAirplay: 'AirPlay पर चल रहा है',
 } satisfies PlayerMessages;

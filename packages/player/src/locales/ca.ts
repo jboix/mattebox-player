@@ -79,4 +79,5 @@ export default {
   saidSubtitles: 'Subtítols: {track}',
   saidSubtitlesOff: 'Subtítols desactivats',
   castingTo: 'Enviant a {device}',
+  playingOnAirplay: 'Reproduint amb AirPlay',
 } satisfies PlayerMessages;

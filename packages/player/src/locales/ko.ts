@@ -79,4 +79,5 @@ export default {
   saidSubtitles: '자막: {track}',
   saidSubtitlesOff: '자막 끔',
   castingTo: '{device}에 전송 중',
+  playingOnAirplay: 'AirPlay로 재생 중',
 } satisfies PlayerMessages;

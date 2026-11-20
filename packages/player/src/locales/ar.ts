@@ -79,4 +79,5 @@ export default {
   saidSubtitles: 'الترجمة: {track}',
   saidSubtitlesOff: 'الترجمة متوقفة',
   castingTo: 'الإرسال إلى {device}',
+  playingOnAirplay: 'التشغيل عبر AirPlay',
 } satisfies PlayerMessages;

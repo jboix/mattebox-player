@@ -8,9 +8,10 @@
  * Shown while the player carries `casting`, for a Chromecast and for
  * AirPlay alike, and hidden otherwise. The element carries `casting` too,
  * with the device's kind, so a page styles one kind in CSS. Safari names no AirPlay device, so
- * the line is "AirPlay" there. The `label` attribute gives the line its
- * words, with `{device}` for the name. Placed first among the screens, so
- * the title, the start button and the bar paint over it.
+ * the line is "Playing on AirPlay" there. The `label` attribute gives the
+ * line its words, with `{device}` for the name. `label-airplay` gives the
+ * AirPlay line its words. Placed first among the screens, so the title, the
+ * start button and the bar paint over it.
  */
 import type { IconName } from '../controls/icons.js';
 import { icon } from '../controls/icons.js';
@@ -23,7 +24,7 @@ import { style } from './shared.js';
 
 export class MbxCasting extends Component {
   static get observedAttributes(): readonly string[] {
-    return ['label'];
+    return ['label', 'label-airplay'];
   }
 
   declare private readonly poster: HTMLImageElement;
@@ -80,7 +81,7 @@ export class MbxCasting extends Component {
     this.label.textContent =
       target.name === ''
         ? target.kind === 'airplay'
-          ? this.word('label', 'airplay', 'AirPlay')
+          ? this.word('label-airplay', 'playingOnAirplay', 'Playing on AirPlay')
           : ''
         : fill(this.word('label', 'castingTo', 'Casting to {device}'), { device: target.name });
   }

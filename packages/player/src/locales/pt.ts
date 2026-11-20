@@ -79,4 +79,5 @@ export default {
   saidSubtitles: 'Legendas: {track}',
   saidSubtitlesOff: 'Legendas desativadas',
   castingTo: 'A transmitir para {device}',
+  playingOnAirplay: 'A reproduzir via AirPlay',
 } satisfies PlayerMessages;

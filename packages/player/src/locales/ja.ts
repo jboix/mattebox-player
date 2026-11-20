@@ -79,4 +79,5 @@ export default {
   saidSubtitles: '字幕: {track}',
   saidSubtitlesOff: '字幕オフ',
   castingTo: '{device} にキャスト中',
+  playingOnAirplay: 'AirPlay で再生中',
 } satisfies PlayerMessages;
