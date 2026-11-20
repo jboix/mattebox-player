@@ -49,6 +49,7 @@
         "packages/preferences/src/**",
         "packages/ads/src/**",
         "packages/live-captions/src/**",
+        "packages/360/src/**",
         "packages/playlist/src/**",
         "packages/diagnostics/src/**",
         "demo/src/**"

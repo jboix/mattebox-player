@@ -41,6 +41,7 @@ export type {
   Programme,
   ProgrammeMetadata,
   ProgrammeSource,
+  Projection,
   Resolution,
   Source,
   SourceDrm,

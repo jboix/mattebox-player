@@ -25,6 +25,7 @@ import type {
   PlayerError,
   Programme,
   ProgrammeSource,
+  Projection,
   Session,
   Source,
   SourceVideoTrack,
@@ -101,11 +102,12 @@ function emeAvailable(): boolean {
 }
 
 /** `source` without its DRM, for a browser without EME. */
-function withoutDrm({ url, type, videoTracks }: Source): Source {
+function withoutDrm({ url, type, videoTracks, projection }: Source): Source {
   return {
     url,
     ...(type === undefined ? {} : { type }),
     ...(videoTracks === undefined ? {} : { videoTracks }),
+    ...(projection === undefined ? {} : { projection }),
   };
 }
 const CERTIFICATE_URL = 'certificate-url';
@@ -731,6 +733,22 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     return this.original?.videoTracks ?? [];
   }
 
+  /**
+   * How the playing picture maps onto a sphere, for 360° video: the
+   * source's `projection`, else the manifest's, else null for a flat one.
+   * A version of `videoSources` is flat.
+   */
+  get projection(): Projection | null {
+    if (this.version !== null) return null;
+    const given = this.original?.projection;
+    if (given !== undefined) return given;
+    const track = this.current?.engine?.tracks.active('video');
+    for (const rendition of track?.renditions ?? []) {
+      if (rendition.projection !== undefined) return rendition.projection;
+    }
+    return null;
+  }
+
   /** The version of `videoSources` that plays, or null for the source itself. */
   get videoSource(): SourceVideoTrack | null {
     return this.version;
@@ -1208,6 +1226,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // a read can only ever change the attribute, never the video.
     this.toggleAttribute('muted', video.muted);
     this.toggleAttribute('audio', this.audio());
+    const projection = this.projection;
+    if (projection === null) this.removeAttribute('projection');
+    else this.setAttribute('projection', projection);
     this.toggleAttribute('started', this.started);
     this.toggleAttribute('waiting', this.waiting);
     this.toggleAttribute('error', this.failure !== null);

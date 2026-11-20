@@ -1,0 +1,58 @@
+{
+  "name": "@mattebox/player-360",
+  "version": "0.0.0",
+  "description": "360° video in <mattebox-player>: the picture drawn on the inside of a sphere, turned by a drag, the wheel or a game controller.",
+  "author": "Josep Boix Requesens",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jboix/mattebox-player.git",
+    "directory": "packages/360"
+  },
+  "homepage": "https://github.com/jboix/mattebox-player#readme",
+  "bugs": {
+    "url": "https://github.com/jboix/mattebox-player/issues"
+  },
+  "keywords": [
+    "mattebox",
+    "player",
+    "custom-element",
+    "360",
+    "vr",
+    "webgl"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": true,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "main": "./dist/es2015/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "modern": "./dist/index.js",
+      "default": "./dist/es2015/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build:modern && npm run build:es2015 && npm run build:cdn",
+    "build:modern": "tsc -p tsconfig.build.json --emitDeclarationOnly && rolldown -c rolldown.modern.config.mjs",
+    "build:es2015": "rolldown -c rolldown.dist.config.mjs",
+    "build:cdn": "rolldown -c rolldown.cdn.config.mjs",
+    "check:package": "publint && attw --pack . --format table --no-emoji",
+    "release:ci": "semantic-release"
+  },
+  "peerDependencies": {
+    "@mattebox/player": ">=0.15.0",
+    "mattebox": "^0.18.0"
+  },
+  "devDependencies": {
+    "@mattebox/player-core": "^0.9.0"
+  }
+}

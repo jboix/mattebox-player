@@ -18,6 +18,7 @@ import type { Marker } from '@mattebox/player';
 import { MatteboxPlayerElement } from '@mattebox/player';
 import '@mattebox/player-cast';
 import '@mattebox/player-diagnostics';
+import '@mattebox/player-360';
 import '@mattebox/player-live-captions';
 import '@mattebox/player-preferences';
 import '@mattebox/player-spatial-nav/gamepad';
@@ -28,7 +29,7 @@ import emeCore from 'mattebox/stages/eme-core';
 // root, and only an import gives it a URL the dev server and the build serve.
 import logoUrl from '../../docs/logo.svg';
 import type { StreamEntry } from './catalogue.js';
-import { STREAMS, tagsOf } from './catalogue.js';
+import { GROUPS, STREAMS, tagsOf } from './catalogue.js';
 import type { DemoConnector, Example } from './connectors/index.js';
 import { CONNECTORS, DEMO_CONNECTORS } from './connectors/index.js';
 import { eventLog } from './event-log.js';
@@ -215,7 +216,7 @@ function videoTrackElement(track: SourceVideoTrack): HTMLElement {
 
 // ---- static content ----------------------------------------------------------
 
-const streamList = byId<HTMLOListElement>('stream-list');
+const streamList = byId<HTMLElement>('stream-list');
 const streamUrl = byId<HTMLInputElement>('stream-url');
 const licenseUrl = byId<HTMLInputElement>('license-url');
 const thumbUrl = byId<HTMLInputElement>('thumb-url');
@@ -223,18 +224,30 @@ const chaptersUrl = byId<HTMLInputElement>('chapters-url');
 const streamNote = byId<HTMLElement>('stream-note');
 
 function chooseStream(entry: StreamEntry): void {
+  for (const item of streamList.querySelectorAll('li')) {
+    item.classList.toggle('current', item.dataset.url === entry.url);
+  }
+  // A screen the entry needs, such as the 360° view, switches on with it.
+  const needed = screens.find((screen) => screen.dataset.screen === entry.screen);
+  if (needed !== undefined && !needed.checked) {
+    needed.checked = true;
+    needed.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  if (entry.programme !== undefined) {
+    streamNote.textContent = entry.note ?? '';
+    loadProgramme(entry.programme.type, { id: entry.programme.id }, entry.label);
+    return;
+  }
   streamUrl.value = entry.url;
   licenseUrl.value = entry.licenseUrl ?? '';
   thumbUrl.value = entry.thumbnails ?? '';
   chaptersUrl.value = entry.chapters ?? '';
   streamNote.textContent = entry.note ?? '';
-  for (const item of streamList.querySelectorAll('li')) {
-    item.classList.toggle('current', item.dataset.url === entry.url);
-  }
   load(entry);
 }
 
-for (const stream of STREAMS) {
+/** One entry of the chooser. */
+function streamItem(stream: StreamEntry): HTMLLIElement {
   const item = document.createElement('li');
   item.dataset.url = stream.url;
   const button = document.createElement('button');
@@ -258,7 +271,20 @@ for (const stream of STREAMS) {
     chooseStream(stream);
   });
   item.append(button);
-  streamList.append(item);
+  return item;
+}
+
+// One heading and one list per group, in the order of GROUPS.
+for (const group of GROUPS) {
+  const entries = STREAMS.filter((stream) => stream.group === group);
+  if (entries.length === 0) continue;
+  const heading = document.createElement('h3');
+  heading.className = 'picks-group';
+  heading.textContent = group;
+  const list = document.createElement('ol');
+  list.setAttribute('aria-label', group);
+  list.append(...entries.map(streamItem));
+  streamList.append(heading, list);
 }
 
 /** The schemes a source may come over. */
@@ -785,6 +811,7 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   gamepad: 'mbx-gamepad',
   preferences: 'mbx-preferences',
   'live-captions': 'mbx-live-captions',
+  '360': 'mbx-360',
 };
 
 /** Where the demo's player keeps the viewer's choices, apart from the demo's own settings. */
@@ -793,10 +820,10 @@ const PREFERENCES_KEY = 'mattebox.demo.preferences';
 /** The whole composition: the screens, and the bar with its rows. */
 function composition(): string {
   const lines: string[] = [];
-  // The title first: its band paints under the other screens.
-  const ordered = [...screens].sort(
-    (a, b) => Number(b.dataset.screen === 'title') - Number(a.dataset.screen === 'title'),
-  );
+  // The 360° view first, under everything; then the title, whose band paints under the other screens.
+  const rank = (screen: HTMLInputElement): number =>
+    screen.dataset.screen === '360' ? 2 : screen.dataset.screen === 'title' ? 1 : 0;
+  const ordered = [...screens].sort((a, b) => rank(b) - rank(a));
   for (const screen of ordered) {
     if (!screen.checked) continue;
     const tagName = SCREEN_TAGS[screen.dataset.screen ?? ''] ?? 'mbx-error-screen';
@@ -980,6 +1007,7 @@ function markupFor(element: MatteboxPlayerElement): string {
     ...(composed.includes('<mbx-live-captions')
       ? ["\n  import '@mattebox/player-live-captions';"]
       : []),
+    ...(composed.includes('<mbx-360') ? ["\n  import '@mattebox/player-360';"] : []),
   ].join('');
   // At an edge the spatial navigation hands focus to the application.
   const edges = composed.includes('<mbx-spatial-nav')

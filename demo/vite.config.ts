@@ -78,6 +78,10 @@ export default defineConfig({
         ),
       },
       {
+        find: '@mattebox/player-360',
+        replacement: fileURLToPath(new URL('../packages/360/src/index.ts', import.meta.url)),
+      },
+      {
         find: '@mattebox/player-preferences',
         replacement: fileURLToPath(
           new URL('../packages/preferences/src/index.ts', import.meta.url),
@@ -108,6 +112,7 @@ export default defineConfig({
         playlist: fileURLToPath(new URL('playlist.html', import.meta.url)),
         reels: fileURLToPath(new URL('reels.html', import.meta.url)),
         ads: fileURLToPath(new URL('ads.html', import.meta.url)),
+        view360: fileURLToPath(new URL('360.html', import.meta.url)),
       },
     },
   },

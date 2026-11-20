@@ -255,6 +255,9 @@ const KEY_SYSTEMS: Readonly<Record<DrmEntry['type'], string>> = {
  * of its key systems the browser granted, so the engine finds one for the
  * key system it opens.
  */
+/** SRG SSR's 360° videos are equirectangular, 2:1, the whole sphere. */
+const PROJECTION = 'equirectangular' as const;
+
 async function sourceOf(
   resource: IlResource,
   granted: readonly DrmCapability[],
@@ -268,13 +271,16 @@ async function sourceOf(
   // An encrypted resource without one of this browser's key systems does not play here.
   if ((resource.drmList?.length ?? 0) > 0 && entries.length === 0) return null;
   const url = resource.tokenType === 'AKAMAI' ? await tokenize(resource.url, signal) : resource.url;
-  if (entries.length === 0) return { url, type: resource.mimeType };
+  // The IL marks a 360° resource; its stream does not say so itself.
+  const sphere = resource.presentation === 'VIDEO_360' ? { projection: PROJECTION } : {};
+  if (entries.length === 0) return { url, type: resource.mimeType, ...sphere };
   const certificateUrl = entries.find(
     (entry) => entry.certificateUrl !== undefined,
   )?.certificateUrl;
   return {
     url,
     type: resource.mimeType,
+    ...sphere,
     drm: {
       licenseUrls: Object.fromEntries(
         entries.map((entry) => [KEY_SYSTEMS[entry.type], entry.licenseUrl]),

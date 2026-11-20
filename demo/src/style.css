@@ -643,6 +643,24 @@ button:hover {
   width: 100%;
 }
 
+/* The 360° page: where the view looks, term beside value. */
+.readout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem var(--step);
+  margin: 0 0 var(--step);
+  font-family: var(--mono, monospace);
+  font-size: 0.875rem;
+}
+
+.readout dt {
+  color: var(--ink-soft);
+}
+
+.readout dd {
+  margin: 0;
+}
+
 .pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -753,6 +771,29 @@ button:hover {
 }
 
 /* Search results get the room the dialog has. */
+/* The static content: one heading per group, which stays in view while its list scrolls. */
+.picks-group {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.4rem 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--ground);
+  border-bottom: 1px solid var(--rule);
+}
+
+.picks ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .picks.tall {
   max-height: 22rem;
 }

@@ -18,9 +18,11 @@ run on one), `@mattebox/player-playlist` (the playlist) and
 `@mattebox/player-preferences` (the viewer's preferences, a package of its
 own because storing them is the page's decision), `@mattebox/player-ads`
 (ads, a package of its own because it adds an engine stage and talks to ad
-servers) and `@mattebox/player-live-captions` (the browser's speech
+servers), `@mattebox/player-live-captions` (the browser's speech
 recognition over the video's sound, a package of its own because it
-rests on an experimental API only Chrome has). Read
+rests on an experimental API only Chrome has) and `@mattebox/player-360`
+(360° video drawn with WebGL, a package of its own because most
+programmes are flat). Read
 `docs/architecture.md` before doing anything.
 
 The player exists for two reasons in this order. First, to put its author in
@@ -68,7 +70,7 @@ you had to reach around.
 
 9. **The floor is Chromium 76.** The core, the player, the spatial-nav and
    the preferences packages run on 2021 TVs: Samsung Tizen 6.0 (Chromium 76) and LG webOS 6 (Chromium 79).
-   The cast, the diagnostics and the live captions packages follow the same
+   The cast, the diagnostics, the live captions and the 360 packages follow the same
    floor, so one rule covers them all. Do not use a browser feature newer than Chromium 76 without a fallback in the
    same place.
    - The Biome plugins in `lint/floor/` fail the lint on the known ones, in

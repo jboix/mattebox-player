@@ -8,6 +8,7 @@
         "demo/src/playlist.ts",
         "demo/src/reels.ts",
         "demo/src/ads.ts",
+        "demo/src/view-360.ts",
         "scripts/*.mjs",
         "scripts/lib/inline-css.mjs",
         "test/e2e/**/*.ts",
@@ -60,6 +61,10 @@
     },
     "packages/playlist": {
       "entry": ["src/index.ts", "cdn/*.ts", "src/locales/*.ts"],
+      "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/360": {
+      "entry": ["src/index.ts", "cdn/*.ts"],
       "project": ["src/**/*.ts", "cdn/**/*.ts", "test/**/*.ts"]
     }
   }

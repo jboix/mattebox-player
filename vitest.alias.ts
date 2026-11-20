@@ -81,6 +81,10 @@ export const alias = [
     replacement: fileURLToPath(new URL('packages/live-captions/src/index.ts', import.meta.url)),
   },
   {
+    find: '@mattebox/player-360',
+    replacement: fileURLToPath(new URL('packages/360/src/index.ts', import.meta.url)),
+  },
+  {
     find: '@mattebox/player-playlist',
     replacement: fileURLToPath(new URL('packages/playlist/src/index.ts', import.meta.url)),
   },

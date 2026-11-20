@@ -35,6 +35,7 @@
       "@mattebox/player-ads": ["./packages/ads/src/index.ts"],
       "@mattebox/player-playlist": ["./packages/playlist/src/index.ts"],
       "@mattebox/player-live-captions": ["./packages/live-captions/src/index.ts"],
+      "@mattebox/player-360": ["./packages/360/src/index.ts"],
       "@mattebox/player/locales/*": ["./packages/player/src/locales/*.ts"],
       "@mattebox/player-playlist/locales/*": ["./packages/playlist/src/locales/*.ts"],
       "@mattebox/player-cast/locales/*": ["./packages/cast/src/locales/*.ts"],

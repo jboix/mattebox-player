@@ -13,6 +13,7 @@
 [![@mattebox/player-preferences](https://img.shields.io/npm/v/@mattebox/player-preferences?label=%40mattebox%2Fplayer-preferences)](https://www.npmjs.com/package/@mattebox/player-preferences)
 [![@mattebox/player-ads](https://img.shields.io/npm/v/@mattebox/player-ads?label=%40mattebox%2Fplayer-ads)](https://www.npmjs.com/package/@mattebox/player-ads)
 [![@mattebox/player-live-captions](https://img.shields.io/npm/v/@mattebox/player-live-captions?label=%40mattebox%2Fplayer-live-captions)](https://www.npmjs.com/package/@mattebox/player-live-captions)
+[![@mattebox/player-360](https://img.shields.io/npm/v/@mattebox/player-360?label=%40mattebox%2Fplayer-360)](https://www.npmjs.com/package/@mattebox/player-360)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 The Mattebox player is seven packages over the
@@ -31,6 +32,7 @@ handler to use, and adds a custom UI on top of it.
 | `@mattebox/player-preferences`   | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits | Registers the element on import |
 | `@mattebox/player-ads`           | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                   | Registers the element on import |
 | `@mattebox/player-live-captions` | `<mbx-live-captions>`. What is said, written over the video by the browser's speech recognition, on the device                   | Registers the element on import |
+| `@mattebox/player-360`           | `<mbx-360>`. A 360° video seen from inside, turned by a drag, the wheel or a game controller                                     | Registers the element on import |
 
 A page with its own UI has two options:
 

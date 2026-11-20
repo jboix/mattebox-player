@@ -20,6 +20,7 @@ chapters in order the first time, then use the table.
 | [13 Trackers](13-trackers.md)                           | The trackers your page adds, what they read, the session and device ids        |
 | [14 Ads](14-ads.md)                                     | Interstitials, VAST and VMAP, the ad controls, the beacons and the events      |
 | [15 Live captions](15-live-captions.md)                 | What is said, written over the video by the browser, on the device             |
+| [16 360° video](16-360-video.md)                        | A 360° picture seen from inside, turned by a drag, the wheel or a controller   |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.

@@ -17,6 +17,7 @@ The [guide](guide/README.md) explains how to use them.
 | `@mattebox/player-preferences`   | `<mbx-preferences>` and the store of the viewer's preferences                     | The player (peer, types only), the engine (peer)             |
 | `@mattebox/player-ads`           | The ads of each player, VAST and VMAP, the beacons, the three ad elements         | The player (peer, types only), the engine (peer)             |
 | `@mattebox/player-live-captions` | `<mbx-live-captions>`, the words the browser recognizes in the video's sound      | The player (peer, types only), the engine (peer, types only) |
+| `@mattebox/player-360`           | `<mbx-360>`, a 360° picture drawn on the inside of a sphere with WebGL            | The player (peer, types only), the engine (peer, types only) |
 
 The packages follow four rules:
 

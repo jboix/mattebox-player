@@ -56,8 +56,18 @@ it('the chooser opens from the masthead and lists the demo streams', async () =>
   await userEvent.click($('#open-content'));
   expect(visible($('#content-dialog'))).toBe(true);
   const entries = $$('#stream-list li');
-  expect(entries).toHaveLength(28);
+  expect(entries).toHaveLength(34);
   expect(entries.at(-1)?.textContent).toContain('Extensionless URL');
+  // Under one heading per group, in a fixed order.
+  expect($$('#stream-list .picks-group').map((heading) => heading.textContent)).toEqual([
+    'Films',
+    'Seeking and previews',
+    'Tracks and chapters',
+    'Live',
+    'DRM',
+    '360° video',
+    'Formats and routing',
+  ]);
   // Each entry names what it carries.
   const tags = (text: string) =>
     [...(entries.find((li) => li.textContent?.includes(text))?.querySelectorAll('.tag') ?? [])].map(

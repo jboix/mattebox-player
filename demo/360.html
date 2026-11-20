@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mattebox 360° demo</title>
+  <link rel="icon" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+  />
+  <link rel="stylesheet" href="/src/style.css" />
+  <script>
+    // Before the first paint, so the page never flashes the other theme.
+    try {
+      const theme = localStorage.getItem('mattebox.demo.theme');
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
+</head>
+<body>
+  <header class="masthead">
+    <a class="home" href="https://mattebox.ch/"><img class="logo" alt="Mattebox, the website"></a>
+    <h1>Mattebox 360°</h1>
+    <nav class="pages" aria-label="Demo pages">
+      <button type="button" class="pages-toggle" popovertarget="pages-menu" aria-label="The other demo pages">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path fill-rule="evenodd" d="M4 13h24v14H4zM13.5 16v8l6.5-4zM7 8.5h18v2.5h-18zM10 4h12v2.5h-12z" /></svg>
+      </button>
+      <div id="pages-menu" class="pages-list" popover>
+        <a class="page-link" href="./">The element</a>
+        <a class="page-link" href="./playlist.html">Playlist</a>
+        <a class="page-link" href="./reels.html">Reels</a>
+        <a class="page-link" href="./ads.html">Ads</a>
+      </div>
+    </nav>
+    <button type="button" id="theme-toggle" class="theme-toggle"></button>
+  </header>
+
+  <main id="app" class="rig">
+    <div class="frame">
+      <section aria-label="Player">
+        <mattebox-player id="player" controls="custom" muted type="srgssr/urn">
+          <mbx-360 id="view"></mbx-360>
+          <mbx-start-button></mbx-start-button>
+          <mbx-error-screen></mbx-error-screen>
+          <mbx-spinner></mbx-spinner>
+          <mbx-title></mbx-title>
+          <mbx-control-bar>
+            <mbx-current-time></mbx-current-time>
+            <mbx-seek-bar></mbx-seek-bar>
+            <mbx-duration></mbx-duration>
+            <mbx-play-button></mbx-play-button>
+            <mbx-volume></mbx-volume>
+            <mbx-spacer></mbx-spacer>
+            <mbx-subtitles-menu></mbx-subtitles-menu>
+            <mbx-quality-menu></mbx-quality-menu>
+            <mbx-fullscreen-button></mbx-fullscreen-button>
+          </mbx-control-bar>
+        </mattebox-player>
+        <p id="status" class="status" aria-live="polite"></p>
+      </section>
+      <section class="flag flag-bottom" aria-labelledby="code-title">
+        <div class="flag-head">
+          <h2 id="code-title">Markup</h2>
+          <button type="button" id="copy-code">Copy</button>
+        </div>
+        <pre id="code"></pre>
+      </section>
+    </div>
+
+    <aside class="flag flag-right" aria-labelledby="options-title">
+      <div class="flag-head">
+        <h2 id="options-title">The 360° view</h2>
+      </div>
+
+      <label class="field" title="RTS programmes the SRG SSR content API marks VIDEO_360. The connector turns that into the source's projection.">
+        <span>Programme</span>
+        <select id="example"></select>
+      </label>
+      <p id="note" class="hint"></p>
+
+      <label class="field" title="mbx-360's own projection attribute, which wins over the player's. None keeps the source flat.">
+        <span>Projection</span>
+        <select id="projection">
+          <option value="">As the source says</option>
+          <option value="equirectangular">Equirectangular</option>
+          <option value="half-equirectangular">Half-equirectangular</option>
+          <option value="none">None, flat</option>
+        </select>
+      </label>
+
+      <fieldset class="group">
+        <legend>Where the view looks</legend>
+        <dl id="readout" class="readout"></dl>
+        <div class="row">
+          <button type="button" id="ahead">Look ahead</button>
+        </div>
+        <p class="hint">Drag the picture to look around. The wheel zooms. A game controller turns it with the right stick. A tap plays or pauses.</p>
+      </fieldset>
+    </aside>
+  </main>
+  <script type="module" src="/src/view-360.ts"></script>
+</body>
+</html>

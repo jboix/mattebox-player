@@ -20,7 +20,18 @@ export interface Source {
   readonly videoTracks?: readonly SourceVideoTrack[];
   /** Seconds to start from. The engine fetches from there; a native video seeks there first. */
   readonly start?: number;
+  /**
+   * How the picture maps onto a sphere, for 360° video, when the page knows
+   * it, such as from its content API. It wins over what the manifest says.
+   */
+  readonly projection?: Projection;
 }
+
+/**
+ * A 360° picture: `equirectangular` covers the whole sphere, and
+ * `half-equirectangular` the half in front of the viewer.
+ */
+export type Projection = 'equirectangular' | 'half-equirectangular';
 
 /** A version of a source's picture at its own URL. */
 export interface SourceVideoTrack {

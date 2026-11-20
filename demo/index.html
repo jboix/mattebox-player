@@ -36,6 +36,7 @@
         <a class="page-link" href="./playlist.html">Playlist</a>
         <a class="page-link" href="./reels.html">Reels</a>
         <a class="page-link" href="./ads.html">Ads</a>
+        <a class="page-link" href="./360.html">360°</a>
       </div>
     </nav>
     <button type="button" id="theme-toggle" class="theme-toggle"></button>
@@ -55,7 +56,7 @@
     </div>
 
     <div id="route-static" role="tabpanel">
-      <ol id="stream-list" class="picks" aria-label="Demo streams"></ol>
+      <section id="stream-list" class="picks" aria-label="Demo streams"></section>
       <div class="row">
         <input id="stream-url" class="grow" placeholder="https://…/master.m3u8  or  manifest.mpd" aria-label="Stream URL" />
         <button type="button" id="load-url">Load</button>
@@ -331,6 +332,15 @@
             </div>
           </details>
           <label class="switch" title="Puts mbx-live-captions in the player, from @mattebox/player-live-captions: in Chrome, the video's speech written word by word over the picture. The subtitles menu turns it on, with a badge that says a machine wrote the words."><input type="checkbox" data-screen="live-captions" aria-label="Live captions" /></label>
+        </div>
+        <div class="section with-switch" data-section="360">
+          <details>
+            <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">360° video</span><code class="section-tag">mbx-360</code><span class="changed" hidden></span></summary>
+            <div class="section-body">
+              <p class="hint">From @mattebox/player-360: a 360° source is drawn on the inside of a sphere. Drag to look around; the wheel zooms. The 360° entries of the content switch it on.</p>
+            </div>
+          </details>
+          <label class="switch" title="Puts mbx-360 in the player, from @mattebox/player-360: a 360° source, by its projection, is drawn on the inside of a sphere, and the viewer looks around."><input type="checkbox" data-screen="360" aria-label="360° video" /></label>
         </div>
         <div class="section with-switch" data-section="spatial-nav">
           <details>

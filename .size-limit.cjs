@@ -113,6 +113,17 @@ module.exports = [
     limit: '4.5 kB',
   },
   {
+    name: '@mattebox/player-360',
+    path: 'packages/360/dist/cdn/mattebox-player-360.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The engine and the player are peers, read for their types alone. The
+    // element, the view's math, the WebGL renderer and its shaders measured
+    // 3.53 kB.
+    ignore: ['mattebox', '@mattebox/player'],
+    brotli: true,
+    limit: '3.6 kB',
+  },
+  {
     name: '@mattebox/player-playlist',
     path: 'packages/playlist/dist/cdn/mattebox-player-playlist.min.js',
     disablePlugins: ['@size-limit/esbuild'],

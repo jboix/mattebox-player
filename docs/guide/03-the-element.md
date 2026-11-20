@@ -54,6 +54,7 @@ the video plays.
 | `live`                       | The seek bar                     | The stream has an availability window                                                                                                                         |
 | `seekable`                   | The seek bar                     | The viewer can seek: VOD, or a live window that is wide enough                                                                                                |
 | `scrubbing`                  | The seek bar                     | A pointer holds the seek bar and the video is paused for the drag. The value is the state before the drag, `playing` or `paused`, which the play buttons show |
+| `projection`                 | The player                       | The source is 360°: `equirectangular` or `half-equirectangular`, from the source's `projection` or the manifest ([chapter 16](16-360-video.md))               |
 | `switching`                  | The player                       | `switchSource` or a version loads, and the controls show the state from before it, `playing` or `paused`, until the new load has a frame                      |
 
 `audio` comes from the type of the source until the metadata arrives: the
@@ -121,6 +122,7 @@ version, with `<mbx-video-track>` children. See
 | `trackers`     | The page's trackers: see [chapter 13](13-trackers.md)                                                                   |
 | `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)                   |
 | `videoSource`  | The version that plays, or null for the source itself                                                                   |
+| `projection`   | How the picture maps onto a sphere, or null for a flat one: see [chapter 16](16-360-video.md)                           |
 | `language`     | The `language` attribute, or empty. Setting it changes the words at once                                                |
 | `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either                         |
 
