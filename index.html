@@ -18,23 +18,25 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/assets/main-Dy8YXArw.js"></script>
+  <script type="module" crossorigin src="/assets/main-D7fEeaEA.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/objectSpread2-F7K17kIq.js">
   <link rel="modulepreload" crossorigin href="/assets/es2015-DIfUuVaq.js">
   <link rel="modulepreload" crossorigin href="/assets/base64-Damuu2zB.js">
-  <link rel="modulepreload" crossorigin href="/assets/theme-D4rwXRQc.js">
+  <link rel="modulepreload" crossorigin href="/assets/theme-Dv4LaqyB.js">
+  <link rel="modulepreload" crossorigin href="/assets/src-Bt9npFg0.js">
   <link rel="modulepreload" crossorigin href="/assets/mp4-box-DVEinQVf.js">
   <link rel="modulepreload" crossorigin href="/assets/live-shared-DjhwaSkx.js">
   <link rel="modulepreload" crossorigin href="/assets/scte35-Cr5m6Ypv.js">
-  <link rel="modulepreload" crossorigin href="/assets/ts-B10vp_LB.js">
-  <link rel="modulepreload" crossorigin href="/assets/demux-CfaVIW_K.js">
+  <link rel="modulepreload" crossorigin href="/assets/ts-2U8SOsQH.js">
+  <link rel="modulepreload" crossorigin href="/assets/demux-BQSsgqLP.js">
   <link rel="modulepreload" crossorigin href="/assets/define-C9YwQcQB.js">
   <link rel="modulepreload" crossorigin href="/assets/dash-live-TR3JTbx1.js">
-  <link rel="modulepreload" crossorigin href="/assets/drm-j9L1udnF.js">
-  <link rel="modulepreload" crossorigin href="/assets/aes-128-D1d-KWLl.js">
-  <link rel="modulepreload" crossorigin href="/assets/full-ByGOKq6M.js">
-  <link rel="modulepreload" crossorigin href="/assets/srgssr-DRoZylzy.js">
-  <link rel="stylesheet" crossorigin href="/assets/theme-Hq0AYyKA.css">
+  <link rel="modulepreload" crossorigin href="/assets/drm-DybZX6BC.js">
+  <link rel="modulepreload" crossorigin href="/assets/aes-128-DmvxAK7x.js">
+  <link rel="modulepreload" crossorigin href="/assets/full-qkK3Joi1.js">
+  <link rel="modulepreload" crossorigin href="/assets/srgssr-1MDJNaBX.js">
+  <link rel="modulepreload" crossorigin href="/assets/event-log-DcvVBJXg.js">
+  <link rel="stylesheet" crossorigin href="/assets/theme-CGRvTb3F.css">
 </head>
 <body>
   <header class="masthead">
@@ -52,6 +54,7 @@
         <a class="page-link" href="./playlist.html">Playlist</a>
         <a class="page-link" href="./reels.html">Reels</a>
         <a class="page-link" href="./ads.html">Ads</a>
+        <a class="page-link" href="./360.html">360°</a>
       </div>
     </nav>
     <button type="button" id="theme-toggle" class="theme-toggle"></button>
@@ -71,7 +74,7 @@
     </div>
 
     <div id="route-static" role="tabpanel">
-      <ol id="stream-list" class="picks" aria-label="Demo streams"></ol>
+      <section id="stream-list" class="picks" aria-label="Demo streams"></section>
       <div class="row">
         <input id="stream-url" class="grow" placeholder="https://…/master.m3u8  or  manifest.mpd" aria-label="Stream URL" />
         <button type="button" id="load-url">Load</button>
@@ -325,7 +328,7 @@
             </div>
           </details>
         </div>
-        <div class="section" data-section="live-captions">
+        <div class="section with-switch" data-section="live-captions">
           <details>
             <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">Live captions</span><code class="section-tag">mbx-live-captions</code><span class="changed" hidden></span></summary>
             <div class="section-body">
@@ -348,7 +351,16 @@
           </details>
           <label class="switch" title="Puts mbx-live-captions in the player, from @mattebox/player-live-captions: in Chrome, the video's speech written word by word over the picture. The subtitles menu turns it on, with a badge that says a machine wrote the words."><input type="checkbox" data-screen="live-captions" aria-label="Live captions" /></label>
         </div>
-        <div class="section" data-section="spatial-nav">
+        <div class="section with-switch" data-section="360">
+          <details>
+            <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">360° video</span><code class="section-tag">mbx-360</code><span class="changed" hidden></span></summary>
+            <div class="section-body">
+              <p class="hint">From @mattebox/player-360: a 360° source is drawn on the inside of a sphere. Drag to look around; the wheel zooms. The 360° entries of the content switch it on.</p>
+            </div>
+          </details>
+          <label class="switch" title="Puts mbx-360 in the player, from @mattebox/player-360: a 360° source, by its projection, is drawn on the inside of a sphere, and the viewer looks around."><input type="checkbox" data-screen="360" aria-label="360° video" /></label>
+        </div>
+        <div class="section with-switch" data-section="spatial-nav">
           <details>
             <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">Spatial navigation</span><code class="section-tag">mbx-spatial-nav</code><span class="changed" hidden></span></summary>
             <div class="section-body">
@@ -357,7 +369,7 @@
           </details>
           <label class="switch" title="Puts mbx-spatial-nav in the player, from @mattebox/player-spatial-nav: the arrows move focus between the controls, as a TV remote does."><input type="checkbox" data-screen="spatial-nav" aria-label="Spatial navigation" /></label>
         </div>
-        <div class="section" data-section="gamepad">
+        <div class="section with-switch" data-section="gamepad">
           <details>
             <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">Game controller</span><code class="section-tag">mbx-gamepad</code><span class="changed" hidden></span></summary>
             <div class="section-body">
@@ -366,7 +378,7 @@
           </details>
           <label class="switch" title="Puts mbx-gamepad and mbx-gamepad-help in the player, beside mbx-spatial-nav, from @mattebox/player-spatial-nav: a game controller drives the player, and a bubble lists what each button does."><input type="checkbox" data-screen="gamepad" aria-label="Game controller" /></label>
         </div>
-        <div class="section" data-section="preferences">
+        <div class="section with-switch" data-section="preferences">
           <details>
             <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">Preferences</span><code class="section-tag">mbx-preferences</code><span class="changed" hidden></span></summary>
             <div class="section-body">
