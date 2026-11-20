@@ -10,6 +10,7 @@ import type { GamepadActionDetail, MbxGamepad } from '@mattebox/player-spatial-n
 import '@mattebox/player-spatial-nav/gamepad';
 import { nativeHandler } from '@mattebox/player-core';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import fr from '../../src/locales/fr.js';
 import { kindOf, mapping, parseMap } from '../../src/pad.js';
 import { once, silence } from './helpers.js';
 
@@ -374,6 +375,30 @@ describe('<mbx-gamepad-help>', () => {
     await tap(pad, 'east');
     expect(help.hasAttribute('open')).toBe(false);
     expect(player.media.paused).toBe(playing);
+  });
+
+  it("speaks the player's language, switches with it, and keeps the page's labels", async () => {
+    MatteboxPlayerElement.addLocale('fr', fr);
+    const player = await rig();
+    player.language = 'fr';
+    const help = player.querySelector('mbx-gamepad-help') as HTMLElement;
+    help.setAttribute('label-mute', 'Sans le son');
+    const pad = plug(DUALSENSE);
+    await tap(pad, 'select');
+    const root = help.shadowRoot;
+    const rows = (): Array<[string | null, string | null | undefined]> =>
+      [...(root?.querySelectorAll('dt') ?? [])].map((term) => [
+        term.textContent,
+        term.nextElementSibling?.textContent,
+      ]);
+    expect(root?.querySelector('h2')?.textContent).toBe('Manette');
+    expect(rows()).toContainEqual(['✕', 'Sélectionner']);
+    expect(rows()).toContainEqual(['R2', 'Avance rapide']);
+    expect(root?.querySelector('dt kbd[aria-label="Croix"]')).not.toBe(null);
+    player.language = '';
+    expect(root?.querySelector('h2')?.textContent).toBe('Controller');
+    expect(rows()).toContainEqual(['✕', 'Select']);
+    expect(root?.querySelector('dt kbd[aria-label="Cross"]')).not.toBe(null);
   });
 
   it('opens when a pad connects, unless manual, and closes by itself', async () => {

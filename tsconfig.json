@@ -41,7 +41,8 @@
       "@mattebox/player-cast/locales/*": ["./packages/cast/src/locales/*.ts"],
       "@mattebox/player-ads/locales/*": ["./packages/ads/src/locales/*.ts"],
       "@mattebox/player-live-captions/locales/*": ["./packages/live-captions/src/locales/*.ts"],
-      "@mattebox/player-diagnostics/locales/*": ["./packages/diagnostics/src/locales/*.ts"]
+      "@mattebox/player-diagnostics/locales/*": ["./packages/diagnostics/src/locales/*.ts"],
+      "@mattebox/player-spatial-nav/locales/*": ["./packages/spatial-nav/src/locales/*.ts"]
     }
   },
   "include": [

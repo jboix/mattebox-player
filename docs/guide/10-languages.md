@@ -44,9 +44,10 @@ A player shows, from the first that applies:
 - A later `addLocale` for a language goes over the earlier one, so you
   change one word with `addLocale('de', { play: 'Abspielen' })`.
 - The ids and their English are in the `PlayerMessages` type, and in
-  `PlaylistMessages`, `CastMessages` and `DiagnosticsMessages` for the
-  packages. A word set that misses an id fails to compile with
-  `satisfies PlayerMessages`.
+  `PlaylistMessages`, `CastMessages`, `GamepadMessages`, `AdsMessages`,
+  `LiveCaptionsMessages` and `DiagnosticsMessages` for the packages. A
+  word set that misses an id fails to compile with `satisfies
+  PlayerMessages`.
 - A control of your own reads a word with `player.message(id)`, and
   renders again on `localechange`.
 

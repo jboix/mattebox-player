@@ -1,3 +1,5 @@
+import { globSync } from 'node:fs';
+import { basename } from 'node:path';
 import { defineConfig } from 'rolldown';
 import { inlineCss } from '../../scripts/lib/inline-css.mjs';
 
@@ -6,7 +8,14 @@ import { inlineCss } from '../../scripts/lib/inline-css.mjs';
 // comes from rolldown.modern.config.mjs. The player is reached for its
 // types only.
 export default defineConfig({
-  input: { index: 'src/index.ts', 'gamepad-index': 'src/gamepad-index.ts' },
+  input: {
+    index: 'src/index.ts',
+    'gamepad-index': 'src/gamepad-index.ts',
+    // One entry per language, which a page imports or loads on its own.
+    ...Object.fromEntries(
+      globSync('src/locales/*.ts').map((file) => [`locales/${basename(file, '.ts')}`, file]),
+    ),
+  },
   external: [/^mattebox(\/|$)/, /^@mattebox\/player(\/|$)/],
   plugins: [inlineCss()],
   output: {

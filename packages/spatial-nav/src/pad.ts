@@ -12,6 +12,8 @@
  * are; the shoulders go to the previous and next item; the triggers scan
  * while held.
  */
+import type { Messages } from '@mattebox/player';
+import type {} from './messages.js';
 
 /** A button of a controller in the standard layout, by place. */
 export type PadButton =
@@ -190,12 +192,15 @@ export const GLYPHS: Readonly<Record<PadKind, Readonly<Record<PadButton, string>
   },
 };
 
-/** The PlayStation symbols by name, for a screen reader, which may not read the symbol. */
-export const SPOKEN: Readonly<Record<string, string>> = {
-  '✕': 'Cross',
-  '○': 'Circle',
-  '□': 'Square',
-  '△': 'Triangle',
+/**
+ * The PlayStation symbols by name, for a screen reader, which may not read
+ * the symbol: the id of the name in the player's language, and its English.
+ */
+export const SPOKEN: Readonly<Record<string, readonly [keyof Messages, string]>> = {
+  '✕': ['gamepadCross', 'Cross'],
+  '○': ['gamepadCircle', 'Circle'],
+  '□': ['gamepadSquare', 'Square'],
+  '△': ['gamepadTriangle', 'Triangle'],
 };
 
 /**

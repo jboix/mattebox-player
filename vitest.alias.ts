@@ -30,6 +30,10 @@ export const alias = [
     ),
   },
   {
+    find: /^@mattebox\/player-spatial-nav\/locales\/(.+)$/,
+    replacement: fileURLToPath(new URL('packages/spatial-nav/src/locales/$1.ts', import.meta.url)),
+  },
+  {
     find: /^@mattebox\/player-diagnostics\/locales\/(.+)$/,
     replacement: fileURLToPath(new URL('packages/diagnostics/src/locales/$1.ts', import.meta.url)),
   },

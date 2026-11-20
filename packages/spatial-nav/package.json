@@ -41,6 +41,11 @@
       "modern": "./dist/gamepad-index.js",
       "default": "./dist/es2015/gamepad-index.js"
     },
+    "./locales/*": {
+      "types": "./dist/locales/*.d.ts",
+      "modern": "./dist/locales/*.js",
+      "default": "./dist/es2015/locales/*.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

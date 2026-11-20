@@ -13,6 +13,7 @@ export type { GamepadActionDetail } from './gamepad.js';
 export { MbxGamepad } from './gamepad.js';
 export { MbxGamepadHelp } from './gamepad-help.js';
 export * from './index.js';
+export type { GamepadMessages } from './messages.js';
 export type { PadAction, PadButton, PadKind, PadMap } from './pad.js';
 
 export const GAMEPAD = 'mbx-gamepad';

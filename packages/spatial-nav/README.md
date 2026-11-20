@@ -13,6 +13,7 @@ control on a TV, and a game controller anywhere.
 - The remote's media keys reach the player under their standard names, on Tizen and webOS too.
 - A game controller moves focus, selects, goes back, plays, scans and skips chapters. You change any button.
 - `<mbx-gamepad-help>` lists what each button does, as the make of the pad prints it.
+- `<mbx-gamepad-help>` speaks the player's 11 languages, from `@mattebox/player-spatial-nav/locales/<language>`.
 
 The import registers `<mbx-spatial-nav>`. The `/gamepad` entry registers it
 with `<mbx-gamepad>` and `<mbx-gamepad-help>`, so a page with a remote alone
