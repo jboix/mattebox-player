@@ -82,7 +82,7 @@ function network(): { readonly requests: string[]; readonly transport: Transport
  * DRM tier there throws out of `detach`.
  */
 const EME = 'setMediaKeys' in HTMLMediaElement.prototype;
-const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay'];
+const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay', 'eme-wiseplay'];
 
 let video: HTMLVideoElement;
 let player: Player;

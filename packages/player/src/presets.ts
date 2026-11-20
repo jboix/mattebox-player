@@ -22,7 +22,7 @@ interface EngineGlobal {
 }
 
 /** eme-core's teardown calls `element.setMediaKeys(null)` unguarded, so a build without EME throws out of `detach`. */
-const DRM_STAGES = ['eme-core', 'eme-cenc', 'eme-fairplay'];
+const DRM_STAGES = ['eme-core', 'eme-cenc', 'eme-fairplay', 'eme-wiseplay'];
 
 type Load = () => Promise<{ readonly default: Preset }>;
 

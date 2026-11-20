@@ -5,7 +5,7 @@
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
 import { nativeHandler } from '@mattebox/player-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fakeMedia, media } from './helpers.js';
 
 function wait(ms: number): Promise<void> {
@@ -124,7 +124,14 @@ describe('the live region', () => {
     await player.media.play();
     expect(await spoken(player)).toBe('Lecture');
     track.mode = 'showing';
-    expect(await spoken(player)).toMatch(/^Sous-titres : (French|fr)$/);
+    // The browser reports the mode change on its own schedule, which a busy
+    // run stretches past the refill delay: wait for the phrase itself.
+    await vi.waitFor(
+      () => expect(region(player).textContent).toMatch(/^Sous-titres : (French|fr)$/),
+      {
+        timeout: 2000,
+      },
+    );
   });
 
   it('keeps quiet under announce="off"', async () => {

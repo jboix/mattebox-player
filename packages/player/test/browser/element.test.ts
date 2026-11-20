@@ -59,7 +59,7 @@ const transport: TransportConfig = {
 };
 
 /** eme-core tears down through an unguarded setMediaKeys. */
-const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay'];
+const DRM_TIER = ['eme-core', 'eme-cenc', 'eme-fairplay', 'eme-wiseplay'];
 const EME = 'setMediaKeys' in HTMLMediaElement.prototype;
 
 function chain(): Handler[] {

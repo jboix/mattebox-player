@@ -229,10 +229,11 @@ describe('<mbx-gamepad>', () => {
     expect(player.hasAttribute('focus-ring')).toBe(false);
     await tap(pad, 'right');
     expect(player.hasAttribute('focus-ring')).toBe(true);
-    // The controls read the property in their :not(:focus-visible) rules.
+    // The controls read the property in their :not(:focus-visible) rules. The
+    // outline itself is not asserted: it needs :focus, which a test window
+    // without the system's focus does not match.
     const button = inner(player, 'mbx-play-button');
     expect(getComputedStyle(button).getPropertyValue('--mbx-focus-ring').trim()).toBe('solid');
-    expect(getComputedStyle(button).outlineStyle).toBe('solid');
     button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, composed: true }));
     expect(player.hasAttribute('focus-ring')).toBe(false);
   });
@@ -244,6 +245,12 @@ describe('<mbx-gamepad>', () => {
     await press(pad, 'right');
     await new Promise((resolve) => setTimeout(resolve, 700));
     await release(pad, 'right');
+    // WebKit reads 0 while a seek is pending.
+    if (player.media.seeking) {
+      await new Promise((resolve) =>
+        player.media.addEventListener('seeked', resolve, { once: true }),
+      );
+    }
     // The seek bar takes left and right: one step, then the repeats.
     expect(player.media.currentTime).toBeGreaterThan(10);
   });
@@ -285,17 +292,27 @@ describe('<mbx-gamepad>', () => {
     track.addCue(new VTTCue(0, 10, 'One'));
     track.addCue(new VTTCue(10, 20, 'Two'));
     track.addCue(new VTTCue(20, 30, 'Three'));
+    // A disabled track lists no cues; the player hides it on its own a little later.
+    track.mode = 'hidden';
     const pad = plug();
-    await tap(pad, 'rb');
-    expect(player.media.currentTime).toBe(10);
-    await tap(pad, 'rb');
-    expect(player.media.currentTime).toBe(20);
+    // Each press waits for its seek: WebKit reads 0 while a seek is pending.
+    const press = async (button: string): Promise<number> => {
+      await tap(pad, button);
+      if (player.media.seeking)
+        await new Promise((resolve) =>
+          player.media.addEventListener('seeked', resolve, { once: true }),
+        );
+      return player.media.currentTime;
+    };
+    expect(await press('rb')).toBe(10);
+    expect(await press('rb')).toBe(20);
     player.media.currentTime = 25;
+    await new Promise((resolve) =>
+      player.media.addEventListener('seeked', resolve, { once: true }),
+    );
     // Past the first seconds of a chapter, previous goes to its start.
-    await tap(pad, 'lb');
-    expect(player.media.currentTime).toBe(20);
-    await tap(pad, 'lb');
-    expect(player.media.currentTime).toBe(10);
+    expect(await press('lb')).toBe(20);
+    expect(await press('lb')).toBe(10);
   });
 
   it('selects with A, the right button, on a Nintendo pad', async () => {
