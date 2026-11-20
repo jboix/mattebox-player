@@ -64,7 +64,15 @@ export default defineConfig({
         },
       },
       browserProject('chromium', 1),
-      browserProject('firefox', 2),
+      // Firefox gives no WebGL on the CI runner, which has no GPU: headless,
+      // it needs a native GL driver and exhausts its options. The 360 view
+      // draws with WebGL, so its tests run there in Chromium and WebKit, and
+      // in Firefox on a machine with a GPU.
+      browserProject(
+        'firefox',
+        2,
+        process.env.GITHUB_ACTIONS === 'true' ? ['packages/360/test/browser/**'] : [],
+      ),
       // Playwright's WebKit on the CI runner locks the page up during the
       // playlist tests now and then, so not even the test timeout fires and
       // the step times out. Chromium and Firefox run them.
