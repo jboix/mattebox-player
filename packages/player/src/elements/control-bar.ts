@@ -11,8 +11,9 @@
  * The fade is one timer. Any activity, a pointer moving or pressing, a
  * key, playback starting, re-arms it for `idle-ms`, and when it fires the
  * bar hides unless something it can know for certain holds it: the video
- * is paused, a descendant carries `open`, or keyboard focus is inside it,
- * where keyboard means the last input was a key and not a pointer.
+ * is paused, a device plays in its place, a descendant carries `open`, or
+ * keyboard focus is inside it, where keyboard means the last input was a
+ * key and not a pointer.
  * Whether the pointer is over the player is never tracked: that goes
  * stale when the pointer leaves without a move the player sees.
  *
@@ -27,6 +28,13 @@
  * the capture phase, decide before it. Space is left to a
  * focused button, which is its own. A key another handler prevented is
  * left alone. A click on the video toggles play.
+ *
+ * A tap is not a click. A finger on the picture shows the bar while it is
+ * hidden and hides it while it shows, and never plays or pauses, as on a
+ * phone's own players. The pointer's `pointerType` tells the two apart,
+ * not the device, since a laptop can have both. `tap-plays` gives a tap
+ * the click's play and pause back. During a cast the bar stays, so a tap
+ * plays and pauses there too.
  * Fullscreen goes on the player itself, so the bar comes along.
  *
  * A narrow bar collapses the buttons row by `priority`: each child carries
@@ -155,6 +163,10 @@ export class MbxControlBar extends Component {
   declare private resizer: ResizeObserver | null;
   /** Whether the last input was a key, so focus inside holds the bar. */
   declare private keyboard: boolean;
+  /** Whether the last press was a finger: its click on the video is a tap. */
+  declare private touch: boolean;
+  /** Whether the bar showed when that press began, before the press woke it. */
+  declare private shownAtPress: boolean;
   declare private cues: CueLift | null;
   declare private screen: Fullscreen | null;
 
@@ -162,6 +174,8 @@ export class MbxControlBar extends Component {
     super();
     this.timer = undefined;
     this.keyboard = false;
+    this.touch = false;
+    this.shownAtPress = false;
     this.cues = null;
     this.screen = null;
     this.resizer = null;
@@ -246,6 +260,8 @@ export class MbxControlBar extends Component {
 
   private held(player: PlayerHost): boolean {
     if (shownPaused(player, ['switching'])) return true;
+    // The device's controls are these: they stay while it plays.
+    if (player.hasAttribute('casting')) return true;
     if (this.querySelector('[open]') !== null) return true;
     if (!this.keyboard) return false;
     const active = (this.getRootNode() as Document | ShadowRoot).activeElement;
@@ -270,6 +286,13 @@ export class MbxControlBar extends Component {
     this.idle(player, true);
   }
 
+  /** Hides the bar now, as a tap asks: the next input shows it again. */
+  private rest(player: PlayerHost): void {
+    clearTimeout(this.timer);
+    this.timer = undefined;
+    this.idle(player, true);
+  }
+
   private wake(player: PlayerHost): void {
     clearTimeout(this.timer);
     this.idle(player, false);
@@ -290,6 +313,7 @@ export class MbxControlBar extends Component {
 
   private key(player: PlayerHost, event: KeyboardEvent): void {
     this.keyboard = true;
+    this.touch = false;
     this.wake(player);
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
     const video = player.media;
@@ -364,14 +388,26 @@ export class MbxControlBar extends Component {
       this.keyboard = false;
       this.wake(player);
     };
+    const press = (event: Event): void => {
+      this.touch = (event as PointerEvent).pointerType === 'touch';
+      this.shownAtPress = !this.hasAttribute('idle');
+      pointer();
+    };
     const key = (event: Event): void => {
       this.key(player, event as KeyboardEvent);
     };
     const click = (event: Event): void => {
       // The video and nothing else: a control handles its own click.
-      if (event.composedPath()[0] === videoOf(player)) toggle(video);
+      if (event.composedPath()[0] !== videoOf(player)) return;
+      if (this.touch && !this.hasAttribute('tap-plays') && !player.hasAttribute('casting')) {
+        // The press showed a hidden bar already; a tap on a shown one hides it.
+        if (this.shownAtPress) this.rest(player);
+        return;
+      }
+      toggle(video);
     };
-    this.listen(player, ['pointermove', 'pointerdown'], pointer);
+    this.listen(player, ['pointermove'], pointer);
+    this.listen(player, ['pointerdown'], press);
     player.addEventListener('keydown', key);
     player.addEventListener('click', click);
     this.keep(() => {

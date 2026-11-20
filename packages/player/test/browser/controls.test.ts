@@ -825,6 +825,61 @@ describe('the shortcuts', () => {
   });
 });
 
+describe('a tap on the picture', () => {
+  /** A finger on the video: the press, then the click the browser sends after it. */
+  function tap(player: MatteboxPlayerElement): void {
+    const video = player.querySelector('video') as HTMLVideoElement;
+    video.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, composed: true, pointerType: 'touch' }),
+    );
+    video.click();
+  }
+
+  it('shows a hidden bar, hides a shown one, and never plays or pauses', async () => {
+    const player = await ready();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    await player.media.play();
+    vi.advanceTimersByTime(IDLE_MS);
+    expect(idle(player)).toBe(true);
+
+    tap(player);
+    expect(idle(player)).toBe(false);
+    expect(player.media.paused).toBe(false);
+    tap(player);
+    expect(idle(player)).toBe(true);
+    expect(player.hasAttribute('idle')).toBe(true);
+    expect(player.media.paused).toBe(false);
+  });
+
+  it('hides the bar of a paused video too, and the next tap brings it back', async () => {
+    const player = await ready();
+    expect(idle(player)).toBe(false);
+    tap(player);
+    expect(idle(player)).toBe(true);
+    expect(player.media.paused).toBe(true);
+    tap(player);
+    expect(idle(player)).toBe(false);
+  });
+
+  it('plays and pauses under tap-plays, as a click does', async () => {
+    const player = await ready();
+    bar(player)?.setAttribute('tap-plays', '');
+    tap(player);
+    await once(player.media, 'play');
+    expect(idle(player)).toBe(false);
+  });
+
+  it('leaves a mouse click as it was: it plays and pauses', async () => {
+    const player = await ready();
+    const video = player.querySelector('video') as HTMLVideoElement;
+    video.dispatchEvent(
+      new PointerEvent('pointerdown', { bubbles: true, composed: true, pointerType: 'mouse' }),
+    );
+    video.click();
+    await once(player.media, 'play');
+  });
+});
+
 describe('the subtitles and the bar', () => {
   it('puts the cue rules in the document once, one per look the attributes can take', async () => {
     await custom();

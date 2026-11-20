@@ -35,6 +35,7 @@ export type IconName =
   | 'picture-in-picture-exit'
   | 'airplay'
   | 'airplay-active'
+  | 'cast'
   | 'chapters'
   | 'fast-forward'
   | 'fast-backward'
@@ -103,6 +104,8 @@ const PATHS: Readonly<Record<IconName, string>> = {
     'M4 6h24v20H4zM6.5 8.5v15h19v-15zM9.5 11.5L16 11.5L9.5 18zM13.63 13.87L19.29 19.52L17.52 21.29L11.87 15.63z',
   airplay: 'M4 6H28V23.25H23V20.75H25.5V8.5H6.5V20.75H9V23.25H4zM16 17.5L23.5 27L8.5 27z',
   'airplay-active': 'M4 6H28V23.25H22.1L16 15.5L9.9 23.25H4zM16 17.5L23.5 27L8.5 27z',
+  // A screen with the cast waves in its corner: what a Chromecast plays on.
+  cast: 'M4 6H28V26H17.5V23.5H25.5V8.5H6.5V12H4zM4 22.5A3.5 3.5 0 0 1 7.5 26H4zM4 16A10 10 0 0 1 14 26H11.5A7.5 7.5 0 0 0 4 18.5z',
   chapters:
     'M5 6.5h4v4h-4zM12 7.25h15v2.5h-15zM5 14h4v4h-4zM12 14.75h15v2.5h-15zM5 21.5h4v4h-4zM12 22.25h15v2.5h-15z',
   'fast-forward': 'M4 7L15 16L4 25zM16 7L27 16L16 25z',

@@ -19,8 +19,9 @@ export class MbxSpeedMenu extends MenuElement {
 
   constructor() {
     super(...single('playback-speed'));
-    // It would change the engine of the page, which a device does not play.
-    this.leaves = 'remote';
+    // A Chromecast plays its own engine, and an AirPlay target ignores the
+    // video's rate: the speed would change nothing, under either.
+    this.leaves = 'device';
     show(this.slots, 'default');
   }
 

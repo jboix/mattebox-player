@@ -1,7 +1,7 @@
 import type { MatteboxPlayerElement, Remote, RemoteLoad, RemoteMedia } from '@mattebox/player';
 import '@mattebox/player';
 import type { Source } from '@mattebox/player-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { silence } from './helpers.js';
 
 /** A device that plays nothing: it keeps what it is told and reports it. */
@@ -84,6 +84,7 @@ async function loaded(seconds = 4): Promise<MatteboxPlayerElement> {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   document.body.innerHTML = '';
 });
 
@@ -306,5 +307,75 @@ describe('player.cast', () => {
     expect(player.casting?.name).toBe('Kitchen');
     end();
     expect(player.casting).toBeNull();
+  });
+});
+
+describe('the controls during a cast', () => {
+  /** A player under custom controls with the cover, the bar and its speed menu. */
+  async function withBar(): Promise<MatteboxPlayerElement> {
+    const player = mount(
+      '<mattebox-player controls="custom" muted><mbx-casting></mbx-casting><mbx-control-bar><mbx-speed-menu></mbx-speed-menu></mbx-control-bar></mattebox-player>',
+    );
+    const ready = once(player.querySelector('video') as HTMLVideoElement, 'loadedmetadata');
+    player.setAttribute('src', silence(4));
+    player.setAttribute('type', 'audio/wav');
+    await ready;
+    return player;
+  }
+
+  /** Safari moves the video onto an AirPlay target, or off it. */
+  function airplay(player: MatteboxPlayerElement, on: boolean): void {
+    const video = player.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'webkitCurrentPlaybackTargetIsWireless', {
+      configurable: true,
+      get: () => on,
+    });
+    video.dispatchEvent(new Event('webkitcurrentplaybacktargetiswirelesschanged'));
+  }
+
+  function glyph(player: MatteboxPlayerElement): string | null {
+    const cover = player.querySelector('mbx-casting');
+    return cover?.shadowRoot?.querySelector('[part~="icon"] path')?.getAttribute('d') ?? null;
+  }
+
+  it('keeps the bar up while a device plays, and lets it hide once the cast ends', async () => {
+    const player = await withBar();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const end = player.cast(fakeRemote());
+    await player.media.play();
+    vi.advanceTimersByTime(10_000);
+    expect(player.hasAttribute('idle')).toBe(false);
+    end();
+    await player.media.play();
+    vi.advanceTimersByTime(10_000);
+    expect(player.hasAttribute('idle')).toBe(true);
+  });
+
+  it('takes the speed menu away under AirPlay, where the target ignores the rate', async () => {
+    const player = await withBar();
+    const speed = player.querySelector('mbx-speed-menu') as HTMLElement;
+    expect(speed.hasAttribute('away')).toBe(false);
+    airplay(player, true);
+    expect(player.getAttribute('casting')).toBe('airplay');
+    expect(speed.hasAttribute('away')).toBe(true);
+    airplay(player, false);
+    expect(speed.hasAttribute('away')).toBe(false);
+  });
+
+  it("shows the device's glyph over its line, one for AirPlay and one for a Chromecast", async () => {
+    const player = await withBar();
+    airplay(player, true);
+    const label = player.querySelector('mbx-casting')?.shadowRoot?.querySelector('[part~="label"]');
+    expect(label?.textContent).toBe('AirPlay');
+    const forAirplay = glyph(player);
+    expect(forAirplay).not.toBeNull();
+    airplay(player, false);
+    const end = player.cast(fakeRemote());
+    expect(label?.textContent).toBe('Casting to Living room');
+    expect(glyph(player)).not.toBe(forAirplay);
+    expect(player.querySelector('mbx-casting')?.shadowRoot?.querySelectorAll('svg')).toHaveLength(
+      1,
+    );
+    end();
   });
 });

@@ -1,8 +1,9 @@
 /**
  * <mbx-casting>: what the picture shows while a device plays in the
  * video's place. The programme's poster, or its image, covers the paused
- * video, with a line that names the device: "Casting to Living room". The
- * controls stay as they are and drive the device.
+ * video, dimmed, and the device's glyph sits over it with a line that names
+ * the device: "Casting to Living room". The controls stay as they are and
+ * drive the device, and the bar does not hide while it plays.
  *
  * Shown while the player carries `casting`, for a Chromecast and for
  * AirPlay alike, and hidden otherwise. The element carries `casting` too,
@@ -11,6 +12,8 @@
  * words, with `{device}` for the name. Placed first among the screens, so
  * the title, the start button and the bar paint over it.
  */
+import type { IconName } from '../controls/icons.js';
+import { icon } from '../controls/icons.js';
 import { el } from '../dom.js';
 import type { PlayerHost } from '../host.js';
 import { fill } from '../labels.js';
@@ -24,7 +27,10 @@ export class MbxCasting extends Component {
   }
 
   declare private readonly poster: HTMLImageElement;
+  declare private readonly device: HTMLElement;
   declare private readonly label: HTMLElement;
+  /** The glyph on show, so a render that changes nothing leaves it in place. */
+  declare private glyph: IconName | null;
 
   constructor() {
     super();
@@ -32,10 +38,13 @@ export class MbxCasting extends Component {
     this.poster = el('img', 'poster');
     this.poster.alt = '';
     this.poster.hidden = true;
+    this.device = el('div', 'device');
     this.label = el('div', 'label');
     // Said once when the device takes over.
     this.label.setAttribute('role', 'status');
-    root.append(style(STYLE), this.poster, this.label);
+    this.device.append(this.label);
+    this.glyph = null;
+    root.append(style(STYLE), this.poster, this.device);
   }
 
   protected override attach(player: PlayerHost): void {
@@ -61,6 +70,12 @@ export class MbxCasting extends Component {
     this.poster.hidden = poster === null || poster === undefined;
     if (poster !== null && poster !== undefined && this.poster.getAttribute('src') !== poster) {
       this.poster.src = poster;
+    }
+    const glyph: IconName = target.kind === 'airplay' ? 'airplay-active' : 'cast';
+    if (glyph !== this.glyph) {
+      this.glyph = glyph;
+      this.device.querySelector('svg')?.remove();
+      this.device.insertBefore(icon(glyph), this.label);
     }
     this.label.textContent =
       target.name === ''
