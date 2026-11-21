@@ -296,21 +296,19 @@ describe('<mbx-gamepad>', () => {
     // A disabled track lists no cues; the player hides it on its own a little later.
     track.mode = 'hidden';
     const pad = plug();
-    // Each press waits for its seek to end. WebKit reads 0 while a seek is
-    // pending, so a press during the last one's would skip from 0: the time
-    // alone can read right before the seek is done.
+    // Each press waits until its seek is done: at the time, and no longer
+    // seeking. WebKit reads 0 while a seek is pending, so a press during the
+    // last one's would skip from 0. A `seeked` event alone is no proof
+    // either: WebKit can fire one of its own after the load.
+    const settled = (): number | null => (player.media.seeking ? null : player.media.currentTime);
     const press = async (button: string, to: number): Promise<void> => {
-      const seeked = once(player.media, 'seeked');
       await tap(pad, button);
-      await seeked;
-      expect(player.media.currentTime).toBe(to);
+      await expect.poll(settled, { timeout: 5_000 }).toBe(to);
     };
     await press('rb', 10);
     await press('rb', 20);
     player.media.currentTime = 25;
-    await new Promise((resolve) =>
-      player.media.addEventListener('seeked', resolve, { once: true }),
-    );
+    await expect.poll(settled, { timeout: 5_000 }).toBe(25);
     // Past the first seconds of a chapter, previous goes to its start.
     await press('lb', 20);
     await press('lb', 10);
