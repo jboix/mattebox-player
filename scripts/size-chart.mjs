@@ -9,6 +9,10 @@
 //   player runs the engine's full preset.
 // - docs/hls-chart-*.svg: a UI with HLS of fMP4 segments and DRM, the reach
 //   of SPF, video.js 10's own engine. The player runs the `hls-drm` preset.
+// - docs/package-chart-*.svg: what each package of the player adds to a page
+//   that has the player with its default, the full preset.
+// - docs/stack-chart-*.svg: whole pages, the player with the engine's stages
+//   the page names through `define()` and the packages it imports.
 //
 // The Mattebox rows are the workspace build. The other stacks are pinned npm
 // versions, installed at run time into scripts/size-chart/, whose lockfile
@@ -151,6 +155,139 @@ const HLS = [
     skip: VIDEOJS_LOCALES,
   },
 ];
+
+/** Every preset chunk: a page that names its stages loads none of them. */
+const NO_PRESET = /[\\/]mattebox[\\/].*[\\/]presets[\\/][^\\/]+[\\/]index\.js$/;
+
+/** Every preset chunk but `full`'s, which a page with the player's default loads. */
+const FULL_ONLY = /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!full[\\/])[^\\/]+[\\/]index\.js$/;
+
+/**
+ * The packages of the player a page adds: the name the stack chart's rows
+ * use, the label the package chart shows, and what a page imports.
+ */
+const PACKAGES = {
+  'live-captions': { label: 'live captions', specifier: '@mattebox/player-live-captions' },
+  // Google's sender SDK loads from Google at run time, outside any bundle.
+  cast: { label: 'Chromecast', specifier: '@mattebox/player-cast' },
+  360: { label: '360° video', specifier: '@mattebox/player-360' },
+  ads: { label: 'ads', specifier: '@mattebox/player-ads' },
+  playlist: { label: 'playlist', specifier: '@mattebox/player-playlist' },
+  preferences: { label: 'preferences', specifier: '@mattebox/player-preferences' },
+  diagnostics: { label: 'diagnostics', specifier: '@mattebox/player-diagnostics' },
+  'spatial-nav': { label: 'TV remote', specifier: '@mattebox/player-spatial-nav' },
+  gamepad: { label: 'game controllers', specifier: '@mattebox/player-spatial-nav/gamepad' },
+};
+
+/** The player with its default preset, which the package chart counts from. */
+const DEFAULT_PAGE = {
+  label: 'mattebox player',
+  entry: "import '@mattebox/player';",
+  skip: FULL_ONLY,
+};
+
+/**
+ * Whole pages. `stages` are the engine's, by their path under `mattebox/`;
+ * `packages` are keys of PACKAGES; `preset` instead of stages is the preset
+ * the `preset` attribute names. A row whose label starts with `+` adds to
+ * the row above it, and its detail shows what it adds.
+ */
+const STACKS = [
+  { label: 'HLS on demand', stages: ['protocols/hls-cmaf', 'stages/abr'] },
+  { label: '+ live', stages: ['protocols/hls-live'] },
+  { label: '+ subtitles', stages: ['stages/text-webvtt', 'stages/text-webvtt-segmented'] },
+  { label: '+ live captions', packages: ['live-captions'] },
+  { label: '+ Chromecast', packages: ['cast'] },
+  { label: '+ Widevine, PlayReady', stages: ['stages/eme-core', 'stages/eme-cenc'] },
+  { label: 'DASH on demand', stages: ['protocols/dash-cmaf', 'stages/abr'] },
+  { label: '+ 360° video', packages: ['360'] },
+  { label: 'hls preset', preset: 'hls' },
+  { label: 'full preset', preset: 'full' },
+  { label: '+ every package', packages: Object.keys(PACKAGES) },
+];
+
+/** `mattebox/stages/text-webvtt` as `textWebvtt`, an import's local name. */
+function local(path) {
+  const name = path.split('/').pop() ?? path;
+  return name.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+}
+
+/** A page's source: the player, its stages through `define()` or its preset, its packages. */
+function pageEntry({ stages, preset, packages }) {
+  const lines = ["import { MatteboxPlayerElement } from '@mattebox/player';"];
+  for (const path of stages) lines.push(`import ${local(path)} from 'mattebox/${path}';`);
+  for (const name of packages) lines.push(`import '${PACKAGES[name].specifier}';`);
+  if (preset === undefined) {
+    lines.push(
+      `MatteboxPlayerElement.define({ stages: [${stages.map((p) => `${local(p)}()`).join(', ')}] });`,
+    );
+  }
+  return lines.join('\n');
+}
+
+/** Each STACKS row as a page, the rows above it included where it adds to them. */
+function stackPages() {
+  const pages = [];
+  let last = { stages: [], preset: undefined, packages: [] };
+  for (const row of STACKS) {
+    const base = row.label.startsWith('+') ? last : { stages: [], preset: undefined, packages: [] };
+    const page = {
+      stages: [...base.stages, ...(row.stages ?? [])].filter((p, i, all) => all.indexOf(p) === i),
+      preset: row.preset ?? base.preset,
+      packages: [...base.packages, ...(row.packages ?? [])],
+    };
+    const own = [...(row.stages ?? []).map((p) => p.split('/').pop()), ...(row.packages ?? [])];
+    const detail =
+      row.preset !== undefined
+        ? 'the preset attribute'
+        : row.label.startsWith('+')
+          ? `+ ${row.label === '+ every package' ? 'every package' : own.join(', ')}`
+          : own.join(', ');
+    pages.push({
+      label: row.label,
+      detail,
+      entry: pageEntry(page),
+      skip:
+        page.preset === undefined
+          ? NO_PRESET
+          : new RegExp(
+              `[\\\\/]mattebox[\\\\/].*[\\\\/]presets[\\\\/](?!${page.preset}[\\\\/])[^\\\\/]+[\\\\/]index\\.js$`,
+            ),
+    });
+    last = page;
+  }
+  return pages;
+}
+
+/** What each package adds to the player with its default preset. */
+async function packageRows() {
+  const base = await stackBytes(DEFAULT_PAGE);
+  const out = [];
+  for (const [name, { label, specifier }] of Object.entries(PACKAGES)) {
+    const bytes = await stackBytes({
+      label: `with ${name}`,
+      entry: `${DEFAULT_PAGE.entry}\nimport '${specifier}';`,
+      skip: FULL_ONLY,
+    });
+    out.push({ label, version: 'main', detail: specifier, bytes: bytes - base, highlight: false });
+  }
+  return out.sort((a, b) => a.bytes - b.bytes);
+}
+
+/** The stack chart's rows: each page bundled as a whole. */
+async function stackRows() {
+  const out = [];
+  for (const page of stackPages()) {
+    out.push({
+      label: page.label,
+      version: 'main',
+      detail: page.detail,
+      bytes: await stackBytes(page),
+      highlight: false,
+    });
+  }
+  return out;
+}
 
 /**
  * Installs the pinned packages. The lockfile holds their dependencies still
@@ -354,12 +491,36 @@ const CHARTS = [
       'Bundle size of video players with HLS playback of fMP4 segments, min+gzip, lower is better',
     tick: 25,
   },
+  {
+    file: 'package-chart',
+    rows: packageRows,
+    title: 'Size per package',
+    subtitle:
+      'min+gzip · KB · the player with the full preset and the package, less the player alone',
+    ariaLabel: 'Bundle size each Mattebox player package adds to the player, min+gzip',
+    tick: 5,
+  },
+  {
+    file: 'stack-chart',
+    rows: stackRows,
+    title: 'Mattebox player, the page you ship',
+    subtitle: 'min+gzip · KB · the player, the engine stages it names, and its packages',
+    ariaLabel:
+      'Bundle size of whole Mattebox player pages, by the engine stages and packages they use, min+gzip',
+    tick: 25,
+  },
 ];
 mkdirSync(OUT, { recursive: true });
 for (const chart of CHARTS) {
-  const all = await rows(chart.stacks);
-  // Mattebox first, the others from the smallest up.
-  const sorted = [all[0], ...all.slice(1).sort((a, b) => a.bytes - b.bytes)];
+  let sorted;
+  if (chart.rows !== undefined) {
+    // Mattebox's own rows, in the order their function gives.
+    sorted = await chart.rows();
+  } else {
+    const all = await rows(chart.stacks);
+    // Mattebox first, the others from the smallest up.
+    sorted = [all[0], ...all.slice(1).sort((a, b) => a.bytes - b.bytes)];
+  }
   for (const theme of Object.keys(THEMES)) {
     const path = join(OUT, `${chart.file}-${theme}.svg`);
     writeFileSync(path, render(sorted, theme, chart));

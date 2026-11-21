@@ -4,16 +4,6 @@
 </h1>
 
 [![Quality](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml/badge.svg)](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml)
-[![@mattebox/player](https://img.shields.io/npm/v/@mattebox/player?label=%40mattebox%2Fplayer)](https://www.npmjs.com/package/@mattebox/player)
-[![@mattebox/player-core](https://img.shields.io/npm/v/@mattebox/player-core?label=%40mattebox%2Fplayer-core)](https://www.npmjs.com/package/@mattebox/player-core)
-[![@mattebox/player-diagnostics](https://img.shields.io/npm/v/@mattebox/player-diagnostics?label=%40mattebox%2Fplayer-diagnostics)](https://www.npmjs.com/package/@mattebox/player-diagnostics)
-[![@mattebox/player-cast](https://img.shields.io/npm/v/@mattebox/player-cast?label=%40mattebox%2Fplayer-cast)](https://www.npmjs.com/package/@mattebox/player-cast)
-[![@mattebox/player-spatial-nav](https://img.shields.io/npm/v/@mattebox/player-spatial-nav?label=%40mattebox%2Fplayer-spatial-nav)](https://www.npmjs.com/package/@mattebox/player-spatial-nav)
-[![@mattebox/player-playlist](https://img.shields.io/npm/v/@mattebox/player-playlist?label=%40mattebox%2Fplayer-playlist)](https://www.npmjs.com/package/@mattebox/player-playlist)
-[![@mattebox/player-preferences](https://img.shields.io/npm/v/@mattebox/player-preferences?label=%40mattebox%2Fplayer-preferences)](https://www.npmjs.com/package/@mattebox/player-preferences)
-[![@mattebox/player-ads](https://img.shields.io/npm/v/@mattebox/player-ads?label=%40mattebox%2Fplayer-ads)](https://www.npmjs.com/package/@mattebox/player-ads)
-[![@mattebox/player-live-captions](https://img.shields.io/npm/v/@mattebox/player-live-captions?label=%40mattebox%2Fplayer-live-captions)](https://www.npmjs.com/package/@mattebox/player-live-captions)
-[![@mattebox/player-360](https://img.shields.io/npm/v/@mattebox/player-360?label=%40mattebox%2Fplayer-360)](https://www.npmjs.com/package/@mattebox/player-360)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 The Mattebox player is seven packages over the
@@ -21,18 +11,18 @@ The Mattebox player is seven packages over the
 MediaSource and never sets the `src` of the video. The player decides which
 handler to use, and adds a custom UI on top of it.
 
-| Package                          | What it is                                                                                                                                                                          | Side effects                     |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| `@mattebox/player-core`          | The layer without a UI. It resolves a source through your connectors and runs the handler chain. About three kilobytes                                                              | None                             |
-| `@mattebox/player`               | The `<mattebox-player>` custom element over the core. No framework                                                                                                                  | Registers the element on import  |
-| `@mattebox/player-diagnostics`   | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                                                                        | Registers the element on import  |
-| `@mattebox/player-cast`          | `<mbx-cast-button>`. Chromecast from the player, over Google's sender SDK                                                                                                           | Registers the element on import  |
-| `@mattebox/player-spatial-nav`   | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player                                                                | Registers the element on import  |
-| `@mattebox/player-playlist`      | The playlist from markup or a script, its controls, and the up next card                                                                                                            | Registers the element on import  |
-| `@mattebox/player-preferences`   | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits                                                    | Registers the element on import  |
-| `@mattebox/player-ads`           | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                                                                      | Registers the element on import  |
-| `@mattebox/player-live-captions` | `<mbx-live-captions>`. What is said, written over the video by the browser's speech recognition, on the device                                                                      | Registers the element on import  |
-| `@mattebox/player-360`           | `<mbx-360>`, `<mbx-motion-button>` and `<mbx-vr-button>`. A 360° video seen from inside, turned by a drag, the wheel, a game controller or the device, and shown in a WebXR headset | Registers the elements on import |
+| Package                          | Version                                                                                                                             | What it is                                                                                                                                                                          | Side effects                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| `@mattebox/player-core`          | [![npm](https://img.shields.io/npm/v/@mattebox/player-core)](https://www.npmjs.com/package/@mattebox/player-core)                   | The layer without a UI. It resolves a source through your connectors and runs the handler chain. About three kilobytes                                                              | None                             |
+| `@mattebox/player`               | [![npm](https://img.shields.io/npm/v/@mattebox/player)](https://www.npmjs.com/package/@mattebox/player)                             | The `<mattebox-player>` custom element over the core. No framework                                                                                                                  | Registers the element on import  |
+| `@mattebox/player-diagnostics`   | [![npm](https://img.shields.io/npm/v/@mattebox/player-diagnostics)](https://www.npmjs.com/package/@mattebox/player-diagnostics)     | `<mbx-diagnostics>`. The stats, the charts and the browser's support inside the player, and a report to send                                                                        | Registers the element on import  |
+| `@mattebox/player-cast`          | [![npm](https://img.shields.io/npm/v/@mattebox/player-cast)](https://www.npmjs.com/package/@mattebox/player-cast)                   | `<mbx-cast-button>`. Chromecast from the player, over Google's sender SDK                                                                                                           | Registers the element on import  |
+| `@mattebox/player-spatial-nav`   | [![npm](https://img.shields.io/npm/v/@mattebox/player-spatial-nav)](https://www.npmjs.com/package/@mattebox/player-spatial-nav)     | `<mbx-spatial-nav>`. The remote control on a TV: focus moves with the arrows, and the remote's keys reach the player                                                                | Registers the element on import  |
+| `@mattebox/player-playlist`      | [![npm](https://img.shields.io/npm/v/@mattebox/player-playlist)](https://www.npmjs.com/package/@mattebox/player-playlist)           | The playlist from markup or a script, its controls, and the up next card                                                                                                            | Registers the element on import  |
+| `@mattebox/player-preferences`   | [![npm](https://img.shields.io/npm/v/@mattebox/player-preferences)](https://www.npmjs.com/package/@mattebox/player-preferences)     | `<mbx-preferences>` and a store. The viewer's tracks, volume, rate, quality and subtitle look, kept across programmes and visits                                                    | Registers the element on import  |
+| `@mattebox/player-ads`           | [![npm](https://img.shields.io/npm/v/@mattebox/player-ads)](https://www.npmjs.com/package/@mattebox/player-ads)                     | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                                                                      | Registers the element on import  |
+| `@mattebox/player-live-captions` | [![npm](https://img.shields.io/npm/v/@mattebox/player-live-captions)](https://www.npmjs.com/package/@mattebox/player-live-captions) | `<mbx-live-captions>`. What is said, written over the video by the browser's speech recognition, on the device                                                                      | Registers the element on import  |
+| `@mattebox/player-360`           | [![npm](https://img.shields.io/npm/v/@mattebox/player-360)](https://www.npmjs.com/package/@mattebox/player-360)                     | `<mbx-360>`, `<mbx-motion-button>` and `<mbx-vr-button>`. A 360° video seen from inside, turned by a drag, the wheel, a game controller or the device, and shown in a WebXR headset | Registers the elements on import |
 
 A page with its own UI has two options:
 
@@ -73,6 +63,16 @@ with fMP4 segments, on demand and live, and
 without MPEG-TS or DASH. The player runs the engine's `hls-drm` preset, and
 video.js 10 its `hls-video` element. Both rows
 are the HTML player with its default skin, measured as above.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/package-chart-dark.svg">
+  <img alt="Bundle size each package adds to the Mattebox player, min+gzip. The figures are in the chart." src="docs/package-chart-light.svg">
+</picture>
+
+Each package costs what its bar shows on top of the player with the full
+preset: the player with the package, measured as above, less the player
+alone. The Chromecast row leaves out Google's sender SDK, which the button
+loads from Google when the page shows it.
 
 [videojs.org](https://videojs.org) states a smaller figure. Its
 [snapshot script](https://github.com/videojs/video.js/blob/main/site/scripts/snapshot-bundle-sizes.mjs)
