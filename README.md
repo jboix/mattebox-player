@@ -42,7 +42,7 @@ are optional player elements.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/size-chart-dark.svg">
-  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript and styles. Mattebox player with the engine's full preset is 124.3 KB, Shaka Player with its UI 329.9 KB, video.js 10 with hls.js and dash.js 501.7 KB, Bitmovin Player 662.5 KB, THEOplayer 721.1 KB." src="docs/size-chart-light.svg">
+  <img alt="Bundle size of video players with HLS and DASH playback, min+gzip, JavaScript and styles. The figures are in the chart." src="docs/size-chart-light.svg">
 </picture>
 
 The chart bundles every stack from its npm packages in the same way:
@@ -54,7 +54,7 @@ ships, and both vendors also sell a smaller modular build.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hls-chart-dark.svg">
-  <img alt="Bundle size of video players with HLS playback of fMP4 segments and DRM, min+gzip, JavaScript and styles. Mattebox player with the engine's hls-drm preset is 108.1 KB, video.js 10 with SPF 119.7 KB." src="docs/hls-chart-light.svg">
+  <img alt="Bundle size of video players with HLS playback of fMP4 segments and DRM, min+gzip, JavaScript and styles. The figures are in the chart." src="docs/hls-chart-light.svg">
 </picture>
 
 The second chart compares the reach of SPF, video.js 10's own engine: HLS
