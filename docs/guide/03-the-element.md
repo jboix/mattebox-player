@@ -824,8 +824,8 @@ bar makes the keys aim instead:
 
 The default, `key-mode="instant"`, seeks on every key.
 
-The preview's picture comes from the sources the seek bar's `preview`
-attribute names, in order of preference. The first one that answers for
+The preview's picture comes from the sources in the seek bar's `preview`
+attribute, in order of preference. The first one that answers for
 the time wins. Without a picture, the preview shows the time and the
 chapter.
 

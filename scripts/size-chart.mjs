@@ -11,8 +11,9 @@
 //   of SPF, video.js 10's own engine. The player runs the `hls-drm` preset.
 // - docs/package-chart-*.svg: what each package of the player adds to a page
 //   that has the player with its default, the full preset.
-// - docs/stack-chart-*.svg: whole pages, the player with the engine's stages
-//   the page names through `define()` and the packages it imports.
+// - docs/stack-chart-*.svg: the player by configuration, from the player
+//   alone to the engine's stages passed to `define()` and the packages
+//   imported beside it.
 //
 // The Mattebox rows are the workspace build. The other stacks are pinned npm
 // versions, installed at run time into scripts/size-chart/, whose lockfile
@@ -70,7 +71,7 @@ const FULL = [
     detail: (version) => `+ mattebox v${version('mattebox')}, full preset`,
     highlight: true,
     entry: "import '@mattebox/player';",
-    // The element lazy-loads the preset the page names, one chunk each.
+    // The element lazy-loads the preset in its `preset` attribute, one chunk each.
     // The `full` chunk is the one on the page's path.
     skip: /[\\/]mattebox[\\/].*[\\/]presets[\\/](?!full[\\/])[^\\/]+[\\/]index\.js$/,
   },
@@ -156,7 +157,7 @@ const HLS = [
   },
 ];
 
-/** Every preset chunk: a page that names its stages loads none of them. */
+/** Every preset chunk: a player given its stages loads none of them. */
 const NO_PRESET = /[\\/]mattebox[\\/].*[\\/]presets[\\/][^\\/]+[\\/]index\.js$/;
 
 /** Every preset chunk but `full`'s, which a page with the player's default loads. */
@@ -187,22 +188,28 @@ const DEFAULT_PAGE = {
 };
 
 /**
- * Whole pages. `stages` are the engine's, by their path under `mattebox/`;
- * `packages` are keys of PACKAGES; `preset` instead of stages is the preset
- * the `preset` attribute names. A row whose label starts with `+` adds to
- * the row above it, and its detail shows what it adds.
+ * The player by configuration. `stages` are the engine's, by their path
+ * under `mattebox/`; `packages` are keys of PACKAGES; `preset` instead of
+ * stages is the value of the `preset` attribute. A row whose label starts
+ * with `+` adds to the row above it, and its detail shows what it adds.
+ * The first row is the player with no stage: the element, its controls and
+ * the engine's core, which every other row includes.
  */
 const STACKS = [
-  { label: 'HLS on demand', stages: ['protocols/hls-cmaf', 'stages/abr'] },
+  { label: 'Player alone', stages: [] },
+  { label: '+ HLS on demand', stages: ['protocols/hls-cmaf', 'stages/abr'] },
   { label: '+ live', stages: ['protocols/hls-live'] },
   { label: '+ subtitles', stages: ['stages/text-webvtt', 'stages/text-webvtt-segmented'] },
   { label: '+ live captions', packages: ['live-captions'] },
   { label: '+ Chromecast', packages: ['cast'] },
-  { label: '+ Widevine, PlayReady', stages: ['stages/eme-core', 'stages/eme-cenc'] },
-  { label: 'DASH on demand', stages: ['protocols/dash-cmaf', 'stages/abr'] },
+  {
+    label: '+ Widevine, FairPlay',
+    stages: ['stages/eme-core', 'stages/eme-cenc', 'stages/eme-fairplay'],
+  },
+  { label: 'Player + DASH on demand', stages: ['protocols/dash-cmaf', 'stages/abr'] },
   { label: '+ 360° video', packages: ['360'] },
-  { label: 'hls preset', preset: 'hls' },
-  { label: 'full preset', preset: 'full' },
+  { label: 'Player + hls preset', preset: 'hls' },
+  { label: 'Player + full preset', preset: 'full' },
   { label: '+ every package', packages: Object.keys(PACKAGES) },
 ];
 
@@ -212,7 +219,7 @@ function local(path) {
   return name.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
 }
 
-/** A page's source: the player, its stages through `define()` or its preset, its packages. */
+/** A configuration's source: the player, its stages through `define()` or its preset, its packages. */
 function pageEntry({ stages, preset, packages }) {
   const lines = ["import { MatteboxPlayerElement } from '@mattebox/player';"];
   for (const path of stages) lines.push(`import ${local(path)} from 'mattebox/${path}';`);
@@ -225,7 +232,7 @@ function pageEntry({ stages, preset, packages }) {
   return lines.join('\n');
 }
 
-/** Each STACKS row as a page, the rows above it included where it adds to them. */
+/** Each STACKS row as a bundle entry, the rows above it included where it adds to them. */
 function stackPages() {
   const pages = [];
   let last = { stages: [], preset: undefined, packages: [] };
@@ -242,7 +249,9 @@ function stackPages() {
         ? 'the preset attribute'
         : row.label.startsWith('+')
           ? `+ ${row.label === '+ every package' ? 'every package' : own.join(', ')}`
-          : own.join(', ');
+          : own.length === 0
+            ? 'no stages'
+            : own.join(', ');
     pages.push({
       label: row.label,
       detail,
@@ -274,7 +283,7 @@ async function packageRows() {
   return out.sort((a, b) => a.bytes - b.bytes);
 }
 
-/** The stack chart's rows: each page bundled as a whole. */
+/** The stack chart's rows: each configuration bundled as a whole. */
 async function stackRows() {
   const out = [];
   for (const page of stackPages()) {
@@ -503,10 +512,10 @@ const CHARTS = [
   {
     file: 'stack-chart',
     rows: stackRows,
-    title: 'Mattebox player, the page you ship',
-    subtitle: 'min+gzip · KB · the player, the engine stages it names, and its packages',
+    title: 'Player size by configuration',
+    subtitle: 'min+gzip · KB · the player with the engine stages and the packages of each row',
     ariaLabel:
-      'Bundle size of whole Mattebox player pages, by the engine stages and packages they use, min+gzip',
+      'Bundle size of the Mattebox player by the engine stages and packages it is configured with, min+gzip',
     tick: 25,
   },
 ];

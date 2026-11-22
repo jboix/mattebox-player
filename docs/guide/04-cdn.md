@@ -41,7 +41,7 @@ the CDN as it is:
 </script>
 ```
 
-The `preset` attribute names a preset the engine bundle contains. A CDN
+The `preset` attribute takes a preset the engine bundle contains. A CDN
 engine bundle contains one preset, `mattebox.preset`.
 
 ## Integrity
