@@ -165,9 +165,12 @@ async function source(player: MatteboxPlayerElement): Promise<void> {
 }
 
 /**
- * Plays `media`. WebKit can take a play() back with an AbortError before it
- * starts, under load, though nothing here pauses or loads. The play is the
- * rig's, not what a test asserts, so it plays again, three times at most.
+ * Plays `media`, muted. Under load, Playwright's WebKit can un-mute the video
+ * by itself while the source loads: a `volumechange` arrives with `muted`
+ * false, and no script wrote it. WebKit then refuses an unmuted play without
+ * a gesture, with a NotAllowedError, or takes back the play already asked
+ * for, with an AbortError. The play is the rig's, not what a test asserts,
+ * so it mutes the video again and plays again, three times at most.
  */
 async function play(media: HTMLMediaElement): Promise<void> {
   for (let attempt = 1; ; attempt += 1) {
@@ -175,7 +178,11 @@ async function play(media: HTMLMediaElement): Promise<void> {
       await media.play();
       return;
     } catch (error) {
-      if ((error as Error).name !== 'AbortError' || attempt === 3) throw error;
+      const name = (error as Error).name;
+      // A refusal of a video that is still muted has another cause.
+      const unmuted = name === 'NotAllowedError' && !media.muted;
+      if ((name !== 'AbortError' && !unmuted) || attempt === 3) throw error;
+      media.muted = true;
     }
   }
 }
