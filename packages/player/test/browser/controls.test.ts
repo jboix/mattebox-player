@@ -14,6 +14,7 @@ import type { ChaptersApi } from 'mattebox/stages/chapters';
 import type { ThumbnailsApi } from 'mattebox/stages/thumbnails';
 import type { TrickApi } from 'mattebox/stages/trick-play';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { icon } from '../../src/controls/icons.js';
 import type { LiveApi, PdtApi } from '../../src/namespaces.js';
 import { compose, fakeMedia, media, once, silence } from './helpers.js';
@@ -2794,6 +2795,171 @@ describe('a menu on a compact player', () => {
     await expect.poll(() => list.hidden).toBe(false);
     expect(list.style.width).toBe('');
     expect(menu.shadowRoot?.querySelector<HTMLElement>('[part~="backdrop"]')?.hidden).toBe(true);
+  });
+});
+
+describe('a menu on a compact player with drawer', () => {
+  /** A compact player with a drawer, and its speed menu. */
+  async function paged(): Promise<[MatteboxPlayerElement, HTMLElement]> {
+    const player = await ready(10);
+    player.setAttribute('layout', 'compact');
+    player.setAttribute('drawer', '');
+    const menu = control(player, 'mbx-speed-menu');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    return [player, menu];
+  }
+
+  /** The drawer the menu shows its popup in, or null. */
+  const drawer = (menu: HTMLElement): HTMLDialogElement | null =>
+    menu.shadowRoot?.querySelector<HTMLDialogElement>('dialog[part~="drawer"]') ?? null;
+
+  it('is a modal dialog over the page, with the popup at the foot of the viewport', async () => {
+    const [, menu] = await paged();
+    const list = popup(menu);
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    const dialog = drawer(menu);
+    expect(dialog?.matches(':modal')).toBe(true);
+    expect(dialog?.getAttribute('aria-label')).toBe(inner(menu).getAttribute('aria-label'));
+    expect(list.parentElement).toBe(dialog);
+    // The dialog covers the viewport, and the popup sits at its foot, as wide as it.
+    const cover = dialog?.getBoundingClientRect();
+    expect([cover?.left, cover?.top, cover?.width, cover?.height]).toEqual([
+      0,
+      0,
+      document.documentElement.clientWidth,
+      window.innerHeight,
+    ]);
+    const box = list.getBoundingClientRect();
+    expect(getComputedStyle(list).position).toBe('static');
+    expect(Math.round(box.bottom)).toBe(window.innerHeight);
+    // As wide as the viewport, up to the 30em a drawer is at its widest.
+    const most = 30 * Number.parseFloat(getComputedStyle(list).fontSize);
+    expect(Math.round(box.width)).toBe(
+      Math.round(Math.min(document.documentElement.clientWidth, most)),
+    );
+    // The dialog dims the page, so the dim inside the player stays away.
+    expect(menu.shadowRoot?.querySelector<HTMLElement>('[part~="backdrop"]')?.hidden).toBe(true);
+    // The checked row has the focus, as in the player.
+    expect(menu.shadowRoot?.activeElement?.getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('closes on a press on the dim, and the popup goes back to its menu', async () => {
+    const [, menu] = await paged();
+    const list = popup(menu);
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    drawer(menu)?.click();
+    expect(list.hidden).toBe(true);
+    expect(drawer(menu)).toBeNull();
+    expect(list.parentNode).toBe(menu.shadowRoot);
+    expect(menu.hasAttribute('open')).toBe(false);
+    // A second opening makes a new drawer.
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(list.parentElement).toBe(drawer(menu));
+  });
+
+  it('closes on Escape and on the dialog asking to close, and the button takes the focus', async () => {
+    const [, menu] = await paged();
+    const list = popup(menu);
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    await userEvent.keyboard('{Escape}');
+    await expect.poll(() => list.hidden).toBe(true);
+    expect(drawer(menu)).toBeNull();
+    expect(menu.shadowRoot?.activeElement).toBe(inner(menu));
+
+    // The device's Back reaches the dialog as `cancel`, with no key.
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    drawer(menu)?.dispatchEvent(new Event('cancel', { cancelable: true }));
+    expect(list.hidden).toBe(true);
+    expect(drawer(menu)).toBeNull();
+  });
+
+  it('chooses a row, and closes', async () => {
+    const [player, menu] = await paged();
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    const row = items(menu).find((item) => item.value === '2');
+    row?.click();
+    expect(player.media.playbackRate).toBe(2);
+    expect(drawer(menu)).toBeNull();
+    expect(popup(menu).parentNode).toBe(menu.shadowRoot);
+  });
+
+  it('does not let a wheel on the drawer scroll the page behind it', async () => {
+    const [, menu] = await paged();
+    const tall = document.createElement('div');
+    tall.style.height = '3000px';
+    document.body.append(tall);
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    await userEvent.wheel(popup(menu), { delta: { y: 300 } });
+    await userEvent.wheel(drawer(menu) as HTMLElement, { delta: { y: 300 } });
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(document.scrollingElement?.scrollTop).toBe(0);
+  });
+
+  it('goes back inside the player when the player is no longer compact', async () => {
+    const [player, menu] = await paged();
+    const list = popup(menu);
+    inner(menu).click();
+    await expect.poll(() => list.hidden).toBe(false);
+    expect(list.parentElement).toBe(drawer(menu));
+    player.setAttribute('layout', 'regular');
+    await expect.poll(() => drawer(menu)).toBeNull();
+    expect(list.hidden).toBe(false);
+    expect(list.parentNode).toBe(menu.shadowRoot);
+    expect(getComputedStyle(list).position).toBe('absolute');
+  });
+
+  it("follows the menu's own drawer over the player's", async () => {
+    const [player, menu] = await paged();
+    // A second menu in the same bar, with no attribute of its own.
+    const other = document.createElement('mbx-speed-menu');
+    bar(player)?.append(other);
+    await expect.poll(() => other.getAttribute('layout')).toBe('compact');
+    // Off on the menu, on for the player: this menu stays inside the player.
+    menu.setAttribute('drawer', 'off');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(drawer(menu)).toBeNull();
+    expect(getComputedStyle(popup(menu)).position).toBe('absolute');
+    inner(menu).click();
+    // On for the menu alone: it shows over the page, and the others do not.
+    player.removeAttribute('drawer');
+    menu.setAttribute('drawer', '');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(popup(menu).parentElement).toBe(drawer(menu));
+    inner(menu).click();
+    inner(other).click();
+    await expect.poll(() => popup(other).hidden).toBe(false);
+    expect(drawer(other)).toBeNull();
+    // Off on the player keeps every menu inside it.
+    inner(other).click();
+    menu.removeAttribute('drawer');
+    player.setAttribute('drawer', 'off');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(drawer(menu)).toBeNull();
+  });
+
+  it('stays inside the player without the attribute, and on a player that is not compact', async () => {
+    const [player, menu] = await paged();
+    player.removeAttribute('drawer');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(drawer(menu)).toBeNull();
+    inner(menu).click();
+    player.setAttribute('drawer', '');
+    player.setAttribute('layout', 'regular');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('regular');
+    inner(menu).click();
+    await expect.poll(() => popup(menu).hidden).toBe(false);
+    expect(drawer(menu)).toBeNull();
   });
 });
 

@@ -19,6 +19,7 @@ import type {
 } from '@mattebox/player-core';
 import type { Mattebox, Stage } from 'mattebox';
 import type { BreakMarks } from './controls/breaks.js';
+import type { DrawerOptions } from './controls/drawer.js';
 import type { Markers } from './controls/markers.js';
 import type { Messages } from './messages.js';
 import type { CastOptions, CastTarget, Remote } from './remote.js';
@@ -106,6 +107,14 @@ export interface PlayerHost extends HTMLElement {
    * the words change.
    */
   message(id: keyof Messages): string | undefined;
+  /**
+   * Shows a control's nodes in a drawer over the page, and returns the
+   * function that closes it and puts them back. The nodes are siblings, in
+   * order, in the control's shadow root. Null when the sheet stays inside
+   * the player: without `drawer` on the control or on the player, on a
+   * player that is not compact, or in a browser without a modal dialog.
+   */
+  drawer(nodes: readonly HTMLElement[], options: DrawerOptions): (() => void) | null;
 }
 
 /**

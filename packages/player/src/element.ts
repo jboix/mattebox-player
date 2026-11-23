@@ -43,6 +43,8 @@ import type { Announcer } from './announcer.js';
 import { announcer } from './announcer.js';
 import { type BreakMarks, createBreakMarks } from './controls/breaks.js';
 import { type Chapter, chapters as chaptersOf } from './controls/chapters.js';
+import type { DrawerOptions } from './controls/drawer.js';
+import { drawer } from './controls/drawer.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { live as liveOf } from './controls/session.js';
@@ -153,6 +155,17 @@ const PLAYSINLINE = 'playsinline';
  */
 const LAYOUT = 'layout';
 const LAYOUTS = ['compact', 'regular', 'wide'];
+/**
+ * Where a compact player shows a menu or the playlist. Without the
+ * attribute they are sheets inside the player, over the picture. With it,
+ * they open in a drawer over the page, from the foot of the viewport, where
+ * a list has the room a small player lacks. A player that is not compact
+ * has room for its popups and ignores the attribute. It is a boolean
+ * attribute, read when a control opens. A control's own `drawer` wins over
+ * the player's, and `drawer="off"` on either keeps the sheet inside the
+ * player.
+ */
+const DRAWER = 'drawer';
 /** Under either, the player is compact. */
 const COMPACT_WIDTH = 480;
 const COMPACT_HEIGHT = 320;
@@ -586,6 +599,22 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** The word of `id` in the player's language, or undefined, where the control's English applies. */
   message(id: keyof Messages): string | undefined {
     return this.words[id];
+  }
+
+  /**
+   * Shows a control's nodes in a drawer over the page and returns the
+   * function that closes it. Null when the sheet stays inside the player:
+   * without `drawer` on the control or on the player, on a player that is
+   * not compact, or in a browser without a modal dialog.
+   */
+  drawer(nodes: readonly HTMLElement[], options: DrawerOptions): (() => void) | null {
+    if (this.getAttribute(LAYOUT) !== 'compact') return null;
+    // The control is the host of the shadow root its nodes are in. Its own
+    // `drawer` decides, and the player's where it has none.
+    const root = nodes[0]?.getRootNode();
+    const control = root instanceof ShadowRoot ? root.host : null;
+    const asked = control?.getAttribute(DRAWER) ?? this.getAttribute(DRAWER);
+    return asked === null || asked === 'off' ? null : drawer(nodes, options);
   }
 
   /** Follows registrations and the document's `lang` until disconnect. */

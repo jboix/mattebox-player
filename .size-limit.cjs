@@ -131,8 +131,10 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
     // The player is a peer, read for its types alone. The controller, the
     // markup, the list panel and its buttons measured 6.45 kB; the up next
-    // card and the preload come on top. 8 kB holds them.
+    // card and the preload come on top. With the list as a sheet over the
+    // page it measured 8.11 kB. The owner set the budget at 10 kB on
+    // 2026-11-23, with room for what the list still needs.
     brotli: true,
-    limit: '8 kB',
+    limit: '10 kB',
   },
 ];

@@ -181,3 +181,8 @@
   max-height: 80%;
   padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
 }
+/* In the drawer, the drawer dims and holds the two parts: the element
+   covers the player still, and shows nothing of its own. */
+:host([in-drawer]) {
+  background: none;
+}

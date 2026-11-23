@@ -26,6 +26,7 @@ export abstract class MenuElement<S extends string = 'default'> extends Componen
       picture: () => this.player?.media.getBoundingClientRect() ?? null,
       frame: () => this.player,
       back: (page) => fill(this.word('label-back', 'menuBack', 'Back from {page}'), { page }),
+      drawer: (nodes, options) => this.player?.drawer(nodes, options) ?? null,
     });
     this.slots = iconSlots(states, glyphs);
     for (const state of states) this.menu.button.append(this.slots[state]);

@@ -23,6 +23,7 @@ over the picture under `controls="custom"`.
 | `subtitle-size`           | Sets the subtitle size: `small`, `medium`, `large` or `xlarge`. The subtitles menu writes it. The default is `medium`                                                        |
 | `subtitle-background`     | Sets the subtitle background: `none` (transparent), `dark` (60% black) or `solid` (black). The default is `dark`                                                             |
 | `layout`                  | The size tier the controls draw for: `compact`, `regular` or `wide`. The player sets it from its own size. A value you write stays. See [Size tiers](#size-tiers)            |
+| `drawer`                  | Opens a compact player's menus and playlist in a drawer over the page. A control takes it too. See [The drawer](#the-drawer)                                                 |
 | `playsinline`             | Plays inline on an iPhone. On by default. `playsinline="false"` lets the iPhone go to fullscreen on play. Changing it never reloads                                          |
 | `autoplay`                | Copied onto the video as an attribute                                                                                                                                        |
 | `muted`                   | Copied onto the video, as an attribute and as the muted state. The player also writes the video's muted state back to it                                                     |
@@ -896,19 +897,19 @@ Two rules make this work:
 - No stylesheet of the player uses `!important`. For normal declarations, a rule from the page wins over a rule from the shadow tree, whatever its specificity. An `!important` inside the shadow tree would reverse that.
 - Every element a control draws has a `part`, because `::part()` cannot select the descendants of a part.
 
-| Element                             | Parts                                                                                                                                                                                                                                   |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mattebox-player`                   | `stage`, and the error surface: `error`, `error-category`, `error-code`, `error-retry`, `value`, `button`                                                                                                                               |
-| `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                                                                                                                        |
-| Every button control                | `button`, `icon`                                                                                                                                                                                                                        |
-| `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                                                                                                              |
-| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`                                                                 |
-| `mbx-scan-button`                   | `button`, `icon`, `rate`                                                                                                                                                                                                                |
-| `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                                                                                                                 |
-| Every menu                          | `button`, `icon`, `popup`, `title`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-glyph`, `badge-text`, `item-detail`, `page-item`, `glyph-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
-| The chosen item of a menu           | `checked`, added to the part of the item. It is the only state in a part name, because a page cannot otherwise select the state of an item inside a shadow root                                                                         |
-| `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                                                                                                                      |
-| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `message`, `actions`, `retry`, `diagnostics`                                                                                                                                 |
+| Element                             | Parts                                                                                                                                                                                                                                             |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mattebox-player`                   | `stage`, and the error surface: `error`, `error-category`, `error-code`, `error-retry`, `value`, `button`                                                                                                                                         |
+| `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                                                                                                                                  |
+| Every button control                | `button`, `icon`                                                                                                                                                                                                                                  |
+| `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                                                                                                                        |
+| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`                                                                           |
+| `mbx-scan-button`                   | `button`, `icon`, `rate`                                                                                                                                                                                                                          |
+| `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                                                                                                                           |
+| Every menu                          | `button`, `icon`, `popup`, `drawer`, `title`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-glyph`, `badge-text`, `item-detail`, `page-item`, `glyph-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
+| The chosen item of a menu           | `checked`, added to the part of the item. It is the only state in a part name, because a page cannot otherwise select the state of an item inside a shadow root                                                                                   |
+| `mbx-drm-badge`                     | `icon`, `tooltip`, `tooltip-title`, `tooltip-text`                                                                                                                                                                                                |
+| `mbx-error-screen`                  | `box`, `title`, `detail`, `category`, `separator`, `code`, `message`, `actions`, `retry`, `diagnostics`                                                                                                                                           |
 
 Part names are public API. A release can add names. A name is only renamed
 in a major version.
@@ -956,6 +957,56 @@ Remove it to hand it back.
 ```
 
 A font size of your own on the player wins over the tier's.
+
+### The drawer
+
+On a compact player, a menu or the playlist is a sheet inside the player.
+A small player leaves a list little room. With `drawer` on the player,
+they open in a drawer over the page, from the bottom of the viewport.
+
+```html
+<!-- Every menu and the playlist, but not the speed menu. -->
+<mattebox-player drawer controls="custom" src="…">
+  <mbx-control-bar>
+    <mbx-speed-menu drawer="off"></mbx-speed-menu>
+  </mbx-control-bar>
+</mattebox-player>
+
+<!-- The playlist alone. -->
+<mattebox-player controls="custom" src="…">
+  <mbx-playlist drawer></mbx-playlist>
+</mattebox-player>
+```
+
+- Without the attribute, the sheet stays inside the player. This is the default.
+- The attribute on a menu or on `<mbx-playlist>` sets it for that control alone, and wins over the player's.
+- `drawer="off"` on a control keeps its sheet inside a player that has `drawer`.
+- The attribute acts on a compact player only. A larger player keeps its popups over the picture.
+- The drawer is as wide as the viewport, up to 30em, and at most 80% of its height.
+- Escape closes it. So does a press on the dimmed page.
+- The page behind it does not scroll while it is open.
+
+The drawer is a `<dialog>` that the control opens with `showModal()`, in its
+own shadow root. The browser draws it over the whole page and keeps the
+focus inside it. The rest of the page is inert while it is open, and the
+video keeps playing.
+
+- The player adds nothing to the body of your page, and no `z-index` of your page applies.
+- The parts keep their names. `::part(popup)` and `::part(item)` style a menu in the drawer, and `::part(header)` and `::part(list)` style the playlist. The dialog is the `drawer` part.
+- The custom properties of the player apply in the drawer.
+- A player in an iframe shows the drawer over the iframe, not over the page around it.
+- `showModal()` needs Chrome 37, Safari 15.4 or Firefox 98. An older browser keeps the sheet inside the player.
+
+A control of your own shows its nodes in the drawer with
+`player.drawer(nodes, options)`. The nodes are siblings in the control's
+shadow root. `options.label` is the drawer's accessible name, and
+`options.dismiss` runs when the viewer asks to leave. The call returns the
+function that closes the drawer and puts the nodes back. It returns null
+when there is no drawer, and the control then draws its own sheet.
+
+```ts
+const close = player.drawer([list], { label: 'Episodes', dismiss: () => close?.() });
+```
 
 ### Tokens
 

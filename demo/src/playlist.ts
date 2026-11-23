@@ -99,6 +99,7 @@ const repeat = byId<HTMLSelectElement>('repeat');
 const shuffle = byId<HTMLInputElement>('shuffle');
 const autoadvance = byId<HTMLInputElement>('autoadvance');
 const autoplay = byId<HTMLInputElement>('autoplay');
+const drawer = byId<HTMLInputElement>('drawer');
 const log = eventLog(byId<HTMLElement>('log'), 'Events');
 const code = byId<HTMLPreElement>('code');
 const status = byId<HTMLElement>('status');
@@ -158,7 +159,10 @@ function markup(playlist: Playlist): string {
   };
   // The player's own attributes, as the page set them.
   const flags = ['autoplay', 'muted'].filter((name) => player.hasAttribute(name));
-  lines.push(`<mattebox-player controls="custom"${flags.map((name) => ` ${name}`).join('')}>`);
+  const paged = player.hasAttribute('drawer') ? ' drawer' : '';
+  lines.push(
+    `<mattebox-player controls="custom"${flags.map((name) => ` ${name}`).join('')}${paged}>`,
+  );
   for (const child of player.children) {
     if (child.localName.startsWith('mbx-')) tag(child, '  ');
   }
@@ -211,6 +215,10 @@ shuffle.addEventListener('change', () => {
 });
 autoadvance.addEventListener('change', () => {
   playlist.autoadvance = autoadvance.checked;
+});
+drawer.addEventListener('change', () => {
+  player.toggleAttribute('drawer', drawer.checked);
+  show();
 });
 autoplay.addEventListener('change', () => {
   player.toggleAttribute('autoplay', autoplay.checked);

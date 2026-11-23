@@ -1,0 +1,37 @@
+/* The dialog fills the viewport and dims the page. What it shows sits at
+   its foot, as wide as a phone and never wider than a list reads well. */
+dialog[part~="drawer"] {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: inherit;
+  /* A drag on the dim does not scroll the page behind it. */
+  touch-action: none;
+}
+/* The dialog is the dim: a second one over it would darken the page twice. */
+dialog[part~="drawer"]::backdrop {
+  background: none;
+}
+dialog[part~="drawer"] > * {
+  position: static;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 30em;
+  max-height: 80%;
+}

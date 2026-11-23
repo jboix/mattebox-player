@@ -89,6 +89,9 @@ export class MbxPlaylist extends PlaylistControl {
   declare private paused: boolean;
   /** Whether the children ever gave items: only then do they own the list. */
   declare private markup: boolean;
+  /** Closes the drawer the list shows in, or null while it shows in the player. */
+  declare private leave: (() => void) | null;
+  declare private readonly header: HTMLElement;
   declare private readonly heading: HTMLElement;
   declare private readonly close: HTMLButtonElement;
   declare private readonly shuffle: HTMLButtonElement;
@@ -103,8 +106,10 @@ export class MbxPlaylist extends PlaylistControl {
     this.watcher = null;
     this.paused = false;
     this.markup = false;
+    this.leave = null;
     const root = this.attachShadow({ mode: 'open' });
     const header = el('div', 'header');
+    this.header = header;
     this.heading = el('div', 'heading');
     this.close = this.control('close', () => {
       this.dismiss();
@@ -170,6 +175,18 @@ export class MbxPlaylist extends PlaylistControl {
       this.watcher?.disconnect();
       this.watcher = null;
     });
+    // A list open before its player was found, or across a change of tier,
+    // goes where the player shows it now.
+    const place = (): void => {
+      if (this.hasAttribute('open')) this.place(true);
+    };
+    const player = this.player;
+    player?.addEventListener('layoutchange', place);
+    this.keep(() => {
+      player?.removeEventListener('layoutchange', place);
+      this.place(false);
+    });
+    place();
   }
 
   override attributeChangedCallback(name: string): void {
@@ -186,12 +203,35 @@ export class MbxPlaylist extends PlaylistControl {
     const video = this.player?.media;
     this.paused = this.hasAttribute('pause-on-open') && video !== undefined && !video.paused;
     if (this.paused) video?.pause();
+    this.place(true);
+  }
+
+  /**
+   * Puts the list where the player shows it: in a drawer over the page when
+   * a compact player asks for one with `drawer`, else in the player. The
+   * element carries `in-drawer` while its list is there, where the drawer
+   * dims and the element does not. An open list takes the focus.
+   */
+  private place(open: boolean): void {
+    this.leave?.();
+    // An older player has no drawer: the list stays inside it.
+    const drawer = open ? this.player?.drawer : undefined;
+    this.leave =
+      drawer?.call(this.player, [this.header, this.list], {
+        label: this.heading.textContent ?? '',
+        dismiss: () => {
+          this.dismiss();
+        },
+      }) ?? null;
+    this.toggleAttribute('in-drawer', this.leave !== null);
+    if (!open) return;
     const current = this.list.querySelector<HTMLButtonElement>('[aria-current="true"]');
     (current ?? this.close).focus();
   }
 
   /** Playback that the list paused plays again, however the list closed. */
   private closed(): void {
+    this.place(false);
     if (this.paused) this.player?.media.play().catch(() => undefined);
     this.paused = false;
   }

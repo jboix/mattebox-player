@@ -19,8 +19,14 @@
  * width, where a long item ends in an ellipsis. The
  * element that owns the menu carries `open` while the popup shows, which
  * the bar reads to hold its fade.
+ *
+ * On a compact player the popup is a sheet from the foot of the player.
+ * With `drawer` on the menu or on its player, the popup shows in a drawer
+ * over the page instead: `drawer()` moves it there, and the menu works the
+ * same in it.
  */
 import { el, setChildren, state } from '../dom.js';
+import type { DrawerOptions } from './drawer.js';
 
 export interface MenuGroup {
   /** The part suffix: `track`, `size`. */
@@ -73,6 +79,11 @@ export interface MenuOptions {
   readonly frame: () => Element | null;
   /** The name of the Back item, from the page it leaves: "Back from {page}". */
   readonly back: (page: string) => string;
+  /**
+   * Shows the popup in a drawer over the page, and returns the function
+   * that closes it. Null when the player keeps its sheet inside itself.
+   */
+  readonly drawer: (nodes: readonly HTMLElement[], options: DrawerOptions) => (() => void) | null;
 }
 
 export interface Menu {
@@ -141,6 +152,7 @@ export function menu(options: MenuOptions): Menu {
           if (!open) return;
           // The rows are drawn again, so the focus goes back to one of them.
           const held = popup.contains(focused());
+          place();
           render();
           if (held) (checked() ?? items()[0])?.focus();
         });
@@ -150,6 +162,8 @@ export function menu(options: MenuOptions): Menu {
       : new ResizeObserver(() => {
           if (open) fit();
         });
+  /** Closes the drawer the popup shows in, or null while it shows in the player. */
+  let leave: (() => void) | null = null;
   /** Whether the page drawn last was drawn for a compact player. */
   let drawnCompact = false;
   let name = '';
@@ -185,12 +199,14 @@ export function menu(options: MenuOptions): Menu {
     const picture = compact
       ? (options.frame()?.getBoundingClientRect() ?? null)
       : options.picture();
-    backdrop.hidden = !(open && compact && picture !== null);
+    backdrop.hidden = !(open && compact && picture !== null && leave === null);
     for (const node of [popup, backdrop]) {
       node.style.left = node.style.bottom = node.style.width = '';
     }
     backdrop.style.height = '';
-    if (picture === null) return;
+    // In the drawer, the drawer's own style places the popup and sizes it.
+    if (leave !== null) popup.style.maxHeight = popup.style.maxWidth = '';
+    if (picture === null || leave !== null) return;
     // A compact player's menu is a sheet from the foot of the player, as wide
     // as the player and never taller, over the controls. It stays inside the
     // player: a page around a small player keeps its own space. The dim
@@ -335,9 +351,28 @@ export function menu(options: MenuOptions): Menu {
     fit();
   }
 
+  /** Escape, or the drawer's own way out: back a page, or out of the menu to its button. */
+  function back(): void {
+    if (stack.length > 1) {
+      stack.pop();
+      render();
+      items()[0]?.focus();
+      return;
+    }
+    close();
+    button.focus();
+  }
+
+  /** Puts the open popup where the player shows it now: over the page, or in the player. */
+  function place(): void {
+    leave?.();
+    leave = open ? options.drawer([popup], { label: name, dismiss: back }) : null;
+  }
+
   function close(): void {
     if (!open) return;
     open = false;
+    place();
     tiers?.disconnect();
     sizes?.disconnect();
     popup.hidden = true;
@@ -357,6 +392,7 @@ export function menu(options: MenuOptions): Menu {
     // The tier may have changed since the page was drawn: its first row differs.
     if ((host.getAttribute('layout') === 'compact') !== drawnCompact) render();
     popup.hidden = false;
+    place();
     button.setAttribute('aria-expanded', 'true');
     host.setAttribute('open', '');
     document.addEventListener('pointerdown', outside, true);
@@ -393,14 +429,7 @@ export function menu(options: MenuOptions): Menu {
         break;
       case 'Escape':
         event.preventDefault();
-        if (stack.length > 1) {
-          stack.pop();
-          render();
-          items()[0]?.focus();
-          return;
-        }
-        close();
-        button.focus();
+        back();
         return;
       default:
         return;

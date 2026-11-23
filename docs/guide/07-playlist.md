@@ -165,6 +165,11 @@ cut. On a larger player, and in fullscreen, the
 list is over the picture again. See
 [Size tiers](03-the-element.md#size-tiers).
 
+With `drawer` on the player or on `<mbx-playlist>`, a compact player opens
+the list in a drawer over the page, from the bottom of the viewport, where
+more of the list is in view. The list is then in a `<dialog>`, which is the
+`drawer` part. See [The drawer](03-the-element.md#the-drawer).
+
 Without children, `<mbx-playlist>` shows the list a script loaded.
 
 ### The up next card
@@ -271,15 +276,16 @@ The ids are in the `PlaylistMessages` type. See the player guide, chapter
 The icon of a bar button is its `icon` slot. The button shows its own icon
 when the slot is empty.
 
-| Element          | Parts                                                                                                                                                         |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The bar buttons  | `button`                                                                                                                                                      |
-| `<mbx-playlist>` | `header`, `heading`, `controls`, `button`, `close`, `badge`, `list`, `row`, `item`, `item-image`, `item-text`, `item-title`, `item-subtitle`, `item-duration` |
-| `<mbx-up-next>`  | `card`, `image`, `text`, `top`, `heading`, `countdown`, `title`, `play`, `button`                                                                             |
+| Element          | Parts                                                                                                                                                                   |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The bar buttons  | `button`                                                                                                                                                                |
+| `<mbx-playlist>` | `drawer`, `header`, `heading`, `controls`, `button`, `close`, `badge`, `list`, `row`, `item`, `item-image`, `item-text`, `item-title`, `item-subtitle`, `item-duration` |
+| `<mbx-up-next>`  | `card`, `image`, `text`, `top`, `heading`, `countdown`, `title`, `play`, `button`                                                                                       |
 
 The item that plays has `aria-current="true"` on its `item` part. `badge`
 is the 1 on the repeat button under repeat one. `close` is the Close
-button, beside its `button` part.
+button, beside its `button` part. `drawer` is the dialog the list is in
+when it shows over the page.
 
 The elements read the `--mbx-*` custom properties of the player.
 

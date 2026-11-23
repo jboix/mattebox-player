@@ -285,6 +285,127 @@ describe("the list's header", () => {
   });
 });
 
+describe('the list on a compact player with drawer', () => {
+  /** A compact player with a drawer, with a list of eight items. */
+  async function paged(): Promise<[MatteboxPlayerElement, HTMLElement]> {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    player.setAttribute('drawer', '');
+    player.style.width = '390px';
+    player.style.height = '219px';
+    player.innerHTML = '<mbx-playlist-button></mbx-playlist-button><mbx-playlist></mbx-playlist>';
+    document.body.append(player);
+    await customElements.whenDefined('mattebox-player');
+    createPlaylist(player).load(
+      ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight'].map((heading) => ({
+        src: silence(5),
+        type: 'audio/wav',
+        heading,
+      })),
+    );
+    const panel = player.querySelector('mbx-playlist') as HTMLElement;
+    await expect.poll(() => panel.getAttribute('layout')).toBe('compact');
+    return [player, panel];
+  }
+
+  /** The drawer the list shows in, or null. */
+  const drawer = (panel: HTMLElement): HTMLDialogElement | null =>
+    panel.shadowRoot?.querySelector<HTMLDialogElement>('dialog[part~="drawer"]') ?? null;
+  const part = (panel: HTMLElement, name: string): HTMLElement =>
+    panel.shadowRoot?.querySelector(`[part~="${name}"]`) as HTMLElement;
+
+  it('is a modal dialog over the page, with more of the list than the player holds', async () => {
+    const [player, panel] = await paged();
+    panel.setAttribute('open', '');
+    const dialog = drawer(panel);
+    expect(dialog?.matches(':modal')).toBe(true);
+    expect(dialog?.getAttribute('aria-label')).toBe('Playlist');
+    expect(panel.hasAttribute('in-drawer')).toBe(true);
+    const header = part(panel, 'header');
+    const list = part(panel, 'list');
+    expect(header.parentElement).toBe(dialog);
+    expect(list.parentElement).toBe(dialog);
+    // The list ends at the foot of the viewport, under its header, and is
+    // taller than the whole player.
+    expect(Math.round(list.getBoundingClientRect().bottom)).toBe(window.innerHeight);
+    expect(Math.round(header.getBoundingClientRect().bottom)).toBe(
+      Math.round(list.getBoundingClientRect().top),
+    );
+    expect(list.getBoundingClientRect().height).toBeGreaterThan(
+      player.getBoundingClientRect().height,
+    );
+    // The dialog dims the page: the element over the player draws nothing.
+    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    // The item that plays has the focus.
+    expect(panel.shadowRoot?.activeElement?.getAttribute('aria-current')).toBe('true');
+  });
+
+  it('closes with Close, and the header and the list go back to the element', async () => {
+    const [player, panel] = await paged();
+    panel.setAttribute('open', '');
+    part(panel, 'close').click();
+    expect(panel.hasAttribute('open')).toBe(false);
+    expect(panel.hasAttribute('in-drawer')).toBe(false);
+    expect(drawer(panel)).toBeNull();
+    const root = panel.shadowRoot;
+    expect(part(panel, 'header').parentNode).toBe(root);
+    expect(part(panel, 'list').parentNode).toBe(root);
+    // The header is before the list still.
+    expect(part(panel, 'header').nextElementSibling).toBe(part(panel, 'list'));
+    expect(player.querySelector('mbx-playlist-button')?.shadowRoot?.activeElement).not.toBeNull();
+  });
+
+  it('closes on a press on the dim, and on a picked item', async () => {
+    const [player, panel] = await paged();
+    panel.setAttribute('open', '');
+    drawer(panel)?.click();
+    expect(panel.hasAttribute('open')).toBe(false);
+    expect(drawer(panel)).toBeNull();
+
+    panel.setAttribute('open', '');
+    expect(drawer(panel)).not.toBeNull();
+    panel.shadowRoot?.querySelectorAll<HTMLElement>('[part~="item"]')[2]?.click();
+    expect(playlistOf(player)?.index).toBe(2);
+    expect(panel.hasAttribute('open')).toBe(false);
+    expect(drawer(panel)).toBeNull();
+  });
+
+  it('stays inside the player without the attribute', async () => {
+    const [player, panel] = await paged();
+    player.removeAttribute('drawer');
+    panel.setAttribute('open', '');
+    expect(drawer(panel)).toBeNull();
+    expect(panel.hasAttribute('in-drawer')).toBe(false);
+    expect(getComputedStyle(panel).backgroundColor).toBe('rgba(0, 0, 0, 0.5)');
+  });
+
+  it("follows its own drawer over the player's", async () => {
+    const [player, panel] = await paged();
+    // Off on the list, on for the player: the list stays inside the player.
+    panel.setAttribute('drawer', 'off');
+    panel.setAttribute('open', '');
+    expect(drawer(panel)).toBeNull();
+    panel.removeAttribute('open');
+    // On for the list alone.
+    player.removeAttribute('drawer');
+    panel.setAttribute('drawer', '');
+    panel.setAttribute('open', '');
+    expect(drawer(panel)).not.toBeNull();
+    expect(panel.hasAttribute('in-drawer')).toBe(true);
+  });
+
+  it('goes back inside the player when the player is no longer compact', async () => {
+    const [player, panel] = await paged();
+    panel.setAttribute('open', '');
+    expect(drawer(panel)).not.toBeNull();
+    player.style.width = '800px';
+    player.style.height = '450px';
+    await expect.poll(() => drawer(panel)).toBeNull();
+    expect(panel.hasAttribute('open')).toBe(true);
+    expect(part(panel, 'list').parentNode).toBe(panel.shadowRoot);
+  });
+});
+
 describe('the preload of the next item', () => {
   const MASTER = `#EXTM3U
 #EXT-X-VERSION:7
