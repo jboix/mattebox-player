@@ -158,8 +158,10 @@ With `pause-on-open`, the video pauses while the list is open. It plays
 again when the list closes without a pick.
 
 On a compact player, such as a phone held upright, the list opens as a
-sheet from the bottom of the page. The page behind it is dimmed, and a
-press there closes the list. On a larger player, and in fullscreen, the
+sheet from the bottom of the player. The picture behind it is dimmed, and a
+press there closes the list. The heading, the controls and Close share one
+row there, so the list keeps the height. A heading too long for the row is
+cut. On a larger player, and in fullscreen, the
 list is over the picture again. See
 [Size tiers](03-the-element.md#size-tiers).
 
@@ -269,14 +271,15 @@ The ids are in the `PlaylistMessages` type. See the player guide, chapter
 The icon of a bar button is its `icon` slot. The button shows its own icon
 when the slot is empty.
 
-| Element          | Parts                                                                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The bar buttons  | `button`                                                                                                                                             |
-| `<mbx-playlist>` | `header`, `heading`, `controls`, `button`, `badge`, `list`, `row`, `item`, `item-image`, `item-text`, `item-title`, `item-subtitle`, `item-duration` |
-| `<mbx-up-next>`  | `card`, `image`, `text`, `top`, `heading`, `countdown`, `title`, `play`, `button`                                                                    |
+| Element          | Parts                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The bar buttons  | `button`                                                                                                                                                      |
+| `<mbx-playlist>` | `header`, `heading`, `controls`, `button`, `close`, `badge`, `list`, `row`, `item`, `item-image`, `item-text`, `item-title`, `item-subtitle`, `item-duration` |
+| `<mbx-up-next>`  | `card`, `image`, `text`, `top`, `heading`, `countdown`, `title`, `play`, `button`                                                                             |
 
 The item that plays has `aria-current="true"` on its `item` part. `badge`
-is the 1 on the repeat button under repeat one.
+is the 1 on the repeat button under repeat one. `close` is the Close
+button, beside its `button` part.
 
 The elements read the `--mbx-*` custom properties of the player.
 

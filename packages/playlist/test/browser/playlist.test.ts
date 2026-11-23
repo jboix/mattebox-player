@@ -229,6 +229,62 @@ describe('the list on a compact player', () => {
   });
 });
 
+describe("the list's header", () => {
+  /** A player of a size, with a list of four items open. */
+  async function opened(width: number, height: number, layout: string): Promise<ShadowRoot> {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('controls', 'custom');
+    player.style.width = `${width}px`;
+    player.style.height = `${height}px`;
+    player.innerHTML = '<mbx-playlist></mbx-playlist>';
+    document.body.append(player);
+    await customElements.whenDefined('mattebox-player');
+    createPlaylist(player).load(
+      ['One', 'Two', 'Three', 'Four'].map((heading) => ({
+        src: silence(5),
+        type: 'audio/wav',
+        heading,
+      })),
+    );
+    const panel = player.querySelector('mbx-playlist') as HTMLElement;
+    await expect.poll(() => panel.getAttribute('layout')).toBe(layout);
+    panel.setAttribute('open', '');
+    return panel.shadowRoot as ShadowRoot;
+  }
+
+  /** The box of a part of the list. */
+  const box = (root: ShadowRoot, part: string): DOMRect =>
+    (root.querySelector(`[part~="${part}"]`) as HTMLElement).getBoundingClientRect();
+
+  it('is one row on a compact player, Close last, with three items in view', async () => {
+    const root = await opened(390, 219, 'compact');
+    const heading = box(root, 'heading');
+    const controls = box(root, 'controls');
+    const close = box(root, 'close');
+    // One row: the controls and Close start within the heading's height.
+    expect(controls.top).toBeLessThan(heading.bottom);
+    expect(close.top).toBeLessThan(heading.bottom);
+    expect(heading.right).toBeLessThanOrEqual(controls.left);
+    expect(controls.right).toBeLessThanOrEqual(close.left);
+    // A finger's measure.
+    expect(Math.round(close.width)).toBe(44);
+    expect(Math.round(close.height)).toBe(44);
+    // The third item is whole, inside the list.
+    const list = box(root, 'list');
+    const third = root.querySelectorAll('[part~="item"]')[2] as HTMLElement;
+    expect(third.getBoundingClientRect().bottom).toBeLessThanOrEqual(list.bottom);
+  });
+
+  it('keeps the controls on a row under the heading on a larger player', async () => {
+    const root = await opened(800, 450, 'regular');
+    const heading = box(root, 'heading');
+    const controls = box(root, 'controls');
+    const close = box(root, 'close');
+    expect(close.top).toBeLessThan(heading.bottom);
+    expect(controls.top).toBeGreaterThanOrEqual(close.bottom);
+  });
+});
+
 describe('the preload of the next item', () => {
   const MASTER = `#EXTM3U
 #EXT-X-VERSION:7

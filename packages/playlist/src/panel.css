@@ -18,11 +18,19 @@
 :host([open]) {
   display: flex;
 }
-[part~="header"],
-[part~="controls"] {
+/* The heading and Close, then the controls on a row of their own. */
+[part~="header"] {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   padding: 0.2857em 0.5714em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+[part~="controls"] {
+  display: flex;
+  flex: 0 0 100%;
+  align-items: center;
+  padding-top: 0.5714em;
 }
 /* The panel's text is a size under the bar's, and its buttons keep the bar's measure. */
 [part~="button"] {
@@ -34,11 +42,12 @@
 }
 [part~="heading"] {
   flex: 1;
+  min-width: 0;
   padding-left: 0.5714em;
+  overflow: hidden;
   font-weight: 600;
-}
-[part~="controls"] {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Inside the panel, a tooltip opens below its button: above, it would
    leave the picture at the top. */
@@ -125,8 +134,8 @@
 }
 /* A compact player is too narrow for a list beside the picture, so the
    list is a sheet from the foot of the player. The host covers the player,
-   never the page around it, and dims it. The three parts sit at its
-   bottom with their own ground. */
+   never the page around it, and dims it. The two parts sit at its bottom
+   with their own ground. */
 :host([layout="compact"]) {
   left: 0;
   z-index: 1000;
@@ -136,20 +145,39 @@
   font-size: 1em;
 }
 :host([layout="compact"]) [part~="header"],
-:host([layout="compact"]) [part~="controls"],
 :host([layout="compact"]) [part~="list"] {
   background: rgb(28, 28, 32);
 }
+/* A compact player is short, and the list needs its height: the heading,
+   the controls and Close share one row, Close last. A long heading is cut. */
 :host([layout="compact"]) [part~="header"] {
-  padding-top: 0.5714em;
+  flex-wrap: nowrap;
+  padding: 0.125em 0.375em;
   border-radius: 0.75em 0.75em 0 0;
 }
+:host([layout="compact"]) [part~="controls"] {
+  flex: none;
+  padding-top: 0;
+}
+/* A line between the controls and Close: one acts on the list, the other leaves it. */
+:host([layout="compact"]) [part~="controls"]::after {
+  content: "";
+  width: 1px;
+  height: 1.5em;
+  margin: 0 0.25em;
+  background: rgba(255, 255, 255, 0.16);
+}
+:host([layout="compact"]) [part~="close"] {
+  order: 1;
+}
+/* A finger's measure, 44 pixels at the sheet's text size. */
+:host([layout="compact"]) [part~="button"] {
+  width: 2.75em;
+  height: 2.75em;
+}
+/* The header and three rows fit a 16:9 player the width of a phone. */
 :host([layout="compact"]) [part~="list"] {
   flex: 0 1 auto;
-  max-height: 70%;
+  max-height: 80%;
   padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
-}
-:host([layout="compact"]) [part~="item"] {
-  padding-top: 0.7143em;
-  padding-bottom: 0.7143em;
 }

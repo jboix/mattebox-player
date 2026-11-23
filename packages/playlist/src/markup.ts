@@ -109,7 +109,8 @@ export class MbxPlaylist extends PlaylistControl {
     this.close = this.control('close', () => {
       this.dismiss();
     });
-    header.append(this.heading, this.close);
+    // The header's own part name: a compact player draws it after the controls.
+    this.close.setAttribute('part', 'button close');
     const controls = el('div', 'controls');
     this.shuffle = this.control('shuffle', () => {
       if (this.playlist !== null) this.playlist.shuffle = !this.playlist.shuffle;
@@ -126,11 +127,15 @@ export class MbxPlaylist extends PlaylistControl {
       this.playlist?.next();
     });
     controls.append(this.shuffle, this.repeat, this.previous, this.next);
+    // The controls are in the header: a row under the heading on a large
+    // player, and the same row as the heading on a compact one, where the
+    // list needs the height.
+    header.append(this.heading, this.close, controls);
     this.list = el('ol', 'list');
     this.list.addEventListener('keydown', (event) => {
       this.step(event);
     });
-    root.append(style(BUTTON_STYLE + PANEL_STYLE), header, controls, this.list);
+    root.append(style(BUTTON_STYLE + PANEL_STYLE), header, this.list);
     // On a compact player the host covers the page: a press beside the list closes it.
     this.addEventListener('click', (event) => {
       if (event.composedPath()[0] === this) this.dismiss();
