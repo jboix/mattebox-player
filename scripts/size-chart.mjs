@@ -52,6 +52,35 @@ const VERBOSE = process.argv.includes('--verbose');
  */
 const VIDEOJS = '10.4.0';
 
+/** The Shaka Player version every row of it installs. */
+const SHAKA = '5.2.10';
+
+/** The Bitmovin Player version every row of it installs. */
+const BITMOVIN = '8.279.0';
+
+/**
+ * The Bitmovin modules the full chart's reach needs: the player, the engine
+ * under HLS and DASH, its Media Source renderer, bitrate adaptation, both
+ * protocols (DASH needs the XML module), fMP4 and MPEG-TS, DRM, and the
+ * two modules that load and style the interface. The dependencies are the
+ * ones `ModuleName` documents in the package's own types. Subtitles, ads,
+ * 360° video, low latency and the TV modules stay out.
+ */
+const BITMOVIN_MODULES = [
+  'core',
+  'engine-bitmovin',
+  'mserenderer',
+  'abr',
+  'hls',
+  'dash',
+  'xml',
+  'container-mp4',
+  'container-ts',
+  'drm',
+  'style',
+  'ui',
+];
+
 /** The video.js 10 player and its default skin. The skin carries its CSS inline. */
 const VIDEOJS_PLAYER = [
   "import '@videojs/html/video/player';",
@@ -95,33 +124,56 @@ const FULL = [
   },
   {
     // The ui build carries the engine and the controls in one file. The
-    // package has no export map, so the import names the file.
+    // package ships it twice, for ES5 and for ES2021, and this row is the
+    // ES2021 file, the smaller one. The Mattebox row stays its default
+    // ES2015 build, so the choice favours Shaka. The package has no export
+    // map, so the import names the file.
     label: 'shaka player + ui',
-    detail: 'the ui build',
+    detail: 'the ui build, es2021',
     version: 'shaka-player',
-    install: { 'shaka-player': '5.2.10' },
-    entry: "import 'shaka-player/dist/shaka-player.ui.js';",
+    install: { 'shaka-player': SHAKA },
+    entry: "import 'shaka-player/dist/shaka-player.ui-es2021.js';",
     styles: ['shaka-player/dist/controls.css'],
   },
   {
-    // A commercial player. Its package is one prebuilt file with every
-    // feature, and its interface is a second file and a stylesheet the
-    // player loads beside it. The vendor also sells a modular build; this
-    // row is the one a page gets from the package as published.
+    // A commercial player. `bitmovinplayer.js` is one prebuilt file with
+    // every module, and the interface is a second file and a stylesheet the
+    // player loads beside it. The row counts the `.prod.js` file, which the
+    // package ships without the debug log messages.
     label: 'bitmovin player',
     detail: 'the full bundle, with its ui',
     version: 'bitmovin-player',
-    install: { 'bitmovin-player': '8.279.0' },
+    install: { 'bitmovin-player': BITMOVIN },
     entry: [
-      "import 'bitmovin-player/bitmovinplayer.js';",
+      "import 'bitmovin-player/bitmovinplayer.prod.js';",
+      "import 'bitmovin-player/bitmovinplayer-ui.js';",
+    ].join('\n'),
+    styles: ['bitmovin-player/bitmovinplayer-ui.css'],
+  },
+  {
+    // The same package holds each module as a file of its own, under
+    // `modules/`. This row is the modules the chart's reach needs, with the
+    // same interface: the smallest Bitmovin page that plays what the other
+    // rows play.
+    label: 'bitmovin player, modules',
+    detail: 'HLS, DASH, MPEG-TS, DRM, its ui',
+    version: 'bitmovin-player',
+    install: { 'bitmovin-player': BITMOVIN },
+    // Each module ships a `.prod.js` file too, as the full bundle does.
+    entry: [
+      ...BITMOVIN_MODULES.map(
+        (name) => `import 'bitmovin-player/modules/bitmovinplayer-${name}.prod.js';`,
+      ),
       "import 'bitmovin-player/bitmovinplayer-ui.js';",
     ].join('\n'),
     styles: ['bitmovin-player/bitmovinplayer-ui.css'],
   },
   {
     // A commercial player, now Dolby's. `THEOplayer.js` is the prebuilt
-    // file with the interface inside. The transmuxer it fetches at run
-    // time for MPEG-TS is not counted.
+    // file with the interface inside. To play MPEG-TS it fetches
+    // `THEOplayer.transmux.js` and its WebAssembly file at run time. The
+    // row leaves both out, so it is smaller than what a page with MPEG-TS
+    // streams downloads.
     label: 'theoplayer',
     detail: 'the full bundle, with its ui',
     version: 'theoplayer',

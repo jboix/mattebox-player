@@ -48,9 +48,19 @@ are optional player elements.
 The chart bundles every stack from its npm packages in the same way:
 rolldown minifies it, and gzip compresses it at level 9. It counts the
 stylesheets a page links for a stack. Every row plays HLS and DASH, MPEG-TS
-and DRM. Video.js 10 does this through hls.js and dash.js. Bitmovin Player
-and THEOplayer are commercial: their rows are the full bundle each package
-ships, and both vendors also sell a smaller modular build.
+and DRM. Video.js 10 does this through hls.js and dash.js.
+
+- The Mattebox row is the default ES2015 build of the player and the engine.
+- The Shaka Player row is its ES2021 `ui` build, the smaller of the two
+  the package ships.
+- Bitmovin Player has two rows, both from the same package. One is the
+  full bundle. The other is the modules under `modules/` that HLS, DASH,
+  MPEG-TS and DRM need, with the same interface.
+- Both Bitmovin rows count the `.prod.js` files, which ship without the
+  debug log messages.
+- The THEOplayer row is the full bundle. It leaves out the transmuxer
+  THEOplayer fetches at run time to play MPEG-TS, so a page with MPEG-TS
+  streams downloads more than the bar shows.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hls-chart-dark.svg">
@@ -81,7 +91,7 @@ HLS and no DASH. The
 [measurement](https://github.com/videojs/video.js/blob/main/.github/scripts/bundle-size.js)
 leaves out React, a peer dependency, and compresses with brotli at quality 11.
 
-`npm run size-chart` regenerates both charts, and `--verbose` lists what
+`npm run size-chart` regenerates the charts, and `--verbose` lists what
 each row counts.
 
 ## Quick start
