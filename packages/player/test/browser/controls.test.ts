@@ -2781,6 +2781,32 @@ describe('a menu on a compact player', () => {
     expect(list.hidden).toBe(true);
   });
 
+  it('draws the way back from edge to edge of the sheet, under its top corners', async () => {
+    const player = await ready(10);
+    player.setAttribute('layout', 'compact');
+    const menu = control(player, 'mbx-speed-menu');
+    await expect.poll(() => menu.getAttribute('layout')).toBe('compact');
+    inner(menu).click();
+    const list = popup(menu);
+    await expect.poll(() => list.hidden).toBe(false);
+    const back = items(menu)[0] as HTMLElement;
+    // The highlight and the focus ring are the row's box, so the box leaves
+    // none of the sheet's padding around it.
+    const sheet = list.getBoundingClientRect();
+    const row = back.getBoundingClientRect();
+    expect([row.left, row.top, row.width].map(Math.round)).toEqual(
+      [sheet.left, sheet.top, sheet.width].map(Math.round),
+    );
+    const corners = (node: Element) => {
+      const style = getComputedStyle(node);
+      return [style.borderTopLeftRadius, style.borderTopRightRadius];
+    };
+    expect(corners(back)).toEqual(corners(list));
+    expect(corners(back)).not.toContain('0px');
+    // The rule under it is straight.
+    expect(getComputedStyle(back).borderBottomLeftRadius).toBe('0px');
+  });
+
   it('is a popup again on a larger player, with no backdrop', async () => {
     const player = await ready(10);
     player.setAttribute('layout', 'compact');

@@ -166,17 +166,23 @@
   padding: 0.9231em 1.4066em;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
+/* The Back item reaches the popup's edges, as the title does, so its rule
+   and its highlight cover the whole row. Its top corners are the popup's,
+   and its text and its arrow stay where an inset row had them. */
 [part~="back-item"] {
   position: relative;
-  padding: 0.9231em 1.2308em 0.9231em 2.4615em;
+  width: auto;
+  margin: -0.5275em -0.5275em 0.5275em;
+  padding: 0.9231em 1.7583em 0.9231em 2.989em;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0;
-  margin-bottom: 0.5275em;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 [part~="back-item"]::before {
   content: "";
   position: absolute;
-  left: 1em;
+  left: 1.5275em;
   top: 50%;
   width: 0.5em;
   height: 0.5em;
