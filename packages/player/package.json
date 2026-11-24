@@ -77,7 +77,7 @@
     "release:ci": "semantic-release"
   },
   "dependencies": {
-    "@mattebox/player-core": "^0.10.0"
+    "@mattebox/player-core": "^0.10.1"
   },
   "peerDependencies": {
     "mattebox": "^0.19.0"

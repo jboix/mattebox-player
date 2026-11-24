@@ -54,7 +54,7 @@
     "release:ci": "semantic-release"
   },
   "devDependencies": {
-    "@mattebox/player-core": "^0.10.0"
+    "@mattebox/player-core": "^0.10.1"
   },
   "peerDependencies": {
     "@mattebox/player": ">=0.16.0",
