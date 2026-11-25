@@ -4,6 +4,9 @@
 // element, so it holds. The diagnostics element is a package of its own with
 // its own budget. Raise any only with a reason in the commit body.
 //
+// A budget is a whole number of kB, a step above the measured size, not the
+// measured size itself: the owner asked for round numbers on 2026-11-25.
+//
 // The CDN bundles are measured as served: size-limit would otherwise bundle
 // each file again with esbuild, which adds about 0.7 kB of wrapper nobody
 // downloads. The core is a set of modules, so it still needs the bundling.
@@ -71,9 +74,10 @@ module.exports = [
     disablePlugins: ['@size-limit/esbuild'],
     // The game controller and its help bubble, with the spatial navigation
     // they move focus with. A page with a remote alone loads the bundle above.
+    // It measured 5.09 kB.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '5.5 kB',
+    limit: '6 kB',
   },
   {
     name: '@mattebox/player-preferences',
@@ -85,7 +89,7 @@ module.exports = [
     // live captions as a subtitle choice.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '3.5 kB',
+    limit: '4 kB',
   },
   {
     name: '@mattebox/player-ads',
@@ -110,7 +114,7 @@ module.exports = [
     // chose and the covered state.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
-    limit: '4.5 kB',
+    limit: '5 kB',
   },
   {
     name: '@mattebox/player-360',
