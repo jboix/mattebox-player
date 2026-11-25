@@ -35,28 +35,29 @@ The player reports its state as attributes on itself, for the page's
 stylesheet and for the controls. `mattebox-player[playing]` matches while
 the video plays.
 
-| State attribute              | Set by                           | While                                                                                                                                                         |
-| ---------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `paused`, `playing`, `ended` | The player                       | The video is in that state                                                                                                                                    |
-| `muted`                      | The player                       | The video is muted                                                                                                                                            |
-| `audio`                      | The player                       | The source has no picture                                                                                                                                     |
-| `started`                    | The player                       | The video has played once since its source was set                                                                                                            |
-| `waiting`                    | The player                       | The video waits for data                                                                                                                                      |
-| `error`                      | The player                       | A fatal error stopped the load. Under custom controls, only the video, `mbx-error-screen` and `mbx-diagnostics` show                                          |
-| `blocked`                    | The player                       | A block shows. Under custom controls, only the video, `mbx-error-screen` and `mbx-diagnostics` show                                                           |
-| `diagnostics`                | `@mattebox/player-diagnostics`   | The diagnostics panel is open. The bar shows over an error or a block meanwhile                                                                               |
-| `live-captions`              | `@mattebox/player-live-captions` | Live captions are available: `off` or `on`. The subtitles menu lists them and writes the value (chapter 15)                                                   |
-| `fullscreen`                 | The bar, the button              | The player is the fullscreen element                                                                                                                          |
-| `pip`                        | The picture-in-picture button    | The video is in the floating window                                                                                                                           |
-| `casting`                    | The player                       | A device plays in the video's place. The value is its kind: `chromecast` or `airplay`                                                                         |
-| `airplay`                    | The AirPlay button               | The video plays on an AirPlay target. Kept for one minor version: read `casting`                                                                              |
-| `idle`                       | The bar                          | The bar is hidden after a time without input                                                                                                                  |
-| `focus-ring`                 | `<mbx-gamepad>`                  | Every focused control shows its ring and its name, also after focus a script gave. Set it yourself when your own code moves focus for a remote                |
-| `live`                       | The seek bar                     | The stream has an availability window                                                                                                                         |
-| `seekable`                   | The seek bar                     | The viewer can seek: VOD, or a live window that is wide enough                                                                                                |
-| `scrubbing`                  | The seek bar                     | A pointer holds the seek bar and the video is paused for the drag. The value is the state before the drag, `playing` or `paused`, which the play buttons show |
-| `projection`                 | The player                       | The source is 360°: `equirectangular` or `half-equirectangular`, from the source's `projection` or the manifest ([chapter 16](16-360-video.md))               |
-| `switching`                  | The player                       | `switchSource` or a version loads, and the controls show the state from before it, `playing` or `paused`, until the new load has a frame                      |
+| State attribute              | Set by                           | While                                                                                                                                                                |
+| ---------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paused`, `playing`, `ended` | The player                       | The video is in that state                                                                                                                                           |
+| `muted`                      | The player                       | The video is muted                                                                                                                                                   |
+| `audio`                      | The player                       | The source has no picture                                                                                                                                            |
+| `started`                    | The player                       | The video has played once since its source was set                                                                                                                   |
+| `waiting`                    | The player                       | The video waits for data                                                                                                                                             |
+| `error`                      | The player                       | A fatal error stopped the load. Under custom controls, only the video, `mbx-error-screen` and `mbx-diagnostics` show                                                 |
+| `blocked`                    | The player                       | A block shows. Under custom controls, only the video, `mbx-error-screen` and `mbx-diagnostics` show                                                                  |
+| `diagnostics`                | `@mattebox/player-diagnostics`   | The diagnostics panel is open. The bar shows over an error or a block meanwhile                                                                                      |
+| `live-captions`              | `@mattebox/player-live-captions` | Live captions are available: `off` or `on`. The subtitles menu lists them and writes the value (chapter 15)                                                          |
+| `fullscreen`                 | The bar, the button              | The player is the fullscreen element                                                                                                                                 |
+| `pip`                        | The picture-in-picture button    | The video is in the floating window                                                                                                                                  |
+| `casting`                    | The player                       | A device plays in the video's place. The value is its kind: `chromecast` or `airplay`                                                                                |
+| `airplay`                    | The AirPlay button               | The video plays on an AirPlay target. Kept for one minor version: read `casting`                                                                                     |
+| `idle`                       | The bar                          | The bar is hidden after a time without input                                                                                                                         |
+| `focus-ring`                 | `<mbx-gamepad>`                  | Every focused control shows its ring and its name, also after focus a script gave. Set it yourself when your own code moves focus for a remote                       |
+| `live`                       | The seek bar                     | The stream has an availability window                                                                                                                                |
+| `seekable`                   | The seek bar                     | The viewer can seek: VOD, or a live window that is wide enough                                                                                                       |
+| `scrubbing`                  | The seek bar                     | A pointer holds the seek bar and the video is paused for the drag. The value is the state before the drag, `playing` or `paused`, which the play buttons show        |
+| `projection`                 | The player                       | The source is 360°: `equirectangular` or `half-equirectangular`, from the source's `projection` or the manifest ([chapter 16](16-360-video.md))                      |
+| `frame-packing`              | The player                       | The frame holds a picture for each eye: `top-bottom` or `side-by-side`, from the source's `framePacking` or the stream ([chapter 16](16-360-video.md#frame-packing)) |
+| `switching`                  | The player                       | `switchSource` or a version loads, and the controls show the state from before it, `playing` or `paused`, until the new load has a frame                             |
 
 `audio` comes from the type of the source until the metadata arrives: the
 `type` attribute, or the URL's extension. After that it comes from the size
@@ -124,6 +125,7 @@ version, with `<mbx-video-track>` children. See
 | `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)                   |
 | `videoSource`  | The version that plays, or null for the source itself                                                                   |
 | `projection`   | How the picture maps onto a sphere, or null for a flat one: see [chapter 16](16-360-video.md)                           |
+| `framePacking` | How the frame holds a picture for each eye, or null for one picture: see [chapter 16](16-360-video.md#frame-packing)    |
 | `language`     | The `language` attribute, or empty. Setting it changes the words at once                                                |
 | `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either                         |
 

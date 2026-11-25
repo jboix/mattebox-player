@@ -1,11 +1,20 @@
 /**
  * <mbx-360>: a 360° video, seen from inside. Placed in the player, it draws
  * the picture onto the inside of a sphere over the video, and the viewer
- * looks around: a drag, the mouse wheel to zoom, a game controller's right
- * stick, and the motion of a phone or a tablet. A tap without a drag plays
- * or pauses, as on the video. `enterVR()` shows the view in a headset,
- * which `<mbx-vr-button>` offers.
+ * looks around: a drag, the mouse wheel to zoom, the W, A, S and D keys, a
+ * game controller's right stick, and the motion of a phone or a tablet. A
+ * tap without a drag plays or pauses, as on the video. `enterVR()` shows
+ * the view in a headset, which `<mbx-vr-button>` offers.
  *
+ * - The keys turn the view while focus is inside the player, as the
+ *   player's own shortcuts do. They are read by their place on the
+ *   keyboard, so a French layout turns with Z, Q, S and D. The arrows are
+ *   not used: they seek, and move focus on a TV.
+ * - A frame that holds a picture for each eye shows each eye its own in a
+ *   headset and on the split screen, and the left eye's on the screen. The
+ *   element reads it as it reads the projection: its own `frame-packing`
+ *   attribute, else the player's, which comes from the source or the
+ *   stream. `frame-packing="none"` draws the frame as one picture.
  * - `headset` names the ways a headset shows the view: `webxr`, a WebXR
  *   session, and `stereo`, the screen split in two for a phone in a viewer.
  *   It is `webxr` unless the page names any. With both, WebXR goes first
@@ -43,7 +52,7 @@ import type { PlayerHost } from '@mattebox/player';
 import { findPlayer, PLAYER } from './host.js';
 import { FULLSCREEN_EVENTS, fill, filling, fills, landscape, unfill, upright } from './screen.js';
 import { Sphere } from './sphere.js';
-import type { Projection, View } from './view.js';
+import type { FramePacking, Projection, View } from './view.js';
 import { clamp, DEFAULT_FOV, drag, orientation } from './view.js';
 import CSS from './view-360.css?inline';
 import type { XRFrame, XRLayer, XRLayerConstructor, XRSession } from './xr.js';
@@ -59,6 +68,20 @@ export type Headset = 'webxr' | 'stereo';
 const TOUCH = '(pointer: coarse)';
 
 const PROJECTIONS: readonly string[] = ['equirectangular', 'half-equirectangular'];
+
+/**
+ * The keys that turn the view, by their place on the keyboard (`code`, not
+ * `key`), and the turn each makes: right, then up.
+ */
+const KEYS: Readonly<Record<string, readonly [number, number]>> = {
+  KeyW: [0, 1],
+  KeyA: [-1, 0],
+  KeyS: [0, -1],
+  KeyD: [1, 0],
+};
+
+/** One press of a key turns the view by this share of its field of view: 5° at the default. */
+const KEY_STEP = 1 / 15;
 
 const DEGREES = 180 / Math.PI;
 
@@ -107,7 +130,7 @@ interface Press {
 
 export class Mbx360 extends HTMLElement {
   static get observedAttributes(): string[] {
-    return ['projection', 'fov', 'motion', 'headset'];
+    return ['projection', 'fov', 'motion', 'headset', 'frame-packing'];
   }
 
   declare private player: PlayerHost | null;
@@ -345,6 +368,17 @@ export class Mbx360 extends HTMLElement {
     return true;
   }
 
+  /**
+   * How the frame holds a picture for each eye, or null for a frame with
+   * one picture: the element's own `frame-packing` attribute, else the
+   * player's.
+   */
+  get framePacking(): FramePacking | null {
+    const value =
+      this.getAttribute('frame-packing') ?? this.player?.getAttribute('frame-packing') ?? null;
+    return value === 'top-bottom' || value === 'side-by-side' ? value : null;
+  }
+
   /** The projection the view draws, or null while the source is flat. */
   get projection(): Projection | null {
     const value =
@@ -388,13 +422,18 @@ export class Mbx360 extends HTMLElement {
       this.chosen = null;
       this.sync();
     } else if (name === 'headset') this.offer();
+    else if (name === 'frame-packing') this.dirty = true;
     else this.update();
   }
 
   private attach(player: PlayerHost): void {
     const media = player.media;
-    const watch = new MutationObserver(() => this.update());
-    watch.observe(player, { attributes: true, attributeFilter: ['projection'] });
+    const watch = new MutationObserver(() => {
+      // A new frame packing draws the same frame another way.
+      this.dirty = true;
+      this.update();
+    });
+    watch.observe(player, { attributes: true, attributeFilter: ['projection', 'frame-packing'] });
     this.offs.push(() => watch.disconnect());
     // The system's reduced motion turns the default off and on while the page is open.
     if (typeof matchMedia === 'function') {
@@ -458,6 +497,8 @@ export class Mbx360 extends HTMLElement {
     this.on(canvas, 'pointercancel', () => {
       this.press = null;
     });
+    // On the player, as the control bar's shortcuts: any key pressed inside it.
+    this.on(player, 'keydown', (event) => this.key(event as KeyboardEvent));
     // iOS asks for the motion permission only during a touch.
     this.on(canvas, 'touchend', () => this.ask());
     this.on(
@@ -688,7 +729,7 @@ export class Mbx360 extends HTMLElement {
           if (pose === null || media === null || projection === null || this.sphere === null)
             return;
           if (media.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
-          this.sphere.drawEyes(media, layer, pose.views, yaw, projection);
+          this.sphere.drawEyes(media, layer, pose.views, yaw, projection, this.framePacking);
         };
         session.requestAnimationFrame(frame);
         // The headset draws every frame; the screen view rests meanwhile.
@@ -847,8 +888,8 @@ export class Mbx360 extends HTMLElement {
     const picture = media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && media.videoWidth > 0;
     if (changed && picture) {
       try {
-        if (this.split) sphere.drawHalves(media, this.view, projection);
-        else sphere.draw(media, this.view, projection);
+        if (this.split) sphere.drawHalves(media, this.view, projection, this.framePacking);
+        else sphere.draw(media, this.view, projection, this.framePacking);
       } catch {
         // A SecurityError: another origin's picture, without CORS.
         this.failed = 'source';
@@ -890,6 +931,23 @@ export class Mbx360 extends HTMLElement {
       const step = STICK_SPEED * seconds;
       this.look({ yaw: yaw + x * step, pitch: pitch - y * step, fov });
     }
+  }
+
+  /**
+   * Turns the view by one step for a key of `KEYS`. A key another handler
+   * prevented, one with a modifier, and one typed into a field are left
+   * alone, and so is every key while a headset session draws the view.
+   */
+  private key(event: KeyboardEvent): void {
+    const turn = KEYS[event.code];
+    if (turn === undefined || !this.hasAttribute('active') || this.session !== null) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+    const target = event.composedPath()[0];
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+    const { yaw, pitch, fov } = this.view;
+    const step = fov * KEY_STEP;
+    this.look({ yaw: yaw + turn[0] * step, pitch: pitch + turn[1] * step, fov });
+    event.preventDefault();
   }
 
   /** Writes the active cues of the showing text tracks over the view. */

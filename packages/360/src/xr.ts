@@ -9,6 +9,8 @@
 
 /** One eye of the viewer: where it looks from and its frustum (XRView). */
 export interface XRView {
+  /** Which eye it is. A headset with one screen for both says `none`. */
+  readonly eye?: 'left' | 'right' | 'none';
   readonly projectionMatrix: Float32Array;
   readonly transform: { readonly matrix: Float32Array };
 }

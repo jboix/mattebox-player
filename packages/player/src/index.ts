@@ -38,6 +38,7 @@ import type { MbxVolumeSlider } from './entries/volume-slider.js';
 export type {
   Connector,
   ConnectorSource,
+  FramePacking,
   Programme,
   ProgrammeMetadata,
   ProgrammeSource,

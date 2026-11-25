@@ -1,9 +1,9 @@
 /**
  * The 360° demo: a player with <mbx-360>, the RTS programmes the SRG SSR
- * content API marks as 360°, a choice of projection, and where the view
- * looks. The connector reads the IL's `presentation`, so the player knows
- * the source is 360°; the stream itself does not say. The markup that
- * builds the same player is written out under it.
+ * content API marks as 360°, a choice of projection and frame packing, and
+ * where the view looks. The connector reads the IL's `presentation`, so the
+ * player knows the source is 360°; the stream itself does not say. The
+ * markup that builds the same player is written out under it.
  */
 
 import { MatteboxPlayerElement } from '@mattebox/player';
@@ -71,6 +71,7 @@ const player = byId<MatteboxPlayerElement>('player');
 const view = byId<Mbx360>('view');
 const select = byId<HTMLSelectElement>('example');
 const projection = byId<HTMLSelectElement>('projection');
+const packing = byId<HTMLSelectElement>('frame-packing');
 const headset = byId<HTMLSelectElement>('headset');
 const headsetNote = byId<HTMLElement>('headset-note');
 const note = byId<HTMLElement>('note');
@@ -94,10 +95,11 @@ function remembered(): number {
 
 function markup(example: Example): string {
   const forced = projection.value === '' ? '' : ` projection="${projection.value}"`;
+  const packed = packing.value === '' ? '' : ` frame-packing="${packing.value}"`;
   const ways = headset.value === '' ? '' : ` headset="${headset.value}"`;
   return `<mattebox-player controls="custom" muted
   type="srgssr/urn" src="${example.urn}">
-  <mbx-360${forced}${ways}></mbx-360>
+  <mbx-360${forced}${packed}${ways}></mbx-360>
   <mbx-control-bar>
     <mbx-play-button></mbx-play-button>
     <mbx-seek-bar></mbx-seek-bar>
@@ -135,6 +137,11 @@ select.addEventListener('change', () => choose(Number(select.value)));
 projection.addEventListener('change', () => {
   if (projection.value === '') view.removeAttribute('projection');
   else view.setAttribute('projection', projection.value);
+  code.textContent = markup(EXAMPLES[Number(select.value)] ?? (EXAMPLES[0] as Example));
+});
+packing.addEventListener('change', () => {
+  if (packing.value === '') view.removeAttribute('frame-packing');
+  else view.setAttribute('frame-packing', packing.value);
   code.textContent = markup(EXAMPLES[Number(select.value)] ?? (EXAMPLES[0] as Example));
 });
 headset.addEventListener('change', () => {
@@ -183,6 +190,7 @@ function read(): void {
     readout,
     ...row('View', state),
     ...row('Projection', view.projection ?? 'none'),
+    ...row('Frame packing', view.framePacking ?? 'none'),
     ...row('Yaw', `${Math.round(view.yaw)}°`),
     ...row('Pitch', `${Math.round(view.pitch)}°`),
     ...row('Field of view', `${Math.round(view.fov)}°`),

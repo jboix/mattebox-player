@@ -9,7 +9,7 @@ import { nativeHandler } from '@mattebox/player-core';
 import '@mattebox/player-360';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Sphere } from '../../src/sphere.js';
-import type { Projection } from '../../src/view.js';
+import type { FramePacking, Projection, View } from '../../src/view.js';
 import { once, silence } from './helpers.js';
 
 afterEach(() => {
@@ -43,6 +43,44 @@ function centre(yaw: number, projection: Projection = 'equirectangular'): number
   return [...pixel.slice(0, 3)].map((value) => Math.round(value / 255));
 }
 
+const PROJECTION: Projection = 'equirectangular';
+const RED = [1, 0, 0];
+const BLUE = [0, 0, 1];
+
+/** A frame that holds a picture for each eye: red for the left eye, blue for the right. */
+function pair(packing: FramePacking): HTMLCanvasElement {
+  const picture = document.createElement('canvas');
+  picture.width = 64;
+  picture.height = 64;
+  const context = picture.getContext('2d') as CanvasRenderingContext2D;
+  context.fillStyle = '#f00';
+  context.fillRect(0, 0, 64, 64);
+  context.fillStyle = '#00f';
+  if (packing === 'top-bottom') context.fillRect(0, 32, 64, 32);
+  else context.fillRect(32, 0, 32, 64);
+  return picture;
+}
+
+/** The colours at the centre of the left and the right half of a canvas, after `draw` drew a `pair`. */
+function halves(
+  packing: FramePacking,
+  draw: (sphere: Sphere, picture: HTMLCanvasElement, view: View) => void,
+): number[][] {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 32;
+  const sphere = new Sphere(canvas);
+  draw(sphere, pair(packing), { yaw: 0, pitch: 0, fov: 1 });
+  const gl = canvas.getContext('webgl') as WebGLRenderingContext;
+  const colours = [16, 48].map((x) => {
+    const pixel = new Uint8Array(4);
+    gl.readPixels(x, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+    return [...pixel.slice(0, 3)].map((value) => Math.round(value / 255));
+  });
+  sphere.dispose();
+  return colours;
+}
+
 describe('the sphere', () => {
   it('shows the quarter of the picture the yaw looks at, the right one as the yaw grows', () => {
     expect(centre(-135)).toEqual([1, 0, 0]);
@@ -74,6 +112,48 @@ describe('the sphere', () => {
       [0, 0, 1],
       [0, 0, 1],
     ]);
+  });
+
+  it('shows each eye its own picture of a frame that holds two', () => {
+    for (const packing of ['top-bottom', 'side-by-side'] as const) {
+      // Flat on the screen: the left eye's picture alone.
+      expect(
+        halves(packing, (sphere, picture, view) => sphere.draw(picture, view, PROJECTION, packing)),
+      ).toEqual([RED, RED]);
+      expect(
+        halves(packing, (sphere, picture, view) =>
+          sphere.drawHalves(picture, view, PROJECTION, packing),
+        ),
+      ).toEqual([RED, BLUE]);
+    }
+  });
+
+  it('gives each eye of a headset its own picture, and one screen for both the left one', () => {
+    const identity = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+    const layer = {
+      framebuffer: null,
+      getViewport: (view: { eye?: string }) => ({
+        x: view.eye === 'right' ? 32 : 0,
+        y: 0,
+        width: 32,
+        height: 32,
+      }),
+    };
+    const eye = (name: 'left' | 'right' | 'none') => ({
+      eye: name,
+      projectionMatrix: identity,
+      transform: { matrix: identity },
+    });
+    expect(
+      halves('top-bottom', (sphere, picture) =>
+        sphere.drawEyes(picture, layer, [eye('left'), eye('right')], 0, PROJECTION, 'top-bottom'),
+      ),
+    ).toEqual([RED, BLUE]);
+    expect(
+      halves('side-by-side', (sphere, picture) =>
+        sphere.drawEyes(picture, layer, [eye('none')], 0, PROJECTION, 'side-by-side'),
+      )[0],
+    ).toEqual(RED);
   });
 });
 
@@ -190,6 +270,98 @@ describe('<mbx-360>', () => {
     expect(clicks[0] === player.querySelector('video')).toBe(true);
     canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 200, cancelable: true }));
     expect(view.fov).toBeGreaterThan(60);
+  });
+
+  it('turns with the W, A, S and D keys, by their place on the keyboard', async () => {
+    const { player, view } = await rig('projection="equirectangular" fov="75"');
+    const press = (code: string, init: KeyboardEventInit = {}): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', {
+        code,
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        ...init,
+      });
+      player.dispatchEvent(event);
+      return event;
+    };
+    // A fifteenth of the field of view for each press.
+    expect(press('KeyD').defaultPrevented).toBe(true);
+    expect(view.yaw).toBeCloseTo(5);
+    press('KeyA');
+    press('KeyA');
+    expect(view.yaw).toBeCloseTo(-5);
+    press('KeyW');
+    expect(view.pitch).toBeCloseTo(5);
+    press('KeyS');
+    press('KeyS');
+    expect(view.pitch).toBeCloseTo(-5);
+    // The place, not the letter: Z on a French keyboard sits where W does.
+    press('KeyW', { key: 'z' });
+    expect(view.pitch).toBeCloseTo(0);
+    // Another key, a shortcut of the browser, and a key the page took are left alone.
+    expect(press('KeyE').defaultPrevented).toBe(false);
+    expect(press('KeyD', { ctrlKey: true }).defaultPrevented).toBe(false);
+    player.addEventListener('keydown', (event) => event.preventDefault(), { capture: true });
+    press('KeyD');
+    expect(view.yaw).toBeCloseTo(-5);
+  });
+
+  it('leaves the keys alone for a flat source, and for a letter typed into a field', async () => {
+    const { player, view } = await rig();
+    const press = (target: EventTarget): KeyboardEvent => {
+      const event = new KeyboardEvent('keydown', {
+        code: 'KeyD',
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+      target.dispatchEvent(event);
+      return event;
+    };
+    expect(press(player).defaultPrevented).toBe(false);
+    view.setAttribute('projection', 'equirectangular');
+    const field = document.createElement('input');
+    player.append(field);
+    expect(press(field).defaultPrevented).toBe(false);
+    expect(view.yaw).toBeCloseTo(0);
+  });
+
+  it('takes the frame packing the source names, through the player', async () => {
+    const { player, view } = await rig();
+    expect(player.framePacking).toBeNull();
+    expect(view.framePacking).toBeNull();
+    player.removeAttribute('src');
+    player.sources = [
+      {
+        url: silence(5),
+        type: 'audio/wav',
+        projection: 'equirectangular',
+        framePacking: 'top-bottom',
+      },
+    ];
+    await once(player.media, 'loadedmetadata');
+    expect(player.framePacking).toBe('top-bottom');
+    expect(player.getAttribute('frame-packing')).toBe('top-bottom');
+    expect(view.framePacking).toBe('top-bottom');
+    // The next source has one picture a frame.
+    player.sources = [{ url: silence(5), type: 'audio/wav', projection: 'equirectangular' }];
+    await once(player.media, 'loadedmetadata');
+    expect(player.framePacking).toBeNull();
+    expect(player.hasAttribute('frame-packing')).toBe(false);
+    expect(view.framePacking).toBeNull();
+  });
+
+  it('takes its own frame packing over the player, and none draws one picture', async () => {
+    const { player, view } = await rig('projection="equirectangular"');
+    player.setAttribute('frame-packing', 'top-bottom');
+    expect(view.framePacking).toBe('top-bottom');
+    view.setAttribute('frame-packing', 'side-by-side');
+    expect(view.framePacking).toBe('side-by-side');
+    view.setAttribute('frame-packing', 'none');
+    expect(view.framePacking).toBeNull();
+    view.removeAttribute('frame-packing');
+    expect(view.framePacking).toBe('top-bottom');
   });
 
   it('writes the showing subtitles over the view', async () => {

@@ -3,6 +3,7 @@ import {
   clamp,
   DEFAULT_FOV,
   drag,
+  eyeBox,
   forward,
   frustum,
   headset,
@@ -114,5 +115,20 @@ describe('the headset', () => {
     const [sx, , ox] = frustum([0.5, 0, 0, 0, 0, 1, 0, 0, 0.1, 0, -1, -1, 0, 0, -0.2, 0]);
     expect(sx).toBe(2);
     expect(ox).toBeCloseTo(0.2);
+  });
+});
+
+describe('a frame with a picture for each eye', () => {
+  it('gives all of a frame that holds one picture', () => {
+    expect(eyeBox(null, false, 64, 32)).toEqual([0, 0, 1, 1]);
+    expect(eyeBox(null, true, 64, 32)).toEqual([0, 0, 1, 1]);
+  });
+
+  it('gives the left eye the top or the left half, half a pixel inside it', () => {
+    // 64 pixels tall: half a pixel is 1/128 of the height.
+    expect(eyeBox('top-bottom', false, 64, 64)).toEqual([0, 1 / 128, 1, 0.5 - 1 / 128]);
+    expect(eyeBox('top-bottom', true, 64, 64)).toEqual([0, 0.5 + 1 / 128, 1, 1 - 1 / 128]);
+    expect(eyeBox('side-by-side', false, 32, 64)).toEqual([1 / 64, 0, 0.5 - 1 / 64, 1]);
+    expect(eyeBox('side-by-side', true, 32, 64)).toEqual([0.5 + 1 / 64, 0, 1 - 1 / 64, 1]);
   });
 });

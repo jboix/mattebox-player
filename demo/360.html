@@ -93,6 +93,17 @@
         </select>
       </label>
 
+      <label class="field" title="mbx-360's own frame-packing attribute, which wins over the player's. It says where a frame holds a picture for each eye. None draws the whole frame as one picture.">
+        <span>Frame packing</span>
+        <select id="frame-packing">
+          <option value="">As the source says</option>
+          <option value="top-bottom">Top and bottom</option>
+          <option value="side-by-side">Side by side</option>
+          <option value="none">None, one picture</option>
+        </select>
+      </label>
+      <p class="hint">These programmes hold one picture: a forced packing shows half of it. Use it with a stereo source.</p>
+
       <label class="field" title="mbx-360's headset attribute: the ways the VR button shows the view. The button is hidden where the device has none of them.">
         <span>Headset</span>
         <select id="headset">
@@ -109,7 +120,7 @@
         <div class="row">
           <button type="button" id="ahead">Look ahead</button>
         </div>
-        <p class="hint">Drag the picture to look around. The wheel zooms. A game controller turns it with the right stick. A tap plays or pauses.</p>
+        <p class="hint">Drag the picture to look around, or press W, A, S and D. The wheel zooms. A game controller turns it with the right stick. A tap plays or pauses.</p>
       </fieldset>
     </aside>
   </main>

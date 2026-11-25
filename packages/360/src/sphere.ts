@@ -2,7 +2,8 @@
  * Draws a 360° picture as the inside of a sphere, with WebGL 1, which every
  * browser down to Chromium 76 has. The same program draws each eye of a
  * WebXR headset into the session's layer, and the two halves of a split
- * screen.
+ * screen. A frame that holds a picture for each eye gives each eye its
+ * own; the screen shows the left eye's.
  *
  * There is no sphere mesh. One rectangle covers the canvas, and the
  * fragment shader turns each pixel into a direction from the viewer, then
@@ -10,8 +11,8 @@
  * to one draw call and no geometry, and the picture stays sharp at any
  * field of view.
  */
-import type { Projection, View } from './view.js';
-import { frustum, headset, rotation } from './view.js';
+import type { FramePacking, Projection, View } from './view.js';
+import { eyeBox, frustum, headset, rotation } from './view.js';
 import type { XRLayer, XRView } from './xr.js';
 
 const VERTEX = `
@@ -36,6 +37,7 @@ uniform mat3 u_turn;
 uniform vec2 u_scale;
 uniform vec2 u_shift;
 uniform float u_span;
+uniform vec4 u_box;
 varying vec2 v_xy;
 const float PI = 3.14159265;
 void main() {
@@ -46,7 +48,7 @@ void main() {
   if (u < 0.0 || u > 1.0) {
     gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
   } else {
-    gl_FragColor = texture2D(u_picture, vec2(u, 0.5 - lat / PI));
+    gl_FragColor = texture2D(u_picture, mix(u_box.xy, u_box.zw, vec2(u, 0.5 - lat / PI)));
   }
 }`;
 
@@ -64,6 +66,10 @@ export class Sphere {
   declare private scale: WebGLUniformLocation | null;
   declare private shift: WebGLUniformLocation | null;
   declare private span: WebGLUniformLocation | null;
+  declare private box: WebGLUniformLocation | null;
+  /** The size of the frame last sent to the texture, in pixels. */
+  declare private width: number;
+  declare private height: number;
 
   /** Throws when the browser gives no WebGL context. */
   constructor(canvas: HTMLCanvasElement) {
@@ -93,19 +99,29 @@ export class Sphere {
     this.scale = gl.getUniformLocation(program, 'u_scale');
     this.shift = gl.getUniformLocation(program, 'u_shift');
     this.span = gl.getUniformLocation(program, 'u_span');
+    this.box = gl.getUniformLocation(program, 'u_box');
+    this.width = 1;
+    this.height = 1;
   }
 
   /**
-   * Draws `picture` as seen from `view`. Throws a SecurityError for a
-   * picture of another origin served without CORS.
+   * Draws `picture` as seen from `view`. A frame that holds a picture for
+   * each eye, as `packing` says, shows the left eye's. Throws a SecurityError
+   * for a picture of another origin served without CORS.
    */
-  draw(picture: TexImageSource, view: View, projection: Projection): void {
+  draw(
+    picture: TexImageSource,
+    view: View,
+    projection: Projection,
+    packing: FramePacking | null = null,
+  ): void {
     const gl = this.gl;
     const canvas = gl.canvas as HTMLCanvasElement;
     // After a headset session the layer's framebuffer may still be bound.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, canvas.width, canvas.height);
     this.upload(picture, projection);
+    this.eye(packing, false);
     const tan = Math.tan(view.fov / 2);
     this.paint(rotation(view), [(tan * canvas.width) / Math.max(1, canvas.height), tan, 0, 0]);
   }
@@ -113,9 +129,16 @@ export class Sphere {
   /**
    * Draws `picture` as seen from `view` twice, side by side: one half of
    * the canvas for each eye of a phone in a viewer. Both halves show the
-   * same view, and neither is corrected for the viewer's lenses.
+   * same view, and neither is corrected for the viewer's lenses. A frame
+   * that holds a picture for each eye, as `packing` says, gives each half its
+   * own.
    */
-  drawHalves(picture: TexImageSource, view: View, projection: Projection): void {
+  drawHalves(
+    picture: TexImageSource,
+    view: View,
+    projection: Projection,
+    packing: FramePacking | null = null,
+  ): void {
     const gl = this.gl;
     const canvas = gl.canvas as HTMLCanvasElement;
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -127,6 +150,7 @@ export class Sphere {
     const scale = [(tan * half) / Math.max(1, canvas.height), tan, 0, 0];
     for (const left of [0, canvas.width - half]) {
       gl.viewport(left, 0, half, canvas.height);
+      this.eye(packing, left > 0);
       this.paint(turn, scale);
     }
   }
@@ -134,23 +158,26 @@ export class Sphere {
   /**
    * Draws `picture` once for each eye of a headset, into the WebXR layer's
    * framebuffer. `yaw` is the turn the viewer had on the screen, so the
-   * headset starts where the screen looked.
+   * headset starts where the screen looked. A frame that holds a picture
+   * for each eye, as `packing` says, gives each eye its own.
    */
   drawEyes(
     picture: TexImageSource,
     layer: XRLayer,
-    eyes: readonly XRView[],
+    views: readonly XRView[],
     yaw: number,
     projection: Projection,
+    packing: FramePacking | null = null,
   ): void {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, layer.framebuffer);
     this.upload(picture, projection);
-    for (const eye of eyes) {
-      const box = layer.getViewport(eye);
+    for (const view of views) {
+      const box = layer.getViewport(view);
       if (box == null) continue;
       gl.viewport(box.x, box.y, box.width, box.height);
-      this.paint(headset(eye.transform.matrix, yaw), frustum(eye.projectionMatrix));
+      this.eye(packing, view.eye === 'right');
+      this.paint(headset(view.transform.matrix, yaw), frustum(view.projectionMatrix));
     }
   }
 
@@ -159,6 +186,21 @@ export class Sphere {
     const gl = this.gl;
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, picture);
     gl.uniform1f(this.span, projection === 'half-equirectangular' ? Math.PI : 2 * Math.PI);
+    // A video's `width` is its box on the page; `videoWidth` is the frame's.
+    const frame = picture as {
+      videoWidth?: number;
+      videoHeight?: number;
+      width?: number;
+      height?: number;
+    };
+    this.width = frame.videoWidth || frame.width || 1;
+    this.height = frame.videoHeight || frame.height || 1;
+  }
+
+  /** Picks the part of the frame the next `paint` reads: one eye's picture, or all of it. */
+  private eye(packing: FramePacking | null, right: boolean): void {
+    const [left, top, rightEdge, bottom] = eyeBox(packing, right, this.width, this.height);
+    this.gl.uniform4f(this.box, left, top, rightEdge, bottom);
   }
 
   /** Draws the viewport with the camera turned by `turn`, at a scale and a shift from `frustum`. */

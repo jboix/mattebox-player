@@ -25,6 +25,11 @@ export interface Source {
    * it, such as from its content API. It wins over what the manifest says.
    */
   readonly projection?: Projection;
+  /**
+   * How one frame holds a picture for each eye, for stereoscopic video,
+   * when the page knows it. It wins over what the stream says.
+   */
+  readonly framePacking?: FramePacking;
 }
 
 /**
@@ -32,6 +37,12 @@ export interface Source {
  * `half-equirectangular` the half in front of the viewer.
  */
 export type Projection = 'equirectangular' | 'half-equirectangular';
+
+/**
+ * A frame that holds a picture for each eye: `top-bottom` has the left
+ * eye's picture over the right eye's, and `side-by-side` has it on the left.
+ */
+export type FramePacking = 'top-bottom' | 'side-by-side';
 
 /** A version of a source's picture at its own URL. */
 export interface SourceVideoTrack {

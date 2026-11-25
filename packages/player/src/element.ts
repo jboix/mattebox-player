@@ -20,6 +20,7 @@
 
 import type {
   Connector,
+  FramePacking,
   Handler,
   Player,
   PlayerError,
@@ -104,12 +105,13 @@ function emeAvailable(): boolean {
 }
 
 /** `source` without its DRM, for a browser without EME. */
-function withoutDrm({ url, type, videoTracks, projection }: Source): Source {
+function withoutDrm({ url, type, videoTracks, projection, framePacking }: Source): Source {
   return {
     url,
     ...(type === undefined ? {} : { type }),
     ...(videoTracks === undefined ? {} : { videoTracks }),
     ...(projection === undefined ? {} : { projection }),
+    ...(framePacking === undefined ? {} : { framePacking }),
   };
 }
 const CERTIFICATE_URL = 'certificate-url';
@@ -778,6 +780,22 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     return null;
   }
 
+  /**
+   * How the playing frame holds a picture for each eye, for stereoscopic
+   * video: the source's `framePacking`, else the stream's, else null for a
+   * frame with one picture. A version of `videoSources` has one picture.
+   */
+  get framePacking(): FramePacking | null {
+    if (this.version !== null) return null;
+    const given = this.original?.framePacking;
+    if (given !== undefined) return given;
+    const track = this.current?.engine?.tracks.active('video');
+    for (const rendition of track?.renditions ?? []) {
+      if (rendition.framePacking !== undefined) return rendition.framePacking;
+    }
+    return null;
+  }
+
   /** The version of `videoSources` that plays, or null for the source itself. */
   get videoSource(): SourceVideoTrack | null {
     return this.version;
@@ -1258,6 +1276,9 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     const projection = this.projection;
     if (projection === null) this.removeAttribute('projection');
     else this.setAttribute('projection', projection);
+    const framePacking = this.framePacking;
+    if (framePacking === null) this.removeAttribute('frame-packing');
+    else this.setAttribute('frame-packing', framePacking);
     this.toggleAttribute('started', this.started);
     this.toggleAttribute('waiting', this.waiting);
     this.toggleAttribute('error', this.failure !== null);

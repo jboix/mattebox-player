@@ -123,9 +123,9 @@ module.exports = [
     // The engine and the player are peers, read for their types alone. The
     // element, the view's math, the WebGL renderer and its shaders, the
     // device's motion with its reduced-motion default, the WebXR headset
-    // session, the split screen with its fullscreen, <mbx-vr-button> and
-    // <mbx-motion-button> with their style measured 7.01 kB. The owner set
-    // the budget at 10 kB on 2026-11-25.
+    // session, the split screen with its fullscreen, the keys, a picture for
+    // each eye, <mbx-vr-button> and <mbx-motion-button> with their style
+    // measured 7.4 kB. The owner set the budget at 10 kB on 2026-11-25.
     ignore: ['mattebox', '@mattebox/player'],
     brotli: true,
     limit: '10 kB',

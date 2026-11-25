@@ -13,6 +13,14 @@
  */
 export type Projection = 'equirectangular' | 'half-equirectangular';
 
+/**
+ * How one frame holds a picture for each eye, as the player's
+ * `frame-packing` attribute names it: the left eye's picture over the right
+ * eye's, or on its left. Kept here, so the package works with a player
+ * that predates it.
+ */
+export type FramePacking = 'top-bottom' | 'side-by-side';
+
 export interface View {
   readonly yaw: number;
   readonly pitch: number;
@@ -153,6 +161,31 @@ export function frustum(projection: ArrayLike<number>): [number, number, number,
   const x = projection[0] as number;
   const y = projection[5] as number;
   return [1 / x, 1 / y, (projection[8] as number) / x, (projection[9] as number) / y];
+}
+
+/**
+ * The part of a frame that holds one eye's picture, as texture coordinates
+ * [left, top, right, bottom], for a frame `width` by `height` pixels. A
+ * frame with one picture gives all of it.
+ *
+ * Half a pixel is kept off each side of a half. The picture is sampled
+ * between pixels, and the edge of one eye's half would otherwise take
+ * colour from the other eye's.
+ */
+export function eyeBox(
+  packing: FramePacking | null,
+  right: boolean,
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  if (packing === null) return [0, 0, 1, 1];
+  const from = right ? 0.5 : 0;
+  if (packing === 'top-bottom') {
+    const pixel = 0.5 / Math.max(1, height);
+    return [0, from + pixel, 1, from + 0.5 - pixel];
+  }
+  const pixel = 0.5 / Math.max(1, width);
+  return [from + pixel, 0, from + 0.5 - pixel, 1];
 }
 
 /** The direction the centre of the view points at, in world space: [x, y, z]. */
