@@ -18,12 +18,12 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/assets/view360-CQPU5Wdd.js"></script>
+  <script type="module" crossorigin src="/assets/view360-Cr2XLaNZ.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/objectSpread2-F7K17kIq.js">
   <link rel="modulepreload" crossorigin href="/assets/es2015-BRkCaPZz.js">
   <link rel="modulepreload" crossorigin href="/assets/base64-Damuu2zB.js">
   <link rel="modulepreload" crossorigin href="/assets/theme-TfFI5Nci.js">
-  <link rel="modulepreload" crossorigin href="/assets/src-BKs422e-.js">
+  <link rel="modulepreload" crossorigin href="/assets/src-DS6xlA3a.js">
   <link rel="modulepreload" crossorigin href="/assets/srgssr-N2yoWSn4.js">
   <link rel="stylesheet" crossorigin href="/assets/theme-CGRvTb3F.css">
 </head>
@@ -99,6 +99,16 @@
           <option value="none">None, flat</option>
         </select>
       </label>
+
+      <label class="field" title="mbx-360's headset attribute: the ways the VR button shows the view. The button is hidden where the device has none of them.">
+        <span>Headset</span>
+        <select id="headset">
+          <option value="">WebXR, the default</option>
+          <option value="webxr stereo">WebXR, else the split screen</option>
+          <option value="stereo">The split screen</option>
+        </select>
+      </label>
+      <p id="headset-note" class="hint"></p>
 
       <fieldset class="group">
         <legend>Where the view looks</legend>
