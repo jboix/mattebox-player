@@ -18,13 +18,13 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/assets/view360-Cr2XLaNZ.js"></script>
+  <script type="module" crossorigin src="/assets/view360-Di9dtoW-.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/objectSpread2-F7K17kIq.js">
-  <link rel="modulepreload" crossorigin href="/assets/es2015-BRkCaPZz.js">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-Da--qzcz.js">
   <link rel="modulepreload" crossorigin href="/assets/base64-Damuu2zB.js">
-  <link rel="modulepreload" crossorigin href="/assets/theme-TfFI5Nci.js">
-  <link rel="modulepreload" crossorigin href="/assets/src-DS6xlA3a.js">
-  <link rel="modulepreload" crossorigin href="/assets/srgssr-N2yoWSn4.js">
+  <link rel="modulepreload" crossorigin href="/assets/theme-mg01RUNV.js">
+  <link rel="modulepreload" crossorigin href="/assets/src-DTvO_1e0.js">
+  <link rel="modulepreload" crossorigin href="/assets/srgssr-nEMFgA_z.js">
   <link rel="stylesheet" crossorigin href="/assets/theme-CGRvTb3F.css">
 </head>
 <body>
@@ -100,6 +100,17 @@
         </select>
       </label>
 
+      <label class="field" title="mbx-360's own frame-packing attribute, which wins over the player's. It says where a frame holds a picture for each eye. None draws the whole frame as one picture.">
+        <span>Frame packing</span>
+        <select id="frame-packing">
+          <option value="">As the source says</option>
+          <option value="top-bottom">Top and bottom</option>
+          <option value="side-by-side">Side by side</option>
+          <option value="none">None, one picture</option>
+        </select>
+      </label>
+      <p class="hint">These programmes hold one picture: a forced packing shows half of it. Use it with a stereo source.</p>
+
       <label class="field" title="mbx-360's headset attribute: the ways the VR button shows the view. The button is hidden where the device has none of them.">
         <span>Headset</span>
         <select id="headset">
@@ -116,7 +127,7 @@
         <div class="row">
           <button type="button" id="ahead">Look ahead</button>
         </div>
-        <p class="hint">Drag the picture to look around. The wheel zooms. A game controller turns it with the right stick. A tap plays or pauses.</p>
+        <p class="hint">Drag the picture to look around, or press W, A, S and D. The wheel zooms. A game controller turns it with the right stick. A tap plays or pauses.</p>
       </fieldset>
     </aside>
   </main>
