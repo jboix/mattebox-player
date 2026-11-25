@@ -1,9 +1,10 @@
 /**
- * <mbx-vr-button>: shows the player's 360° view in a WebXR headset, and
- * ends it. It is hidden where no headset can show it: a browser without
- * WebXR, no headset, or no `<mbx-360>` view showing in the player. The
- * glyph is `icon-enter` or `icon-exit`, the name `label-enter` or
- * `label-exit`.
+ * <mbx-vr-button>: shows the player's 360° view in a headset, and ends it.
+ * `<mbx-360>` decides the way from its `headset` attribute and the device:
+ * a WebXR session, or the screen split in two. The button is hidden where
+ * the view has no way (`headsetAvailable` is null), or no `<mbx-360>` view
+ * shows in the player. The glyph is `icon-enter` or `icon-exit`, the name
+ * `label-enter` or `label-exit`.
  *
  * The player exports no base class, so the button finds its player and
  * lets go of it the way `<mbx-360>` does (player guide, chapter 03).
@@ -18,7 +19,6 @@ import type { Mbx360 } from './element.js';
 import { glyph } from './glyph.js';
 import { findPlayer, PLAYER } from './host.js';
 import type {} from './messages.js';
-import { headsets, webxr } from './xr.js';
 
 /** A headset seen from the front, its two lenses cut out: a filled path on a 32-unit viewBox. */
 const HEADSET =
@@ -36,15 +36,12 @@ export class MbxVrButton extends HTMLElement {
   declare private readonly button: HTMLButtonElement;
   declare private readonly enter: HTMLSlotElement;
   declare private readonly exit: HTMLSlotElement;
-  /** A headset can show an immersive session, as the browser last said. */
-  declare private supported: boolean;
 
   constructor() {
     super();
     this.player = null;
     this.offs = [];
     this.epoch = 0;
-    this.supported = false;
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
     style.textContent = BUTTON_CSS;
@@ -57,6 +54,7 @@ export class MbxVrButton extends HTMLElement {
     this.button.addEventListener('click', () => {
       const view = this.view();
       if (view === null) return;
+      // From the click itself: a session and fullscreen start only then.
       // A refusal leaves the screen view as it was; there is nothing to tell.
       (view.immersive ? view.exitVR() : view.enterVR()).catch(() => undefined);
     });
@@ -64,9 +62,9 @@ export class MbxVrButton extends HTMLElement {
   }
 
   connectedCallback(): void {
-    // Hidden until the browser says a headset is there. Not in the
-    // constructor, which may not set attributes.
-    this.hidden = !this.supported;
+    // Hidden until the view says it has a way. Not in the constructor,
+    // which may not set attributes.
+    this.hidden = true;
     const found = findPlayer(this);
     if (found === null) return;
     this.epoch += 1;
@@ -95,30 +93,21 @@ export class MbxVrButton extends HTMLElement {
 
   private attach(player: PlayerHost): void {
     const render = (): void => this.render();
-    player.addEventListener('localechange', render);
-    this.offs.push(() => player.removeEventListener('localechange', render));
-    // The view shows (`active`) and enters a headset (`vr`) on <mbx-360>, below the player.
+    // `headsetchange` bubbles from <mbx-360> to the player.
+    for (const type of ['localechange', 'headsetchange']) {
+      player.addEventListener(type, render);
+      this.offs.push(() => player.removeEventListener(type, render));
+    }
+    // The view enters a headset (`vr`) on <mbx-360>, below the player, which may arrive later.
     const watch = new MutationObserver(render);
     watch.observe(player, {
       attributes: true,
-      attributeFilter: ['active', 'vr'],
+      attributeFilter: ['vr'],
       subtree: true,
       childList: true,
     });
     this.offs.push(() => watch.disconnect());
-    // A headset plugged in or out (WebXR's `devicechange`) changes the answer.
-    const xr = webxr()?.xr;
-    const ask = (): void => {
-      void headsets().then((supported) => {
-        this.supported = supported;
-        this.render();
-      });
-    };
-    if (xr !== undefined) {
-      xr.addEventListener('devicechange', ask);
-      this.offs.push(() => xr.removeEventListener('devicechange', ask));
-    }
-    ask();
+    this.render();
   }
 
   /** The player's `<mbx-360>`, or null. */
@@ -135,7 +124,7 @@ export class MbxVrButton extends HTMLElement {
     if (this.player === null) return;
     const view = this.view();
     const inside = view?.immersive === true;
-    this.hidden = !this.supported || view === null || !view.hasAttribute('active');
+    this.hidden = view === null || view.headsetAvailable == null;
     this.enter.hidden = inside;
     this.exit.hidden = !inside;
     this.button.setAttribute(

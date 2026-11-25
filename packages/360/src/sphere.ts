@@ -1,7 +1,8 @@
 /**
  * Draws a 360° picture as the inside of a sphere, with WebGL 1, which every
  * browser down to Chromium 76 has. The same program draws each eye of a
- * WebXR headset into the session's layer.
+ * WebXR headset into the session's layer, and the two halves of a split
+ * screen.
  *
  * There is no sphere mesh. One rectangle covers the canvas, and the
  * fragment shader turns each pixel into a direction from the viewer, then
@@ -107,6 +108,27 @@ export class Sphere {
     this.upload(picture, projection);
     const tan = Math.tan(view.fov / 2);
     this.paint(rotation(view), [(tan * canvas.width) / Math.max(1, canvas.height), tan, 0, 0]);
+  }
+
+  /**
+   * Draws `picture` as seen from `view` twice, side by side: one half of
+   * the canvas for each eye of a phone in a viewer. Both halves show the
+   * same view, and neither is corrected for the viewer's lenses.
+   */
+  drawHalves(picture: TexImageSource, view: View, projection: Projection): void {
+    const gl = this.gl;
+    const canvas = gl.canvas as HTMLCanvasElement;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.upload(picture, projection);
+    // An odd width leaves the middle column black.
+    const half = Math.floor(canvas.width / 2);
+    const tan = Math.tan(view.fov / 2);
+    const turn = rotation(view);
+    const scale = [(tan * half) / Math.max(1, canvas.height), tan, 0, 0];
+    for (const left of [0, canvas.width - half]) {
+      gl.viewport(left, 0, half, canvas.height);
+      this.paint(turn, scale);
+    }
   }
 
   /**

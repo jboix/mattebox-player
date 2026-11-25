@@ -1,7 +1,7 @@
 {
   "name": "@mattebox/player-360",
   "version": "0.2.0",
-  "description": "360° video in <mattebox-player>: the picture drawn on the inside of a sphere, turned by a drag, the wheel, a game controller or the device's motion, and shown in a WebXR headset.",
+  "description": "360° video in <mattebox-player>: the picture drawn on the inside of a sphere, turned by a drag, the wheel, a game controller or the device's motion, and shown in a WebXR headset or split in two for a phone in a viewer.",
   "author": "Josep Boix Requesens",
   "repository": {
     "type": "git",

@@ -3,9 +3,18 @@
  * the picture onto the inside of a sphere over the video, and the viewer
  * looks around: a drag, the mouse wheel to zoom, a game controller's right
  * stick, and the motion of a phone or a tablet. A tap without a drag plays
- * or pauses, as on the video. `enterVR()` shows the view in a WebXR
- * headset, which `<mbx-vr-button>` offers.
+ * or pauses, as on the video. `enterVR()` shows the view in a headset,
+ * which `<mbx-vr-button>` offers.
  *
+ * - `headset` names the ways a headset shows the view: `webxr`, a WebXR
+ *   session, and `stereo`, the screen split in two for a phone in a viewer.
+ *   It is `webxr` unless the page names any. With both, WebXR goes first
+ *   where a headset answers. `headsetAvailable` is the way `enterVR()`
+ *   takes now, and `headsetchange` says it changed.
+ * - The split screen needs the player itself fullscreen, a touch screen and
+ *   motion sensors. An iPhone has fullscreen on the video alone, so it is
+ *   never offered there. The device turns the view while it shows,
+ *   whatever `motion` says: in a viewer the head is the only way to look.
  * - The device's motion turns the view unless `motion="off"`, or unless the
  *   system asks for reduced motion and `motion` is not `on`. The viewer's
  *   own choice, through `setMotion()` and `<mbx-motion-button>`, wins until
@@ -32,15 +41,22 @@
  */
 import type { PlayerHost } from '@mattebox/player';
 import { findPlayer, PLAYER } from './host.js';
+import { FULLSCREEN_EVENTS, fill, filling, fills, landscape, unfill, upright } from './screen.js';
 import { Sphere } from './sphere.js';
 import type { Projection, View } from './view.js';
 import { clamp, DEFAULT_FOV, drag, orientation } from './view.js';
 import CSS from './view-360.css?inline';
 import type { XRFrame, XRLayer, XRLayerConstructor, XRSession } from './xr.js';
-import { compatible, webxr } from './xr.js';
+import { compatible, headsets, webxr } from './xr.js';
 
 /** Why the view does not show for a 360° source. */
 export type Unavailable = 'drm' | 'source' | 'webgl';
+
+/** A way a headset shows the view: a WebXR session, or the screen split in two for a phone in a viewer. */
+export type Headset = 'webxr' | 'stereo';
+
+/** A phone or a tablet: its first pointer is a finger. */
+const TOUCH = '(pointer: coarse)';
 
 const PROJECTIONS: readonly string[] = ['equirectangular', 'half-equirectangular'];
 
@@ -91,7 +107,7 @@ interface Press {
 
 export class Mbx360 extends HTMLElement {
   static get observedAttributes(): string[] {
-    return ['projection', 'fov', 'motion'];
+    return ['projection', 'fov', 'motion', 'headset'];
   }
 
   declare private player: PlayerHost | null;
@@ -140,6 +156,14 @@ export class Mbx360 extends HTMLElement {
   declare private readonly turned: (event: Event) => void;
   /** The headset session that shows the view, or null. */
   declare private session: XRSession | null;
+  /** A headset can show an immersive session, as the browser last said. */
+  declare private xr: boolean;
+  /** The split screen shows the view. */
+  declare private split: boolean;
+  /** The element took the player fullscreen for the split screen, so it gives the screen back. */
+  declare private filled: boolean;
+  /** `headsetAvailable` as `headsetchange` last told it. */
+  declare private offered: string;
 
   constructor() {
     super();
@@ -167,6 +191,10 @@ export class Mbx360 extends HTMLElement {
     this.sensed = false;
     this.reported = '';
     this.session = null;
+    this.xr = false;
+    this.split = false;
+    this.filled = false;
+    this.offered = 'null';
     this.turned = (event) => this.turn(event as DeviceOrientationEvent);
     const root = this.attachShadow({ mode: 'open' });
     const style = document.createElement('style');
@@ -245,7 +273,7 @@ export class Mbx360 extends HTMLElement {
       this.sensed ||
       (typeof permission().requestPermission === 'function' &&
         typeof matchMedia === 'function' &&
-        matchMedia('(pointer: coarse)').matches)
+        matchMedia(TOUCH).matches)
     );
   }
 
@@ -260,35 +288,52 @@ export class Mbx360 extends HTMLElement {
     if (on) this.ask(true);
   }
 
-  /** A headset shows the view. The element carries `vr` meanwhile. */
+  /**
+   * A headset shows the view, through WebXR or the split screen. The
+   * element's `vr` attribute names the way meanwhile.
+   */
   get immersive(): boolean {
-    return this.session !== null;
+    return this.session !== null || this.split;
   }
 
   /**
-   * Shows the view in a WebXR headset, from where the screen looks. Call
-   * it from a click or a key press: the browser starts a session only
-   * then. Rejects where there is no WebXR, no view showing, or the browser
-   * refuses the session.
+   * The way `enterVR()` shows the view now, or null where it cannot: the
+   * first way `headset` allows that the device has, WebXR before the split
+   * screen. Null while no view shows.
+   */
+  get headsetAvailable(): Headset | null {
+    if (this.sphere === null || !this.hasAttribute('active')) return null;
+    const ways = this.allowed();
+    if (this.xr && ways.includes('webxr')) return 'webxr';
+    if (ways.includes('stereo') && this.splits()) return 'stereo';
+    return null;
+  }
+
+  /**
+   * Shows the view in a headset, from where the screen looks: the way
+   * `headsetAvailable` names. Call it from a click or a key press: the
+   * browser starts a session, and fullscreen, only then. Rejects where no
+   * view shows, no allowed way is there, or the browser refuses.
    */
   enterVR(): Promise<void> {
-    const api = webxr();
-    if (
-      api === null ||
-      this.sphere === null ||
-      this.session !== null ||
-      !this.hasAttribute('active')
-    ) {
+    if (this.sphere === null || this.immersive || !this.hasAttribute('active')) {
       return Promise.reject(new DOMException('No 360° view to show', 'InvalidStateError'));
     }
+    if (this.headsetAvailable === 'stereo') return this.halve();
+    const api = webxr();
+    if (api === null || !this.allowed().includes('webxr')) {
+      return Promise.reject(new DOMException('No headset to show the view', 'NotSupportedError'));
+    }
+    // Asked even before the browser said a headset is there: it is the one that refuses.
     // Before any wait: the click's permission to start a session ends with the click.
     return api.xr
       .requestSession('immersive-vr')
       .then((session) => this.immerse(session, api.Layer));
   }
 
-  /** Ends the headset session, if one runs. */
+  /** Ends the headset session or the split screen, if one shows. */
   exitVR(): Promise<void> {
+    this.whole();
     return this.session?.end() ?? Promise.resolve();
   }
 
@@ -332,6 +377,7 @@ export class Mbx360 extends HTMLElement {
     this.sphere?.dispose();
     this.sphere = null;
     this.player = null;
+    this.xr = false;
     this.motion();
   }
 
@@ -341,7 +387,8 @@ export class Mbx360 extends HTMLElement {
       // The page's newer word replaces the viewer's choice.
       this.chosen = null;
       this.sync();
-    } else this.update();
+    } else if (name === 'headset') this.offer();
+    else this.update();
   }
 
   private attach(player: PlayerHost): void {
@@ -364,6 +411,24 @@ export class Mbx360 extends HTMLElement {
         query.addListener(changed);
         this.offs.push(() => query.removeListener(changed));
       }
+    }
+    // A headset plugged in or out (WebXR's `devicechange`) changes the answer.
+    const epoch = this.epoch;
+    const probe = (): void => {
+      void headsets().then((supported) => {
+        if (epoch !== this.epoch) return;
+        this.xr = supported;
+        this.offer();
+      });
+    };
+    const xr = webxr()?.xr;
+    if (xr !== undefined) this.on(xr, 'devicechange', probe);
+    probe();
+    // The viewer left fullscreen, or the browser refused it: the split screen ends with it.
+    for (const name of FULLSCREEN_EVENTS) {
+      this.on(document, name, () => {
+        if (this.split && !filling(player)) this.whole();
+      });
     }
     this.on(player, 'sourcechange', () => {
       this.encrypted = false;
@@ -434,6 +499,42 @@ export class Mbx360 extends HTMLElement {
     return clamp({ yaw: 0, pitch: 0, fov: fov > 0 ? fov / DEGREES : DEFAULT_FOV });
   }
 
+  /** The ways the page allows, from `headset`: WebXR alone unless it names any. */
+  private allowed(): readonly Headset[] {
+    const named = (this.getAttribute('headset') ?? '')
+      .split(/\s+/)
+      .filter((way): way is Headset => way === 'webxr' || way === 'stereo');
+    return named.length === 0 ? ['webxr'] : named;
+  }
+
+  /**
+   * The split screen can show: the player itself can go fullscreen, on a
+   * touch screen, with motion sensors. A computer and a TV fail the last
+   * two. An iPhone fails the first, whatever the browser.
+   */
+  private splits(): boolean {
+    return (
+      this.player !== null &&
+      fills(this.player) &&
+      typeof matchMedia === 'function' &&
+      matchMedia(TOUCH).matches &&
+      this.motionAvailable
+    );
+  }
+
+  /** Fires `headsetchange` when `headsetAvailable` changed. */
+  private offer(): void {
+    const now = String(this.headsetAvailable);
+    if (now === this.offered) return;
+    this.offered = now;
+    this.dispatchEvent(new Event('headsetchange', { bubbles: true, composed: true }));
+  }
+
+  /** The device turns the view: motion is on, or the split screen shows, where the head is the only way to look. */
+  private follows(): boolean {
+    return this.split || this.motionOn;
+  }
+
   /**
    * Turns the view. While the device's motion turns it too, the change is
    * kept as an offset over the device, so the next motion event keeps it.
@@ -475,15 +576,17 @@ export class Mbx360 extends HTMLElement {
   /**
    * Lets go of the device when motion turns off, keeping where the view
    * looks, and fires `motionchange` when `motionOn` or `motionAvailable`
-   * changed.
+   * changed. The sensors and the view decide the split screen too, so
+   * `headsetchange` is checked here.
    */
   private sync(): void {
     const on = this.motionOn;
-    if ((!on || !this.moving) && this.device !== null) {
+    if ((!this.follows() || !this.moving) && this.device !== null) {
       this.device = null;
       this.view = clamp({ yaw: this.view.yaw, pitch: this.view.pitch, fov: this.view.fov });
       this.dirty = true;
     }
+    this.offer();
     const state = `${on} ${this.motionAvailable}`;
     if (state === this.reported) return;
     this.reported = state;
@@ -503,7 +606,7 @@ export class Mbx360 extends HTMLElement {
       this.sensed = true;
       this.sync();
     }
-    if (!this.motionOn) return;
+    if (!this.follows()) return;
     const device = orientation(alpha, beta, gamma, screenAngle());
     if (this.device === null) this.offset = { yaw: this.view.yaw - device.yaw, pitch: 0 };
     this.device = device;
@@ -521,15 +624,16 @@ export class Mbx360 extends HTMLElement {
    * `deviceorientation` before the page asks, and lets it ask only during
    * a touch or a click. The first touch on the view asks once; the
    * viewer's `setMotion(true)` asks `again`, and iOS answers a refusal it
-   * remembers without a prompt. A refusal turns motion off. A touch
-   * outside a gesture fails, and the next touch asks again.
+   * remembers without a prompt. A refusal turns motion off, and ends the
+   * split screen, which would not follow the head. A touch outside a
+   * gesture fails, and the next touch asks again.
    */
   private ask(again = false): void {
     const api = permission();
     if (
       (this.asked && !again) ||
       !this.moving ||
-      !this.motionOn ||
+      !this.follows() ||
       this.device !== null ||
       typeof api.requestPermission !== 'function'
     )
@@ -539,6 +643,7 @@ export class Mbx360 extends HTMLElement {
       (state) => {
         if (state === 'granted') return;
         this.chosen = false;
+        this.whole();
         this.sync();
       },
       () => {
@@ -588,7 +693,7 @@ export class Mbx360 extends HTMLElement {
         session.requestAnimationFrame(frame);
         // The headset draws every frame; the screen view rests meanwhile.
         this.stop();
-        this.setAttribute('vr', '');
+        this.setAttribute('vr', 'webxr');
       })
       .catch((error: unknown) => {
         this.leave();
@@ -596,8 +701,52 @@ export class Mbx360 extends HTMLElement {
       });
   }
 
-  /** Ends the headset session, if one runs. An ended session refuses to end again, which is fine. */
+  /**
+   * Splits the view in two for a phone in a viewer, and takes the player
+   * fullscreen so the halves fill the screen. A promise chain, as `immerse`.
+   */
+  private halve(): Promise<void> {
+    const player = this.player as PlayerHost;
+    this.split = true;
+    // A player that is already fullscreen stays so when the split ends.
+    this.filled = !filling(player);
+    this.setAttribute('vr', 'stereo');
+    // The next motion event levels the view: a drag's pitch would tilt the horizon in a viewer.
+    this.device = null;
+    this.dirty = true;
+    // From the click itself: iOS asks for the motion permission only then.
+    this.ask(true);
+    return (this.filled ? fill(player) : Promise.resolve()).then(
+      () => {
+        if (this.split) landscape();
+      },
+      (error: unknown) => {
+        this.whole();
+        throw error;
+      },
+    );
+  }
+
+  /** Ends the split screen, if it shows, and gives the screen back where the element took it. */
+  private whole(): void {
+    if (!this.split) return;
+    const player = this.player;
+    this.split = false;
+    this.removeAttribute('vr');
+    upright();
+    if (this.filled && player !== null && filling(player)) unfill().catch(() => undefined);
+    this.filled = false;
+    this.dirty = true;
+    // Motion that only the split screen turned on lets go of the device.
+    this.sync();
+  }
+
+  /**
+   * Ends the headset session or the split screen, if one shows. An ended
+   * session refuses to end again, which is fine.
+   */
   private leave(): void {
+    this.whole();
     this.session?.end().catch(() => undefined);
   }
 
@@ -698,7 +847,8 @@ export class Mbx360 extends HTMLElement {
     const picture = media.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && media.videoWidth > 0;
     if (changed && picture) {
       try {
-        sphere.draw(media, this.view, projection);
+        if (this.split) sphere.drawHalves(media, this.view, projection);
+        else sphere.draw(media, this.view, projection);
       } catch {
         // A SecurityError: another origin's picture, without CORS.
         this.failed = 'source';

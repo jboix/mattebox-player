@@ -56,6 +56,25 @@ describe('the sphere', () => {
     expect(centre(60, 'half-equirectangular')).toEqual([1, 1, 0]);
     expect(centre(135, 'half-equirectangular')).toEqual([0, 0, 0]);
   });
+
+  it('draws the same view in each half of a split screen', () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 32;
+    const sphere = new Sphere(canvas);
+    sphere.drawHalves(quarters(), { yaw: Math.PI / 4, pitch: 0, fov: 1 }, 'equirectangular');
+    const gl = canvas.getContext('webgl') as WebGLRenderingContext;
+    const colours = [16, 48].map((x) => {
+      const pixel = new Uint8Array(4);
+      gl.readPixels(x, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+      return [...pixel.slice(0, 3)].map((value) => Math.round(value / 255));
+    });
+    sphere.dispose();
+    expect(colours).toEqual([
+      [0, 0, 1],
+      [0, 0, 1],
+    ]);
+  });
 });
 
 function videoOf(player: MatteboxPlayerElement): HTMLVideoElement {
@@ -531,12 +550,12 @@ function settle(): Promise<void> {
 }
 
 describe('<mbx-vr-button>', () => {
-  async function rigButton(): Promise<{
+  async function rigButton(attributes = ''): Promise<{
     player: MatteboxPlayerElement;
     view: Mbx360;
     button: MbxVrButton;
   }> {
-    const { player, view } = await rig('projection="equirectangular"');
+    const { player, view } = await rig(`projection="equirectangular" ${attributes}`);
     const button = document.createElement('mbx-vr-button');
     player.append(button);
     await settle();
@@ -576,7 +595,7 @@ describe('<mbx-vr-button>', () => {
       const session = fake.sessions[0] as FakeSession;
       expect(session.layer).not.toBeNull();
       expect(view.immersive).toBe(true);
-      expect(view.hasAttribute('vr')).toBe(true);
+      expect(view.getAttribute('vr')).toBe('webxr');
       expect(inner.getAttribute('aria-label')).toBe('Exit VR');
       // One frame, one eye looking ahead: nothing throws without a picture.
       const identity = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
@@ -617,6 +636,184 @@ describe('<mbx-vr-button>', () => {
       expect(fake.sessions).toHaveLength(0);
     } finally {
       fake.restore();
+    }
+  });
+
+  it('tells the page when the way to a headset changes', async () => {
+    const fake = fakeXr(true);
+    try {
+      const { view } = await rigButton();
+      expect(view.headsetAvailable).toBe('webxr');
+      const changes = vi.fn();
+      view.addEventListener('headsetchange', changes);
+      view.setAttribute('headset', 'stereo');
+      expect(view.headsetAvailable).toBeNull();
+      expect(changes).toHaveBeenCalledTimes(1);
+    } finally {
+      fake.restore();
+    }
+  });
+});
+
+/**
+ * Makes this browser a phone's: a touch screen, and a page that may go
+ * fullscreen. The sensors come from `tilt()`. The player's fullscreen is
+ * replaced, since a real one needs a click; `fullscreen` counts the calls.
+ */
+function fakePhone(): { fullscreen: ReturnType<typeof vi.fn>; restore: () => void } {
+  const media = fakeMedia(false, true);
+  const fullscreen = vi.fn(() => Promise.resolve());
+  const real = HTMLElement.prototype.requestFullscreen;
+  HTMLElement.prototype.requestFullscreen = fullscreen;
+  Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: true });
+  return {
+    fullscreen,
+    restore: () => {
+      media.restore();
+      HTMLElement.prototype.requestFullscreen = real;
+      delete (document as { fullscreenEnabled?: boolean }).fullscreenEnabled;
+    },
+  };
+}
+
+describe('the split screen', () => {
+  async function rigSplit(headset: string | null): Promise<{
+    player: MatteboxPlayerElement;
+    view: Mbx360;
+    button: MbxVrButton;
+    inner: HTMLButtonElement;
+  }> {
+    const { player, view } = await rig(
+      `projection="equirectangular" ${headset === null ? '' : `headset="${headset}"`}`,
+    );
+    const button = document.createElement('mbx-vr-button');
+    player.append(button);
+    await settle();
+    const inner = button.shadowRoot?.querySelector('button') as HTMLButtonElement;
+    return { player, view, button, inner };
+  }
+
+  it('is not offered unless the page names it', async () => {
+    const phone = fakePhone();
+    try {
+      const { view, button } = await rigSplit(null);
+      tilt(0, 90, 0);
+      expect(view.headsetAvailable).toBeNull();
+      expect(button.hidden).toBe(true);
+    } finally {
+      phone.restore();
+    }
+  });
+
+  it('is not offered on a computer, which has no touch screen', async () => {
+    const { view, button } = await rigSplit('webxr stereo');
+    tilt(0, 90, 0);
+    expect(view.headsetAvailable).toBeNull();
+    expect(button.hidden).toBe(true);
+  });
+
+  it('shows on a phone without WebXR once it sends angles, and fills the screen', async () => {
+    const phone = fakePhone();
+    try {
+      const { view, button, inner } = await rigSplit('webxr stereo');
+      expect(button.hidden).toBe(true);
+      tilt(0, 90, 0);
+      expect(view.headsetAvailable).toBe('stereo');
+      expect(button.hidden).toBe(false);
+      inner.click();
+      await settle();
+      expect(phone.fullscreen).toHaveBeenCalledTimes(1);
+      expect(view.immersive).toBe(true);
+      expect(view.getAttribute('vr')).toBe('stereo');
+      expect(inner.getAttribute('aria-label')).toBe('Exit VR');
+      inner.click();
+      await settle();
+      expect(view.immersive).toBe(false);
+      expect(view.hasAttribute('vr')).toBe(false);
+      expect(inner.getAttribute('aria-label')).toBe('Enter VR');
+    } finally {
+      phone.restore();
+    }
+  });
+
+  it('ends when the viewer leaves fullscreen', async () => {
+    const phone = fakePhone();
+    try {
+      const { view } = await rigSplit('stereo');
+      tilt(0, 90, 0);
+      await view.enterVR();
+      expect(view.getAttribute('vr')).toBe('stereo');
+      // The player is not the fullscreen element: the fake never made it one.
+      document.dispatchEvent(new Event('fullscreenchange'));
+      expect(view.immersive).toBe(false);
+      expect(view.hasAttribute('vr')).toBe(false);
+    } finally {
+      phone.restore();
+    }
+  });
+
+  it('ends when the browser refuses fullscreen, and says so', async () => {
+    const phone = fakePhone();
+    try {
+      const { view } = await rigSplit('stereo');
+      tilt(0, 90, 0);
+      phone.fullscreen.mockImplementationOnce(() => Promise.reject(new Error('refused')));
+      await expect(view.enterVR()).rejects.toThrow('refused');
+      expect(view.immersive).toBe(false);
+      expect(view.hasAttribute('vr')).toBe(false);
+    } finally {
+      phone.restore();
+    }
+  });
+
+  it('gives way to WebXR where a headset answers, unless the page names it alone', async () => {
+    const phone = fakePhone();
+    const fake = fakeXr(true);
+    try {
+      const { view } = await rigSplit('webxr stereo');
+      tilt(0, 90, 0);
+      expect(view.headsetAvailable).toBe('webxr');
+      view.setAttribute('headset', 'stereo');
+      expect(view.headsetAvailable).toBe('stereo');
+    } finally {
+      fake.restore();
+      phone.restore();
+    }
+  });
+
+  it('is not offered where only the video goes fullscreen, as on an iPhone', async () => {
+    const phone = fakePhone();
+    try {
+      const { player, view, button } = await rigSplit('webxr stereo');
+      // An iPhone's elements have neither method.
+      Object.defineProperties(player, {
+        requestFullscreen: { configurable: true, value: undefined },
+        webkitRequestFullscreen: { configurable: true, value: undefined },
+      });
+      tilt(0, 90, 0);
+      expect(view.headsetAvailable).toBeNull();
+      expect(button.hidden).toBe(true);
+    } finally {
+      phone.restore();
+    }
+  });
+
+  it('follows the device with motion off, and lets go of it at the end', async () => {
+    const phone = fakePhone();
+    try {
+      const { view } = await rigSplit('stereo');
+      view.setAttribute('motion', 'off');
+      tilt(0, 90, 0);
+      await view.enterVR();
+      tilt(0, 90, 0);
+      tilt(-90, 90, 0);
+      expect(view.yaw).toBeCloseTo(90);
+      expect(view.motionOn).toBe(false);
+      await view.exitVR();
+      tilt(-180, 90, 0);
+      expect(view.yaw).toBeCloseTo(90);
+    } finally {
+      phone.restore();
     }
   });
 });

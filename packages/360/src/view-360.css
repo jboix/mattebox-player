@@ -42,3 +42,8 @@
 [part~="subtitles"]:empty {
   display: none;
 }
+/* One line of words across two eyes reads as neither. A headset session
+   shows no subtitles either. */
+:host([vr="stereo"]) [part~="subtitles"] {
+  display: none;
+}

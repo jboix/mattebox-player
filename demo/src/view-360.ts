@@ -71,6 +71,8 @@ const player = byId<MatteboxPlayerElement>('player');
 const view = byId<Mbx360>('view');
 const select = byId<HTMLSelectElement>('example');
 const projection = byId<HTMLSelectElement>('projection');
+const headset = byId<HTMLSelectElement>('headset');
+const headsetNote = byId<HTMLElement>('headset-note');
 const note = byId<HTMLElement>('note');
 const code = byId<HTMLElement>('code');
 const status = byId<HTMLElement>('status');
@@ -92,13 +94,15 @@ function remembered(): number {
 
 function markup(example: Example): string {
   const forced = projection.value === '' ? '' : ` projection="${projection.value}"`;
+  const ways = headset.value === '' ? '' : ` headset="${headset.value}"`;
   return `<mattebox-player controls="custom" muted
   type="srgssr/urn" src="${example.urn}">
-  <mbx-360${forced}></mbx-360>
+  <mbx-360${forced}${ways}></mbx-360>
   <mbx-control-bar>
     <mbx-play-button></mbx-play-button>
     <mbx-seek-bar></mbx-seek-bar>
     <mbx-volume></mbx-volume>
+    <mbx-vr-button></mbx-vr-button>
     <mbx-fullscreen-button></mbx-fullscreen-button>
   </mbx-control-bar>
 </mattebox-player>
@@ -133,7 +137,25 @@ projection.addEventListener('change', () => {
   else view.setAttribute('projection', projection.value);
   code.textContent = markup(EXAMPLES[Number(select.value)] ?? (EXAMPLES[0] as Example));
 });
+headset.addEventListener('change', () => {
+  if (headset.value === '') view.removeAttribute('headset');
+  else view.setAttribute('headset', headset.value);
+  code.textContent = markup(EXAMPLES[Number(select.value)] ?? (EXAMPLES[0] as Example));
+});
 choose(Number(select.value));
+
+/** Says which way the VR button takes on this device, so a hidden button is explained. */
+function offer(): void {
+  const way = view.headsetAvailable;
+  headsetNote.textContent =
+    way === 'webxr'
+      ? 'This device has a WebXR headset: the VR button starts a session.'
+      : way === 'stereo'
+        ? 'This device has no WebXR headset: the VR button splits the screen.'
+        : 'This device has none of these ways, so the VR button is hidden.';
+}
+player.addEventListener('headsetchange', offer);
+offer();
 
 byId<HTMLButtonElement>('ahead').addEventListener('click', () => {
   view.yaw = 0;
