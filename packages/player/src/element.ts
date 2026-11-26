@@ -104,15 +104,9 @@ function emeAvailable(): boolean {
   return drmGuard().without === undefined;
 }
 
-/** `source` without its DRM, for a browser without EME. */
-function withoutDrm({ url, type, videoTracks, projection, framePacking }: Source): Source {
-  return {
-    url,
-    ...(type === undefined ? {} : { type }),
-    ...(videoTracks === undefined ? {} : { videoTracks }),
-    ...(projection === undefined ? {} : { projection }),
-    ...(framePacking === undefined ? {} : { framePacking }),
-  };
+/** `source` without its DRM, for a browser without EME. Every other field stays. */
+function withoutDrm({ drm: _, ...rest }: Source): Source {
+  return rest;
 }
 const CERTIFICATE_URL = 'certificate-url';
 
