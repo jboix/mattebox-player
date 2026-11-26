@@ -37,6 +37,7 @@ import {
   matteboxHandler,
   nativeHandler,
   preferNativeHls,
+  seek,
 } from '@mattebox/player-core';
 import type { KernelConfig, Mattebox, Stage } from 'mattebox';
 import type { AttachEmeOptions } from 'mattebox/eme';
@@ -913,7 +914,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
       this.current?.engine?.resume();
       // Live rejoins at its edge: the device's time is on the device's timeline.
       if (this.current !== null && !this.frozenLive && Number.isFinite(time)) {
-        this.node.currentTime = time;
+        seek(this.node, time);
       }
       if (playing) this.node.play().catch(() => undefined);
     };

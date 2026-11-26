@@ -6,6 +6,7 @@
  * switches it in the same session.
  */
 import type { Source, SourceVideoTrack } from '@mattebox/player-core';
+import { seek } from '@mattebox/player-core';
 import type { Mattebox, Track } from 'mattebox';
 import { isAudioDescription, isSdh } from 'mattebox';
 
@@ -50,7 +51,8 @@ export function versionSource(track: SourceVideoTrack, eme: boolean): Source {
 export function resume(media: HTMLMediaElement, at: number | null, playing: boolean): void {
   const go = (): void => {
     media.removeEventListener('emptied', drop);
-    if (at !== null) media.currentTime = at;
+    // Apple's WebKit takes the seek at the first frame, not at the metadata.
+    if (at !== null) seek(media, at);
     if (playing) media.play().catch(() => undefined);
   };
   const drop = (): void => {

@@ -9,8 +9,9 @@
  */
 import { MatteboxPlayerElement } from '@mattebox/player';
 import { nativeHandler } from '@mattebox/player-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cueLift } from '../../src/controls/cues.js';
+import { createMedia } from '../../src/media.js';
 import { compose, silence } from './helpers.js';
 
 /** Room for the browser under a full run. */
@@ -165,5 +166,100 @@ describe('the controls over a real video', () => {
     expect(cue.line).toBe('auto');
     expect(second.line).toBe('auto');
     expect(placed.line).toBe(10);
+  });
+});
+
+describe("a seek before the first frame, where Apple's WebKit plays the source itself", () => {
+  beforeEach(() => {
+    Object.defineProperty(navigator, 'vendor', {
+      value: 'Apple Computer, Inc.',
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    // The instance property shadows the prototype's getter; deleting it restores the browser's.
+    delete (navigator as { vendor?: string }).vendor;
+  });
+
+  /** The element over the native handler alone, in the page, and its video. */
+  function mount() {
+    const player = new MatteboxPlayerElement({ handlers: [nativeHandler()] });
+    player.setAttribute('muted', '');
+    document.body.append(player);
+    return { player, video: player.querySelector('video') as HTMLVideoElement };
+  }
+
+  /**
+   * A video with a source it never loads: the state an iPhone keeps every
+   * source in until the viewer plays. The handler gives it the source, and
+   * the test fires `loadeddata` where the first frame would come. A write
+   * to a video without data sets where it starts, and it reads that back.
+   */
+  async function frameless() {
+    const video = document.createElement('video');
+    const { media } = createMedia(video);
+    const session = await nativeHandler().handle({ url: 'about:blank' }, video);
+    return { video, media, session };
+  }
+
+  it('keeps the seek off the video, reads it back, and has the controls draw it', async () => {
+    const { video, media } = await frameless();
+    let drawn = 0;
+    media.addEventListener('timeupdate', () => {
+      drawn += 1;
+    });
+
+    media.currentTime = 5;
+
+    expect(video.currentTime).toBe(0);
+    expect(media.currentTime).toBe(5);
+    expect(drawn).toBe(1);
+  });
+
+  it('seeks at the first frame, to the last time asked for, and at once after it', async () => {
+    const { video, media } = await frameless();
+    media.currentTime = 2;
+    media.currentTime = 6;
+    expect(video.currentTime).toBe(0);
+
+    video.dispatchEvent(new Event('loadeddata'));
+    expect(video.currentTime).toBe(6);
+    expect(media.currentTime).toBe(6);
+
+    let drawn = 0;
+    media.addEventListener('timeupdate', () => {
+      drawn += 1;
+    });
+    media.currentTime = 1;
+    expect(video.currentTime).toBe(1);
+    // The browser took this one, and fires its own events for it.
+    expect(drawn).toBe(0);
+  });
+
+  it('forgets the seek when the source goes before its first frame', async () => {
+    const { video, media, session } = await frameless();
+    media.currentTime = 6;
+    await session.dispose();
+
+    expect(media.currentTime).toBe(0);
+    video.dispatchEvent(new Event('loadeddata'));
+    expect(video.currentTime).toBe(0);
+  });
+
+  it('starts a real source from its start position at the first frame, not before', async () => {
+    const { player, video } = mount();
+    const seen: string[] = [];
+    for (const name of ['loadeddata', 'seeking']) {
+      video.addEventListener(name, () => seen.push(name));
+    }
+    player.sources = [{ url: silence(10), start: 4 }];
+    await expect.poll(() => video.getAttribute('src'), ROOM).not.toBeNull();
+
+    // A browser that has not loaded the clip by now loads it on play.
+    await player.media.play();
+    await expect.poll(() => video.currentTime, ROOM).toBeGreaterThanOrEqual(4);
+    // The position reads 4 as soon as the seek is asked; `seeking` fires a task later.
+    await expect.poll(() => seen.slice(0, 2), ROOM).toEqual(['loadeddata', 'seeking']);
   });
 });

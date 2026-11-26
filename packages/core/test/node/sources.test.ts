@@ -308,6 +308,8 @@ describe('the DRM of a source', () => {
   });
 
   it('attaches DRM to a native session that has no option of its own', async () => {
+    // The handler reads the vendor, and Node's navigator has none.
+    vi.stubGlobal('navigator', { vendor: 'Google Inc.' });
     const video = {
       disableRemotePlayback: true,
       addEventListener: () => undefined,
@@ -323,6 +325,7 @@ describe('the DRM of a source', () => {
 
     expect(plain.eme).toBeUndefined();
     expect(own.eme).toBeDefined();
+    vi.unstubAllGlobals();
   });
 });
 

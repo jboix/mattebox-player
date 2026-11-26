@@ -5,47 +5,47 @@
   <text x="44" y="176" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">TV remote</text>
   <text x="44" y="200" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-spatial-nav</text>
   <rect x="480" y="150" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="150" width="43.9" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="150" width="44.0" height="54" fill="#9a9aa2"/>
   <text x="1056" y="186" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">1.6 KB</text>
   <text x="44" y="260" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">preferences</text>
   <text x="44" y="284" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-preferences</text>
   <rect x="480" y="234" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="234" width="76.7" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="234" width="76.6" height="54" fill="#9a9aa2"/>
   <text x="1056" y="270" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">2.7 KB</text>
   <text x="44" y="344" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">live captions</text>
   <text x="44" y="368" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-live-captions</text>
   <rect x="480" y="318" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="318" width="109.7" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="318" width="109.5" height="54" fill="#9a9aa2"/>
   <text x="1056" y="354" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">3.9 KB</text>
   <text x="44" y="428" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">game controllers</text>
   <text x="44" y="452" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-spatial-nav/gamepad</text>
   <rect x="480" y="402" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="402" width="127.2" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="402" width="127.3" height="54" fill="#9a9aa2"/>
   <text x="1056" y="438" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">4.5 KB</text>
   <text x="44" y="512" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">Chromecast</text>
   <text x="44" y="536" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-cast</text>
   <rect x="480" y="486" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="486" width="133.5" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="486" width="133.6" height="54" fill="#9a9aa2"/>
   <text x="1056" y="522" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">4.8 KB</text>
   <text x="44" y="596" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">360° video</text>
   <text x="44" y="620" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-360</text>
   <rect x="480" y="570" width="420" height="54" fill="#18181c"/>
   <rect x="480" y="570" width="197.4" height="54" fill="#9a9aa2"/>
-  <text x="1056" y="606" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">7.1 KB</text>
+  <text x="1056" y="606" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">7.0 KB</text>
   <text x="44" y="680" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">playlist</text>
   <text x="44" y="704" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-playlist</text>
   <rect x="480" y="654" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="654" width="199.0" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="654" width="199.4" height="54" fill="#9a9aa2"/>
   <text x="1056" y="690" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">7.1 KB</text>
   <text x="44" y="764" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">ads</text>
   <text x="44" y="788" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-ads</text>
   <rect x="480" y="738" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="738" width="299.0" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="738" width="299.3" height="54" fill="#9a9aa2"/>
   <text x="1056" y="774" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">10.7 KB</text>
   <text x="44" y="848" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="26" font-weight="400" fill="#f4f4f5">diagnostics</text>
   <text x="44" y="872" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="15" fill="#8a8a93">main · @mattebox/player-diagnostics</text>
   <rect x="480" y="822" width="420" height="54" fill="#18181c"/>
-  <rect x="480" y="822" width="376.6" height="54" fill="#9a9aa2"/>
+  <rect x="480" y="822" width="376.8" height="54" fill="#9a9aa2"/>
   <text x="1056" y="858" text-anchor="end" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="26" font-weight="400" fill="#8a8a93">13.5 KB</text>
   <line x1="480" y1="924" x2="900" y2="924" stroke="#3a3a42" stroke-width="2"/>
   <line x1="480.0" y1="924" x2="480.0" y2="932" stroke="#3a3a42" stroke-width="2"/>

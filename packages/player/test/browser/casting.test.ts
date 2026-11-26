@@ -263,7 +263,8 @@ describe('player.cast', () => {
     const end = player.cast(remote);
     remote.media.time = 2.5;
     end();
-    expect(video.currentTime).toBe(2.5);
+    // Apple's WebKit takes the seek at the first frame, which follows the metadata.
+    await expect.poll(() => video.currentTime).toBe(2.5);
     expect(sessions).toBe(0);
     expect(player.media.currentTime).toBe(2.5);
     // The function is spent: a second call changes nothing.

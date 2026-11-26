@@ -564,6 +564,13 @@ player.addEventListener('castload', (event) => {
 not a DOM node. For an API that takes the element itself, such as an
 observer, read the `<video>` child of the player.
 
+Seek through `player.media`, not through the `<video>`. Apple's WebKit
+loses a seek made before the first frame of a source it plays itself, as
+on an iPhone before the viewer plays, and no later seek works.
+`player.media` keeps such a seek and makes it at the first frame, and its
+`currentTime` reads the time kept until then.
+[Chapter 2](02-handlers.md#a-seek-before-the-first-frame) has the detail.
+
 ### Languages
 
 The controls speak 11 languages besides English, and follow the page's

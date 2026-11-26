@@ -5,10 +5,17 @@
  * from the device, and every other member stays the video's: fullscreen,
  * the text tracks, the size.
  *
+ * A seek goes through the core's `seek()`. Where Apple's WebKit plays the
+ * source itself, a seek before the first frame is kept and made at that
+ * frame, and `currentTime` reads the time kept until then, as it reads the
+ * default start position before the metadata. A write on the video itself
+ * is the browser's own, and is lost there.
+ *
  * The video itself is untouched. Nothing is shadowed on it and no event is
  * dispatched on it for the device, because the engine listens there and a
  * made-up `play` or `seeking` would reach it.
  */
+import { pendingSeek, seek } from '@mattebox/player-core';
 import type { RemoteMedia } from './remote.js';
 
 /** The events a device reports in the video's place. */
@@ -135,6 +142,15 @@ export function createMedia(video: HTMLVideoElement): Media {
     }
   }
 
+  /** Has the listeners of `timeupdate` draw the position, without an event on the video. */
+  function redraw(): void {
+    for (const entry of [...heard]) {
+      if (entry.type === 'timeupdate' && heard.includes(entry)) {
+        call(entry.given, video, new Event('timeupdate'));
+      }
+    }
+  }
+
   const media = new Proxy(video, {
     get(target, name) {
       if (name === 'addEventListener') return add;
@@ -143,6 +159,10 @@ export function createMedia(video: HTMLVideoElement): Media {
         const source = remote as unknown as Record<PropertyKey, unknown>;
         const value = source[name];
         return typeof value === 'function' ? value.bind(remote) : value;
+      }
+      if (name === 'currentTime') {
+        const pending = pendingSeek(target);
+        if (pending !== null) return pending;
       }
       // The receiver is the video: a DOM getter refuses the proxy.
       const value: unknown = Reflect.get(target, name, target);
@@ -165,6 +185,12 @@ export function createMedia(video: HTMLVideoElement): Media {
     set(target, name, value) {
       if (remotely(name)) {
         (remote as unknown as Record<PropertyKey, unknown>)[name] = value;
+        return true;
+      }
+      if (name === 'currentTime' && typeof value === 'number') {
+        seek(target, value);
+        // A seek the video keeps for its first frame fires nothing: the controls draw it now.
+        if (pendingSeek(target) !== null) redraw();
         return true;
       }
       return Reflect.set(target, name, value, target);

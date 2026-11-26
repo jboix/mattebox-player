@@ -149,6 +149,34 @@ With `drm`, the handler calls `attachEme(video, drm)` before it sets `src`.
 attachment as `session.eme`, and the core reports its errors on the `error`
 event.
 
+### A seek before the first frame
+
+Apple's WebKit loses a seek made before the first frame of a source it
+plays itself. Playback then starts at 0, and no later seek moves it.
+[WebKit bug 261512](https://bugs.webkit.org/show_bug.cgi?id=261512)
+reports it on iOS 13 to 17. An iPhone loads no frame before the viewer
+plays, so every seek before play is one of these.
+
+The native handler works around it on Apple's WebKit, and nowhere else:
+
+- It keeps a source's `start` and seeks to it at `loadeddata`.
+- `seek(video, time)` does the same for any later seek. Before the first
+  frame it keeps the time, and the last time kept is the one the video
+  seeks to. After the first frame, and in every other browser, it writes
+  `currentTime` at once.
+- `pendingSeek(video)` is the time kept, or null.
+
+```ts
+import { pendingSeek, seek } from '@mattebox/player-core';
+
+seek(video, 300);
+const position = pendingSeek(video) ?? video.currentTime;
+```
+
+A write of `video.currentTime` itself is the browser's own, and is lost
+there. Seek with `seek()` in a page that builds its own controls on the
+core.
+
 ## AirPlay
 
 An HLS source in Safari has an AirPlay target by default.

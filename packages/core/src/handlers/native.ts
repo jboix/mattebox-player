@@ -1,6 +1,7 @@
 /**
  * The native handler: the browser plays the source itself. This is the only
- * place in the core that writes to the DOM, and it writes one property.
+ * place in the core that writes to the DOM: it writes `src`, and the
+ * position a source starts from.
  *
  * Attach and `src` exclude each other, so whatever holds the element is
  * detached first; the engine never takes an element over silently and throws
@@ -9,6 +10,7 @@
 import { mattebox } from 'mattebox';
 import type { AttachEmeOptions, EmeAttachment } from 'mattebox/eme';
 import { attachEme } from 'mattebox/eme';
+import { awaitFirstFrame, seek } from '../seek.js';
 import type { CanHandle, Handler, HandlerEnvironment, HandlerSession, Source } from '../types.js';
 
 const NAME = 'native';
@@ -71,10 +73,13 @@ export function nativeHandler(options: NativeHandlerOptions = {}): Handler {
     const eme: EmeAttachment | undefined =
       drm !== undefined && typeof attachEme === 'function' ? attachEme(video, drm) : undefined;
     video.src = source.url;
+    // Apple's WebKit loses a seek made before the first frame: see `seek.ts`.
+    const settle = awaitFirstFrame(video);
     // Before the metadata, this is the position the video starts from.
-    if (source.start !== undefined) video.currentTime = source.start;
+    if (source.start !== undefined) seek(video, source.start);
 
     async function dispose(): Promise<void> {
+      settle();
       // Removing the attribute is not enough: without `load()` the element
       // keeps the old resource selected and the next attach is refused.
       video.removeAttribute('src');
