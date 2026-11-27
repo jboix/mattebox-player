@@ -328,12 +328,14 @@ it('the options fold by topic, count what changed, and remember what is open', a
   await userEvent.click(first.$('[data-screen="live-captions"]'));
   expect(details('live-captions').open).toBe(true);
   expect(first.$$('mbx-live-captions')).toHaveLength(1);
+  // The menu leaves live captions out where they cannot work or are not needed.
+  expect(first.$('mbx-live-captions').getAttribute('hide')).toBe('unavailable covered');
   expect(badge.textContent).toBe('1 changed');
   await userEvent.selectOptions(
     first.$<HTMLSelectElement>('[data-knob="live-captions-language"]'),
     'de',
   );
-  await userEvent.click(first.$('[data-caption="hide-unavailable"]'));
+  await userEvent.click(first.$('[data-caption="hide-covered"]'));
   expect(first.$('mbx-live-captions').getAttribute('language')).toBe('de');
   expect(first.$('mbx-live-captions').getAttribute('hide')).toBe('unavailable');
   expect(first.$('#markup').textContent).toContain(
