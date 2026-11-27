@@ -1,7 +1,7 @@
 {
   "name": "mattebox-player",
   "version": "0.0.0",
-  "description": "Workspace for @mattebox/player-core, @mattebox/player, @mattebox/player-diagnostics, @mattebox/player-cast, @mattebox/player-spatial-nav, @mattebox/player-playlist, @mattebox/player-preferences, @mattebox/player-ads, @mattebox/player-live-captions and @mattebox/player-360",
+  "description": "Workspace for @mattebox/player-core, @mattebox/player, @mattebox/player-diagnostics, @mattebox/player-cast, @mattebox/player-spatial-nav, @mattebox/player-playlist, @mattebox/player-preferences, @mattebox/player-ads, @mattebox/player-live-captions, @mattebox/player-360 and @mattebox/player-transcript",
   "private": true,
   "author": "Josep Boix Requesens",
   "repository": {
@@ -24,7 +24,8 @@
     "packages/playlist",
     "packages/ads",
     "packages/live-captions",
-    "packages/360"
+    "packages/360",
+    "packages/transcript"
   ],
   "devEngines": {
     "runtime": {

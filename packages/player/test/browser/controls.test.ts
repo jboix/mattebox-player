@@ -1382,6 +1382,37 @@ describe('break marks', () => {
   });
 });
 
+describe('spots', () => {
+  it('the seek bar draws a tick at each moment an add-on points at, and marks the current one', async () => {
+    const player = await loaded({}, 100);
+    const bar = control(player, 'mbx-seek-bar');
+    const seen: number[] = [];
+    player.addEventListener('spotschange', (event) => {
+      seen.push(((event as CustomEvent).detail as readonly unknown[]).length);
+    });
+    player.spots.set('transcript', [{ time: 60, current: true }, { time: 20 }]);
+    player.spots.set('other', [{ time: 40 }]);
+    const ticks = () => [
+      ...(bar.shadowRoot?.querySelectorAll<HTMLElement>('[part~="spot"]') ?? []),
+    ];
+    await expect.poll(() => ticks().length).toBe(3);
+    expect(ticks().map((tick) => [tick.getAttribute('part'), tick.style.left])).toEqual([
+      ['spot', '20%'],
+      ['spot', '40%'],
+      ['spot current', '60%'],
+    ]);
+    // A tick is taller than the track, so it is not inside it, where it would be cut.
+    expect(ticks()[0]?.closest('[part~="track"]')).toBeNull();
+    // One owner's list leaves the other's, and the page's markers are not touched.
+    player.spots.set('transcript', []);
+    await expect.poll(() => ticks().length).toBe(1);
+    expect(player.markers.list).toEqual([]);
+    // An owner that had none clears nothing: no event.
+    player.spots.set('nobody', []);
+    expect(seen).toEqual([2, 3, 1]);
+  });
+});
+
 describe('the start button', () => {
   it('shows a large play while paused, and nothing while playing', async () => {
     const player = await ready(10);

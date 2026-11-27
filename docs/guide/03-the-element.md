@@ -108,26 +108,27 @@ version, with `<mbx-video-track>` children. See
 
 ## Properties
 
-| Property       | What it is                                                                                                              |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `player`       | The `Player` of the core                                                                                                |
-| `sources`      | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children                 |
-| `engine`       | The engine of the current session, or null                                                                              |
-| `video`        | The `<video>` inside, in light DOM                                                                                      |
-| `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                                |
-| `markers`      | The ranges the page named in this source: see [Markers](#markers)                                                       |
-| `chapters`     | The programme's chapters in order, each with `start`, `end` and `title`: the engine's, else the video's chapters track  |
-| `breaks`       | Where the programme's ad breaks are, which the seek bar draws as ticks. `breaks.set(owner, list)` sets one owner's list |
-| `interrupted`  | True while `interrupt()` plays a source in the programme's place                                                        |
-| `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                                      |
-| `programme`    | What the current load resolved: see [chapter 09](09-connectors.md#with-the-element)                                     |
-| `trackers`     | The page's trackers: see [chapter 13](13-trackers.md)                                                                   |
-| `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)                   |
-| `videoSource`  | The version that plays, or null for the source itself                                                                   |
-| `projection`   | How the picture maps onto a sphere, or null for a flat one: see [chapter 16](16-360-video.md)                           |
-| `framePacking` | How the frame holds a picture for each eye, or null for one picture: see [chapter 16](16-360-video.md#frame-packing)    |
-| `language`     | The `language` attribute, or empty. Setting it changes the words at once                                                |
-| `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either                         |
+| Property       | What it is                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `player`       | The `Player` of the core                                                                                                                                                                                            |
+| `sources`      | The sources to try in order, set from script. Setting it loads. Null returns to the `<source>` children                                                                                                             |
+| `engine`       | The engine of the current session, or null                                                                                                                                                                          |
+| `video`        | The `<video>` inside, in light DOM                                                                                                                                                                                  |
+| `error`        | The fatal error of the current load. Null after a load starts and after playback resumes                                                                                                                            |
+| `markers`      | The ranges the page named in this source: see [Markers](#markers)                                                                                                                                                   |
+| `chapters`     | The programme's chapters in order, each with `start`, `end` and `title`: the engine's, else the video's chapters track                                                                                              |
+| `breaks`       | Where the programme's ad breaks are, which the seek bar draws as ticks. `breaks.set(owner, list)` sets one owner's list                                                                                             |
+| `spots`        | The moments a package points at, such as the matches of a search in the transcript, which the seek bar draws as ticks. `spots.set(owner, list)` sets one owner's list, each spot a `time` and an optional `current` |
+| `interrupted`  | True while `interrupt()` plays a source in the programme's place                                                                                                                                                    |
+| `blocked`      | What `block()` set, or null: see [Blocks](#blocks)                                                                                                                                                                  |
+| `programme`    | What the current load resolved: see [chapter 09](09-connectors.md#with-the-element)                                                                                                                                 |
+| `trackers`     | The page's trackers: see [chapter 13](13-trackers.md)                                                                                                                                                               |
+| `videoSources` | The versions of the picture the source names: see [Versions of the picture](#versions-of-the-picture)                                                                                                               |
+| `videoSource`  | The version that plays, or null for the source itself                                                                                                                                                               |
+| `projection`   | How the picture maps onto a sphere, or null for a flat one: see [chapter 16](16-360-video.md)                                                                                                                       |
+| `framePacking` | How the frame holds a picture for each eye, or null for one picture: see [chapter 16](16-360-video.md#frame-packing)                                                                                                |
+| `language`     | The `language` attribute, or empty. Setting it changes the words at once                                                                                                                                            |
+| `locale`       | The language tag the words come from: `language`, else the nearest `lang`. Empty without either                                                                                                                     |
 
 `selectVideoSource(version)` plays a version of `videoSources`, or the
 source itself for null. It fires `videosourcechange`, whose `detail` is the
@@ -912,7 +913,7 @@ Two rules make this work:
 | `mbx-control-bar`                   | `row`, `seek-row`, `buttons-row`                                                                                                                                                                                                                  |
 | Every button control                | `button`, `icon`                                                                                                                                                                                                                                  |
 | `mbx-volume-slider`, `mbx-seek-bar` | `slider`, `rail`, `track`, `fill`, `thumb`                                                                                                                                                                                                        |
-| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`                                                                           |
+| `mbx-seek-bar`                      | `buffered`, `buffered-range`, `blocked`, `blocked-range`, `hover`, `edge`, `preview`, `preview-frame`, `preview-image`, `preview-tile`, `preview-title`, `preview-time`, `spots`, `spot`                                                          |
 | `mbx-scan-button`                   | `button`, `icon`, `rate`                                                                                                                                                                                                                          |
 | `mbx-live-button`                   | `button`, `dot`, `text`                                                                                                                                                                                                                           |
 | Every menu                          | `button`, `icon`, `popup`, `drawer`, `title`, `section`, `section-label`, `item`, `item-image`, `item-badge`, `item-glyph`, `badge-text`, `item-detail`, `page-item`, `glyph-item`, `back-item`, and `<name>-item` and `<name>-section` per group |
@@ -1022,7 +1023,7 @@ const close = player.drawer([list], { label: 'Episodes', dismiss: () => close?.(
 Custom properties set on the player are inherited by every control:
 `--mbx-surface`, `--mbx-text`, `--mbx-muted`, `--mbx-accent`, `--mbx-error`,
 `--mbx-radius`, `--mbx-gap`, `--mbx-pad`, `--mbx-font`, `--mbx-live`,
-`--mbx-preview-width` (in pixels, 10em by default), `--mbx-menu-max-height` (in pixels, 22em by default), `--mbx-tooltip` (`none` hides the tooltips), `--mbx-blocked` (the dashes of a blocked range).
+`--mbx-preview-width` (in pixels, 10em by default), `--mbx-menu-max-height` (in pixels, 22em by default), `--mbx-tooltip` (`none` hides the tooltips), `--mbx-blocked` (the dashes of a blocked range), `--mbx-spot` (the ticks of the spots).
 
 The shadow roots are open. When `::part()` is not enough, a page adds a
 stylesheet inside a control: `control.shadowRoot.append(style)` in every

@@ -192,6 +192,23 @@ it('the chapters menu is in the bar, and the seek bar knob writes chapters="none
   await expect.poll(() => accessibleName($('mbx-chapters-menu', bar()))).toBe('Capítols');
 });
 
+it('the transcript is off by default, and its panel, its button and its add-on come together', async () => {
+  const { $, $$, bar } = await mount({ row: 'none' });
+  expect($$('mattebox-player > mbx-transcript')).toHaveLength(0);
+  expect($$('mbx-transcript-button', bar())).toHaveLength(0);
+  expect($('#markup').textContent).not.toContain('@mattebox/player-transcript');
+  await setChecked($('[data-screen="transcript"]'), true);
+  expect($$('mattebox-player > mbx-transcript')).toHaveLength(1);
+  // The button sits before the fullscreen button.
+  expect($('mbx-transcript-button', bar()).nextElementSibling?.localName).toBe(
+    'mbx-fullscreen-button',
+  );
+  expect($('#markup').textContent).toContain(
+    "import { transcript } from '@mattebox/player-transcript';",
+  );
+  expect($('#markup').textContent).toContain('addons: [transcript()],');
+});
+
 it('the diagnostics control is off by default, and its import comes with it', async () => {
   const { $, $$, bar } = await mount({ row: 'none' });
   expect($$('mbx-diagnostics', bar())).toHaveLength(0);

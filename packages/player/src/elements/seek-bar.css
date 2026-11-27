@@ -49,6 +49,25 @@
 [part~="break"][part~="played"] {
   opacity: 0.4;
 }
+/* A moment an add-on points at, such as a line a search found: a tick
+   taller than the track, and taller still where the viewer is. Not the
+   yellow of an ad break nor the dark of a blocked range. */
+[part~="spot"] {
+  position: absolute;
+  top: 50%;
+  width: 0.125em;
+  height: 0.875em;
+  margin: -0.4375em 0 0 -0.0625em;
+  border-radius: 1px;
+  background: var(--mbx-spot, var(--mbx-text));
+  opacity: 0.75;
+  pointer-events: none;
+}
+[part~="spot"][part~="current"] {
+  height: 1.25em;
+  margin-top: -0.625em;
+  opacity: 1;
+}
 [part~="buffered-range"] {
   position: absolute;
   top: 0;

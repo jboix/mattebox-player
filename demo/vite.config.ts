@@ -35,6 +35,12 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@mattebox\/player-transcript\/locales\/(.+)$/,
+        replacement: fileURLToPath(
+          new URL('../packages/transcript/src/locales/$1.ts', import.meta.url),
+        ),
+      },
+      {
         find: /^@mattebox\/player\/locales\/(.+)$/,
         replacement: fileURLToPath(
           new URL('../packages/player/src/locales/$1.ts', import.meta.url),
@@ -90,6 +96,10 @@ export default defineConfig({
       {
         find: '@mattebox/player-playlist',
         replacement: fileURLToPath(new URL('../packages/playlist/src/index.ts', import.meta.url)),
+      },
+      {
+        find: '@mattebox/player-transcript',
+        replacement: fileURLToPath(new URL('../packages/transcript/src/index.ts', import.meta.url)),
       },
       {
         find: '@mattebox/player',

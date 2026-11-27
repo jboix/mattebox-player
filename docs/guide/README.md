@@ -21,6 +21,7 @@ chapters in order the first time, then use the table.
 | [14 Ads](14-ads.md)                                     | Interstitials, VAST and VMAP, the ad controls, the beacons and the events                                  |
 | [15 Live captions](15-live-captions.md)                 | What is said, written over the video by the browser, on the device                                         |
 | [16 360° video](16-360-video.md)                        | A 360° picture seen from inside, turned by a drag, the wheel, a controller or the device, and in a headset |
+| [17 Transcript](17-transcript.md)                       | The subtitles as a list of lines, the search, a search of your own, the ranges that must not play          |
 
 The [architecture document](../architecture.md) lists the packages and the
 rules between them.

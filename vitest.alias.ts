@@ -16,6 +16,10 @@ export const alias = [
     replacement: fileURLToPath(new URL('packages/playlist/src/locales/$1.ts', import.meta.url)),
   },
   {
+    find: /^@mattebox\/player-transcript\/locales\/(.+)$/,
+    replacement: fileURLToPath(new URL('packages/transcript/src/locales/$1.ts', import.meta.url)),
+  },
+  {
     find: /^@mattebox\/player-ads\/locales\/(.+)$/,
     replacement: fileURLToPath(new URL('packages/ads/src/locales/$1.ts', import.meta.url)),
   },
@@ -91,5 +95,9 @@ export const alias = [
   {
     find: '@mattebox/player-playlist',
     replacement: fileURLToPath(new URL('packages/playlist/src/index.ts', import.meta.url)),
+  },
+  {
+    find: '@mattebox/player-transcript',
+    replacement: fileURLToPath(new URL('packages/transcript/src/index.ts', import.meta.url)),
   },
 ];

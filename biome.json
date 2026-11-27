@@ -51,6 +51,7 @@
         "packages/live-captions/src/**",
         "packages/360/src/**",
         "packages/playlist/src/**",
+        "packages/transcript/src/**",
         "packages/diagnostics/src/**",
         "demo/src/**"
       ],

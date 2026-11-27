@@ -1,0 +1,27 @@
+/**
+ * Korean words of the transcript, for `MatteboxPlayerElement.addLocale('ko', …)`.
+ * Machine-drafted, not yet reviewed by a native speaker.
+ */
+import type { TranscriptMessages } from '../messages.js';
+
+export default {
+  transcript: '대본',
+  transcriptClose: '닫기',
+  transcriptLanguage: '언어',
+  transcriptSubtitles: '자막',
+  transcriptNone: '없음',
+  transcriptTrack: '트랙',
+  transcriptSearch: '검색',
+  transcriptPrevious: '이전 결과',
+  transcriptNext: '다음 결과',
+  transcriptCount: '{count}개 중 {at}번째',
+  transcriptNoMatch: '결과 없음',
+  transcriptSearchFailed: '검색을 사용할 수 없습니다',
+  transcriptBlocked: '이 부분은 이용할 수 없습니다',
+  transcriptRange: '{start} ~ {end}',
+  transcriptMore: '줄 더 불러오기',
+  transcriptLoading: '줄을 더 불러오는 중',
+  transcriptPartial: '줄을 더 불러오는 중입니다. 검색은 불러온 줄까지만 찾습니다.',
+  transcriptChoose: '대본을 읽을 언어를 선택하세요.',
+  transcriptEmpty: '이 언어에는 줄이 없습니다.',
+} satisfies TranscriptMessages;

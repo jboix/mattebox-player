@@ -50,6 +50,7 @@ import { drawer } from './controls/drawer.js';
 import type { Marker, Markers } from './controls/markers.js';
 import { createMarkers } from './controls/markers.js';
 import { live as liveOf } from './controls/session.js';
+import { createSpots, type Spots } from './controls/spots.js';
 import { languageName } from './controls/track-names.js';
 import type { Block, PlayerAddon, PlayerHost } from './host.js';
 import type { LocaleSource } from './locales.js';
@@ -355,6 +356,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   declare private offTracks: (() => void) | null;
   declare private readonly marks: Markers;
   declare private readonly breakMarks: BreakMarks;
+  declare private readonly spotMarks: Spots;
   /** The chapters track element, while the `chapters` attribute names one and the engine takes none. */
   declare private track: HTMLTrackElement | null;
   /** The chapters URL the current session's engine was given, or null. */
@@ -502,6 +504,7 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
     // Through `media`: a blocked range is skipped on the device too.
     this.marks = createMarkers(this.playback.media, (name, detail) => this.emit(name, detail));
     this.breakMarks = createBreakMarks((list) => this.emit('breakschange', list));
+    this.spotMarks = createSpots((list) => this.emit('spotschange', list));
     this.tracking = createTrackers(this, () => this.emit('trackerschange', this.tracking.list));
     this.stage = document.createElement('div');
     this.stage.setAttribute('part', 'stage');
@@ -554,6 +557,11 @@ export class MatteboxPlayerElement extends HTMLElement implements PlayerHost {
   /** Where the programme's ad breaks are, which the seek bar draws: each add-on gives its own. */
   get breaks(): BreakMarks {
     return this.breakMarks;
+  }
+
+  /** The moments add-ons point at, which the seek bar draws: each add-on gives its own. */
+  get spots(): Spots {
+    return this.spotMarks;
   }
 
   /**

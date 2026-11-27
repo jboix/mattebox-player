@@ -28,6 +28,7 @@ export const WORD_PACKAGES = [
   '@mattebox/player-cast',
   '@mattebox/player-diagnostics',
   '@mattebox/player-live-captions',
+  '@mattebox/player-transcript',
 ] as const;
 
 const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
@@ -37,6 +38,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/ca'),
     () => import('@mattebox/player-diagnostics/locales/ca'),
     () => import('@mattebox/player-live-captions/locales/ca'),
+    () => import('@mattebox/player-transcript/locales/ca'),
   ],
   es: [
     () => import('@mattebox/player/locales/es'),
@@ -44,6 +46,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/es'),
     () => import('@mattebox/player-diagnostics/locales/es'),
     () => import('@mattebox/player-live-captions/locales/es'),
+    () => import('@mattebox/player-transcript/locales/es'),
   ],
   fr: [
     () => import('@mattebox/player/locales/fr'),
@@ -51,6 +54,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/fr'),
     () => import('@mattebox/player-diagnostics/locales/fr'),
     () => import('@mattebox/player-live-captions/locales/fr'),
+    () => import('@mattebox/player-transcript/locales/fr'),
   ],
   de: [
     () => import('@mattebox/player/locales/de'),
@@ -58,6 +62,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/de'),
     () => import('@mattebox/player-diagnostics/locales/de'),
     () => import('@mattebox/player-live-captions/locales/de'),
+    () => import('@mattebox/player-transcript/locales/de'),
   ],
   it: [
     () => import('@mattebox/player/locales/it'),
@@ -65,6 +70,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/it'),
     () => import('@mattebox/player-diagnostics/locales/it'),
     () => import('@mattebox/player-live-captions/locales/it'),
+    () => import('@mattebox/player-transcript/locales/it'),
   ],
   pt: [
     () => import('@mattebox/player/locales/pt'),
@@ -72,6 +78,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/pt'),
     () => import('@mattebox/player-diagnostics/locales/pt'),
     () => import('@mattebox/player-live-captions/locales/pt'),
+    () => import('@mattebox/player-transcript/locales/pt'),
   ],
   zh: [
     () => import('@mattebox/player/locales/zh'),
@@ -79,6 +86,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/zh'),
     () => import('@mattebox/player-diagnostics/locales/zh'),
     () => import('@mattebox/player-live-captions/locales/zh'),
+    () => import('@mattebox/player-transcript/locales/zh'),
   ],
   ja: [
     () => import('@mattebox/player/locales/ja'),
@@ -86,6 +94,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/ja'),
     () => import('@mattebox/player-diagnostics/locales/ja'),
     () => import('@mattebox/player-live-captions/locales/ja'),
+    () => import('@mattebox/player-transcript/locales/ja'),
   ],
   ko: [
     () => import('@mattebox/player/locales/ko'),
@@ -93,6 +102,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/ko'),
     () => import('@mattebox/player-diagnostics/locales/ko'),
     () => import('@mattebox/player-live-captions/locales/ko'),
+    () => import('@mattebox/player-transcript/locales/ko'),
   ],
   hi: [
     () => import('@mattebox/player/locales/hi'),
@@ -100,6 +110,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/hi'),
     () => import('@mattebox/player-diagnostics/locales/hi'),
     () => import('@mattebox/player-live-captions/locales/hi'),
+    () => import('@mattebox/player-transcript/locales/hi'),
   ],
   ar: [
     () => import('@mattebox/player/locales/ar'),
@@ -107,6 +118,7 @@ const LOADERS: Readonly<Record<string, readonly LocaleSource[]>> = {
     () => import('@mattebox/player-cast/locales/ar'),
     () => import('@mattebox/player-diagnostics/locales/ar'),
     () => import('@mattebox/player-live-captions/locales/ar'),
+    () => import('@mattebox/player-transcript/locales/ar'),
   ],
 };
 

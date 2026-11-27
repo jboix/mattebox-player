@@ -1,0 +1,27 @@
+/**
+ * Chinese words of the transcript, for `MatteboxPlayerElement.addLocale('zh', …)`.
+ * Machine-drafted, not yet reviewed by a native speaker.
+ */
+import type { TranscriptMessages } from '../messages.js';
+
+export default {
+  transcript: '文字记录',
+  transcriptClose: '关闭',
+  transcriptLanguage: '语言',
+  transcriptSubtitles: '字幕',
+  transcriptNone: '无',
+  transcriptTrack: '轨道',
+  transcriptSearch: '搜索',
+  transcriptPrevious: '上一个结果',
+  transcriptNext: '下一个结果',
+  transcriptCount: '第 {at} 个，共 {count} 个',
+  transcriptNoMatch: '无结果',
+  transcriptSearchFailed: '搜索不可用',
+  transcriptBlocked: '此部分不可用',
+  transcriptRange: '{start} 至 {end}',
+  transcriptMore: '加载更多行',
+  transcriptLoading: '正在加载更多行',
+  transcriptPartial: '正在加载更多行。搜索范围为已加载的行。',
+  transcriptChoose: '选择一种语言以阅读文字记录。',
+  transcriptEmpty: '此语言没有内容。',
+} satisfies TranscriptMessages;

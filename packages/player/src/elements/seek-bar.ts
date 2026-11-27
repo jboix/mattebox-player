@@ -157,6 +157,8 @@ export class MbxSeekBar extends Component {
   declare private readonly blocked: HTMLElement;
   /** The ad breaks, as ticks, and as spans where a break replaces a part. */
   declare private readonly breaks: HTMLElement;
+  /** The moments add-ons point at, as ticks taller than the track. */
+  declare private readonly spots: HTMLElement;
   declare private readonly hover: HTMLElement;
   declare private readonly edge: HTMLElement;
   declare private readonly preview: HTMLElement;
@@ -230,6 +232,9 @@ export class MbxSeekBar extends Component {
     this.bar.track.prepend(this.buffered);
     // Over the fill, inside the track: the chapter gaps cut through it too.
     this.bar.track.append(this.blocked, this.breaks, this.hover, this.edge);
+    // Beside the track, which clips what it holds: a tick is taller than it.
+    this.spots = el('div', 'spots');
+    this.bar.track.after(this.spots);
     this.preview = el('div', 'preview');
     this.image = el('div', 'preview-image');
     this.tile = el('div', 'preview-tile');
@@ -608,6 +613,21 @@ export class MbxSeekBar extends Component {
     });
   }
 
+  /** The moments add-ons point at inside the bar's range: a tick at each, the current one taller. */
+  private paintSpots(): void {
+    const { start, end } = this.range;
+    const spots = (this.player?.spots.list ?? []).filter(
+      (spot) => spot.time >= start && spot.time <= end,
+    );
+    while (this.spots.childElementCount > spots.length) this.spots.lastElementChild?.remove();
+    while (this.spots.childElementCount < spots.length) this.spots.append(el('div', 'spot'));
+    spots.forEach((spot, i) => {
+      const node = this.spots.children[i] as HTMLElement;
+      node.setAttribute('part', spot.current === true ? 'spot current' : 'spot');
+      node.style.left = percent(fraction(spot.time, this.range));
+    });
+  }
+
   /** Whether a live window is wide enough to be worth a bar. */
   private worthSeeking(): boolean {
     const goals = number(this, 'live-window', LIVE_WINDOW);
@@ -667,7 +687,7 @@ export class MbxSeekBar extends Component {
     };
     this.listen(player.media, EVENTS, tick);
     this.keep(followChapters(player, tick));
-    this.listen(player, ['markerschange', 'breakschange'], tick);
+    this.listen(player, ['markerschange', 'breakschange', 'spotschange'], tick);
     this.listen(player, ['sourcechange'], () => {
       this.drag = 'none';
       this.stopAiming();
@@ -723,6 +743,7 @@ export class MbxSeekBar extends Component {
     this.paintRanges(this.buffered, spans(video.buffered), 'buffered-range');
     this.paintRanges(this.blocked, this.blockedRanges(), 'blocked-range');
     this.paintBreaks();
+    this.paintSpots();
     this.paintChapters();
     this.edge.hidden = !on;
     if (api !== undefined && api.edge !== null) {

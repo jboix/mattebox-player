@@ -49,6 +49,7 @@ export type {
 } from '@mattebox/player-core';
 export type { BreakMark, BreakMarks } from './controls/breaks.js';
 export type { Marker, Markers } from './controls/markers.js';
+export type { Spot, Spots } from './controls/spots.js';
 export type { MatteboxPlayerOptions } from './element-entry.js';
 export { MatteboxPlayerElement } from './element-entry.js';
 export { MbxAirplayButton } from './entries/airplay-button.js';

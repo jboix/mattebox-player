@@ -142,4 +142,17 @@ module.exports = [
     brotli: true,
     limit: '10 kB',
   },
+  {
+    name: '@mattebox/player-transcript',
+    path: 'packages/transcript/dist/cdn/mattebox-player-transcript.min.js',
+    disablePlugins: ['@size-limit/esbuild'],
+    // The engine and the player are peers. The bundle carries the engine's
+    // transcript stage, because the engine's CDN bundle leaves it out, as
+    // the ads bundle carries the interstitials stage. The stage, the panel
+    // with its language menu, its search and its lazy loading, the button
+    // and their style measured 12.94 kB on 2026-11-27. 14 kB is a first
+    // budget, a step above that.
+    brotli: true,
+    limit: '14 kB',
+  },
 ];

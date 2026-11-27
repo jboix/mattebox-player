@@ -1,0 +1,27 @@
+/**
+ * Spanish words of the transcript, for `MatteboxPlayerElement.addLocale('es', …)`.
+ * Machine-drafted, not yet reviewed by a native speaker.
+ */
+import type { TranscriptMessages } from '../messages.js';
+
+export default {
+  transcript: 'Transcripción',
+  transcriptClose: 'Cerrar',
+  transcriptLanguage: 'Idioma',
+  transcriptSubtitles: 'Subtítulos',
+  transcriptNone: 'Ninguno',
+  transcriptTrack: 'Pista',
+  transcriptSearch: 'Buscar',
+  transcriptPrevious: 'Resultado anterior',
+  transcriptNext: 'Resultado siguiente',
+  transcriptCount: '{at} de {count}',
+  transcriptNoMatch: 'Sin resultados',
+  transcriptSearchFailed: 'La búsqueda no está disponible',
+  transcriptBlocked: 'Esta parte no está disponible',
+  transcriptRange: '{start} a {end}',
+  transcriptMore: 'Cargar más líneas',
+  transcriptLoading: 'Cargando más líneas',
+  transcriptPartial: 'Cargando más líneas. La búsqueda cubre las líneas ya cargadas.',
+  transcriptChoose: 'Elige un idioma para leer la transcripción.',
+  transcriptEmpty: 'Este idioma no tiene líneas.',
+} satisfies TranscriptMessages;

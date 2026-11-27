@@ -21,6 +21,7 @@ import type { Mattebox, Stage } from 'mattebox';
 import type { BreakMarks } from './controls/breaks.js';
 import type { DrawerOptions } from './controls/drawer.js';
 import type { Markers } from './controls/markers.js';
+import type { Spots } from './controls/spots.js';
 import type { Messages } from './messages.js';
 import type { CastOptions, CastTarget, Remote } from './remote.js';
 import { PLAYER } from './tags.js';
@@ -74,6 +75,8 @@ export interface PlayerHost extends HTMLElement {
   readonly chapters: readonly Chapter[];
   /** Where the programme's ad breaks are, for the seek bar, by owner. */
   readonly breaks: BreakMarks;
+  /** The moments add-ons point at on the seek bar, such as what a search found, by owner. */
+  readonly spots: Spots;
   /** What the current load resolved to, with what a connector said of the programme; null without one. */
   readonly programme: Programme | null;
   /** The sources to load when there is no `src` attribute; setting it loads them. */

@@ -6,7 +6,7 @@
 [![Quality](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml/badge.svg)](https://github.com/jboix/mattebox-player/actions/workflows/quality.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-The Mattebox player is seven packages over the
+The Mattebox player is eleven packages over the
 [mattebox](https://github.com/jboix/mattebox) engine. The engine feeds a
 MediaSource and never sets the `src` of the video. The player decides which
 handler to use, and adds a custom UI on top of it.
@@ -23,6 +23,7 @@ handler to use, and adds a custom UI on top of it.
 | `@mattebox/player-ads`           | [![npm](https://img.shields.io/npm/v/@mattebox/player-ads)](https://www.npmjs.com/package/@mattebox/player-ads)                     | Ads: HLS interstitials, DASH alternative MPD, SCTE-35 cue-outs, VAST and VMAP, the ad controls and the beacons                                                                      | Registers the element on import  |
 | `@mattebox/player-live-captions` | [![npm](https://img.shields.io/npm/v/@mattebox/player-live-captions)](https://www.npmjs.com/package/@mattebox/player-live-captions) | `<mbx-live-captions>`. What is said, written over the video by the browser's speech recognition, on the device                                                                      | Registers the element on import  |
 | `@mattebox/player-360`           | [![npm](https://img.shields.io/npm/v/@mattebox/player-360)](https://www.npmjs.com/package/@mattebox/player-360)                     | `<mbx-360>`, `<mbx-motion-button>` and `<mbx-vr-button>`. A 360° video seen from inside, turned by a drag, the wheel, a game controller or the device, and shown in a WebXR headset | Registers the elements on import |
+| `@mattebox/player-transcript`    | [![npm](https://img.shields.io/npm/v/@mattebox/player-transcript)](https://www.npmjs.com/package/@mattebox/player-transcript)       | `<mbx-transcript>` and `<mbx-transcript-button>`. The subtitles of a programme as a list of lines, with a search, in a panel over the player                                        | Registers the elements on import |
 
 A page with its own UI has two options:
 

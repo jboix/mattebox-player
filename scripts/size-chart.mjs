@@ -226,6 +226,7 @@ const PACKAGES = {
   360: { label: '360° video', specifier: '@mattebox/player-360' },
   ads: { label: 'ads', specifier: '@mattebox/player-ads' },
   playlist: { label: 'playlist', specifier: '@mattebox/player-playlist' },
+  transcript: { label: 'transcript', specifier: '@mattebox/player-transcript' },
   preferences: { label: 'preferences', specifier: '@mattebox/player-preferences' },
   diagnostics: { label: 'diagnostics', specifier: '@mattebox/player-diagnostics' },
   'spatial-nav': { label: 'TV remote', specifier: '@mattebox/player-spatial-nav' },

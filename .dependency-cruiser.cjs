@@ -17,29 +17,29 @@ module.exports = {
         'reach into its internals.',
       severity: 'error',
       from: {
-        path: '^packages/(player|diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360)/',
+        path: '^packages/(player|diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360|transcript)/',
       },
       to: { path: '^packages/core/src/', pathNot: '^packages/core/src/index\\.ts$' },
     },
     {
       name: 'side-packages-reach-the-player-through-its-entry',
       comment:
-        "The diagnostics, cast, spatial-nav, playlist, preferences, live-captions and 360 elements are controls of the page's own kind: they take the " +
+        "The diagnostics, cast, spatial-nav, playlist, preferences, live-captions, 360 and transcript elements are controls of the page's own kind: they take the " +
         "player's public types from its entry and nothing from its internals.",
       severity: 'error',
       from: {
-        path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360)/',
+        path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360|transcript)/',
       },
       to: { path: '^packages/player/src/', pathNot: '^packages/player/src/index\\.ts$' },
     },
     {
       name: 'the-player-never-imports-the-side-packages',
       comment:
-        'The diagnostics, cast, spatial-nav, playlist, preferences, live-captions and 360 packages are optional; the player must not know them.',
+        'The diagnostics, cast, spatial-nav, playlist, preferences, live-captions, 360 and transcript packages are optional; the player must not know them.',
       severity: 'error',
       from: { path: '^packages/(core|player)/' },
       to: {
-        path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360)/|node_modules/@mattebox/player-(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360)/',
+        path: '^packages/(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360|transcript)/|node_modules/@mattebox/player-(diagnostics|cast|spatial-nav|playlist|preferences|live-captions|360|transcript)/',
       },
     },
     {

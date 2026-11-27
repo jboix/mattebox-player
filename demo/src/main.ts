@@ -22,6 +22,7 @@ import '@mattebox/player-360';
 import '@mattebox/player-live-captions';
 import '@mattebox/player-preferences';
 import '@mattebox/player-spatial-nav/gamepad';
+import { transcript } from '@mattebox/player-transcript';
 import full from 'mattebox/presets/full';
 import type { ChapterInput, ChaptersApi } from 'mattebox/stages/chapters';
 import emeCore from 'mattebox/stages/eme-core';
@@ -37,8 +38,9 @@ import { LANGUAGES, registerLanguages, WORD_PACKAGES } from './languages.js';
 import { logTracker } from './log-tracker.js';
 import { wireTheme } from './theme.js';
 
-// Before the first load reads the options: every player on the page gets the connectors.
-MatteboxPlayerElement.define({ connectors: CONNECTORS });
+// Before the first load reads the options: every player on the page gets the
+// connectors, and the stage that reads the transcript's lines.
+MatteboxPlayerElement.define({ connectors: CONNECTORS, addons: [transcript()] });
 
 function byId<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -812,6 +814,7 @@ const SCREEN_TAGS: Readonly<Record<string, string>> = {
   preferences: 'mbx-preferences',
   'live-captions': 'mbx-live-captions',
   '360': 'mbx-360',
+  transcript: 'mbx-transcript',
 };
 
 /** Where the demo's player keeps the viewer's choices, apart from the demo's own settings. */
@@ -860,11 +863,19 @@ function composition(): string {
   // The line that names the device, with either cast button.
   if (enabled.has('cast') || enabled.has('airplay')) lines.unshift(tag('mbx-casting', {}));
   const on = (row: Row) => rows[row].filter((name) => enabled.has(name));
+  const right = on('right')
+    .map((name) => controlMarkup(name, 'right'))
+    .filter((line) => line !== '');
+  // The transcript's button comes with its panel, before the fullscreen button.
+  if (screens.some((screen) => screen.dataset.screen === 'transcript' && screen.checked)) {
+    const at = right.findIndex((line) => line.startsWith('<mbx-fullscreen-button'));
+    right.splice(at === -1 ? right.length : at, 0, tag('mbx-transcript-button', {}));
+  }
   const inner = [
     ...on('seek').map((name) => controlMarkup(name, 'seek')),
     ...on('left').map((name) => controlMarkup(name, 'left')),
-    ...(on('right').length > 0 ? ['<mbx-spacer></mbx-spacer>'] : []),
-    ...on('right').map((name) => controlMarkup(name, 'right')),
+    ...(right.length > 0 ? ['<mbx-spacer></mbx-spacer>'] : []),
+    ...right,
   ].filter((line) => line !== '');
   const bar = tag('mbx-control-bar', {
     'idle-ms': knob('idle-ms'),
@@ -1008,6 +1019,9 @@ function markupFor(element: MatteboxPlayerElement): string {
       ? ["\n  import '@mattebox/player-live-captions';"]
       : []),
     ...(composed.includes('<mbx-360') ? ["\n  import '@mattebox/player-360';"] : []),
+    ...(composed.includes('<mbx-transcript ') || composed.includes('<mbx-transcript>')
+      ? ["\n  import { transcript } from '@mattebox/player-transcript';"]
+      : []),
   ].join('');
   // At an edge the spatial navigation hands focus to the application.
   const edges = composed.includes('<mbx-spatial-nav')
@@ -1045,6 +1059,9 @@ function markupFor(element: MatteboxPlayerElement): string {
       : []),
     ...(built.goal === null ? [] : [`    config: { bufferGoalSeconds: ${built.goal} },`]),
     ...connectorOptions(),
+    ...(extra.includes('@mattebox/player-transcript')
+      ? ['    // The stage that reads the lines of the transcript.', '    addons: [transcript()],']
+      : []),
   ];
   const connector = connectorOptions().length > 0;
   const name = (programme?.type ?? '').split('/')[0];
@@ -1060,7 +1077,8 @@ function markupFor(element: MatteboxPlayerElement): string {
       name === '@mattebox/player' ||
       (name === '@mattebox/player-cast' && extra.includes(name)) ||
       (name === '@mattebox/player-diagnostics' && extra.includes(name)) ||
-      (name === '@mattebox/player-live-captions' && extra.includes(name)),
+      (name === '@mattebox/player-live-captions' && extra.includes(name)) ||
+      (name === '@mattebox/player-transcript' && extra.includes(name)),
   );
   const words = used.map((name) =>
     name === '@mattebox/player'

@@ -1,0 +1,461 @@
+/* The transcript, over the right of the player like the playlist: the whole
+   height, the control bar's end included. */
+:host {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 24em;
+  max-width: 100%;
+  background: rgba(28, 28, 32, 0.95);
+  color: var(--mbx-text);
+  font: 400 0.875em / 1.3 var(--mbx-font);
+}
+:host([open]) {
+  display: flex;
+}
+[part~="header"] {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: 0.2857em 0.5714em;
+}
+[part~="heading"] {
+  flex: 1;
+  min-width: 0;
+  padding-left: 0.5714em;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[part~="button"] {
+  width: 2.8571em;
+  height: 2.8571em;
+}
+[part~="button"]:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+/* Under the button: above it is the edge of the player. */
+[part~="button"][aria-label]::after {
+  top: 100%;
+  bottom: auto;
+  margin: 0.4615em 0 0;
+  font-size: 0.9286em;
+}
+[part~="tools"] [part~="button"]:last-child[aria-label]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+/* The panel opens with focus on this button, and its tooltip would cover
+   the search row under it. The label stays for a screen reader. */
+[part~="close"][aria-label]::after {
+  display: none;
+}
+
+/* The language menu, drawn as the player's own menus. */
+[part~="language"] {
+  position: relative;
+  flex: none;
+  min-width: 0;
+  max-width: 55%;
+}
+[part~="chooser"] {
+  display: flex;
+  align-items: center;
+  max-width: 100%;
+  height: 2.8571em;
+  padding: 0 0.4286em 0 0.8571em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+[part~="chooser"]:hover,
+[part~="chooser"][aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.12);
+}
+[part~="chosen"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[part~="chooser"] svg {
+  flex: none;
+  width: 1.2857em;
+  height: 1.2857em;
+  margin-left: 0.2857em;
+  fill: currentColor;
+}
+[part~="popup"] {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 14em;
+  max-width: 22em;
+  max-height: 60vh;
+  margin-top: 0.2857em;
+  padding: 0.4286em;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgb(28, 28, 32);
+  border-radius: var(--mbx-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+[part~="popup"][hidden] {
+  display: none;
+}
+[part~="section"] {
+  display: flex;
+  flex-direction: column;
+}
+[part~="section"] + [part~="section"] {
+  margin-top: 0.4286em;
+  padding-top: 0.4286em;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+[part~="item"] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.7857em 1em 0.7857em 2.2857em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+[part~="item"]:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+[part~="item"][aria-checked="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0.9286em;
+  top: 50%;
+  width: 0.4286em;
+  height: 0.4286em;
+  margin-top: -0.2143em;
+  border-radius: 50%;
+  background: var(--mbx-accent);
+}
+[part~="item-text"] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[part~="item-detail"] {
+  margin-left: auto;
+  padding-left: 1.1429em;
+  color: var(--mbx-muted);
+  font-size: 0.8571em;
+}
+
+/* The search row. */
+[part~="tools"] {
+  display: flex;
+  align-items: center;
+  padding: 0 0.5714em 0.5714em 1.1429em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+[part~="search"] {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 2.5714em;
+  margin-right: 0.2857em;
+  border-radius: var(--mbx-radius);
+  background: rgba(255, 255, 255, 0.08);
+}
+[part~="search"]:focus-within {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: -2px;
+}
+[part~="field"] {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.8571em;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+[part~="field"]::placeholder {
+  color: var(--mbx-muted);
+  opacity: 1;
+}
+/* The browser's own clear button is left out: Escape clears the field. */
+[part~="field"]::-webkit-search-cancel-button,
+[part~="field"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+}
+[part~="count"] {
+  flex: none;
+  padding-right: 0.8571em;
+  color: var(--mbx-muted);
+  font-size: 0.8571em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+[part~="count"]:empty {
+  display: none;
+}
+
+/* The lines. The scrollbar is the player's: thin, pale on the surface. */
+[part~="list"] {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0.4286em;
+  overflow-y: auto;
+  /* The element keeps the viewer's line in place itself as lines arrive. */
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+[part~="list"]::-webkit-scrollbar,
+[part~="popup"]::-webkit-scrollbar {
+  width: 0.5714em;
+}
+[part~="list"]::-webkit-scrollbar-thumb,
+[part~="popup"]::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 0.2857em;
+  background: rgba(255, 255, 255, 0.28);
+  background-clip: padding-box;
+}
+[part~="list"]::-webkit-scrollbar-thumb:hover,
+[part~="popup"]::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+  background-clip: padding-box;
+}
+[part~="list"]::-webkit-scrollbar-track,
+[part~="popup"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[part~="line"] {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  width: 100%;
+  padding: 0.5em 0.5714em 0.5em 2em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: transparent;
+  color: var(--mbx-muted);
+  font: inherit;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+[part~="line"]:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--mbx-text);
+}
+[part~="time"] {
+  flex: none;
+  min-width: 3em;
+  margin-right: 0.8333em;
+  color: var(--mbx-muted);
+  font-size: 0.8571em;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+[part~="text"] {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[part~="speaker"] {
+  font-weight: 600;
+}
+[part~="speaker"]::after {
+  content: ":";
+}
+/* The line that is spoken. */
+[part~="line"][aria-current="true"] {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--mbx-text);
+  font-weight: 600;
+}
+[part~="line"][aria-current="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0.8571em;
+  top: 1.2em;
+  width: 0.4286em;
+  height: 0.4286em;
+  margin-top: -0.2143em;
+  border-radius: 50%;
+  background: var(--mbx-accent);
+}
+[part~="line"]:focus,
+[part~="item"]:focus,
+[part~="chooser"]:focus,
+[part~="more"]:focus {
+  outline: 2px solid var(--mbx-accent);
+  outline-offset: -2px;
+}
+[part~="line"]:focus:not(:focus-visible),
+[part~="item"]:focus:not(:focus-visible),
+[part~="chooser"]:focus:not(:focus-visible),
+[part~="more"]:focus:not(:focus-visible) {
+  outline-style: var(--mbx-focus-ring, none);
+}
+/* What a search found: the text in a line, or the whole line where a
+   page's own search names a line that does not hold the text. The match
+   the viewer is at reads strongest. */
+[part~="match"] {
+  border-radius: 2px;
+  background: rgba(243, 237, 228, 0.3);
+  color: inherit;
+}
+[part~="line"][data-current] [part~="match"] {
+  background: var(--mbx-text);
+  color: var(--mbx-surface);
+}
+[part~="hit"] [part~="text"] {
+  border-radius: 2px;
+  background: rgba(243, 237, 228, 0.3);
+  color: var(--mbx-text);
+}
+[part~="hit"][data-current] [part~="text"] {
+  background: var(--mbx-text);
+  color: var(--mbx-surface);
+}
+
+/* A range that must not play: one row, and none of its lines. */
+[part~="blocked"] {
+  display: flex;
+  align-items: center;
+  margin: 0.4286em 0;
+  padding: 0.7143em 0.8571em;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: var(--mbx-radius);
+  color: var(--mbx-muted);
+}
+[part~="blocked"] svg {
+  flex: none;
+  width: 1.4286em;
+  height: 1.4286em;
+  margin-right: 0.7143em;
+  fill: currentColor;
+}
+[part~="blocked-text"] {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+[part~="blocked-range"] {
+  font-size: 0.8571em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A part that is not loaded, and the notes of an empty list. */
+[part~="gap"] {
+  display: flex;
+  justify-content: center;
+  padding: 0.2857em 0;
+}
+[part~="more"] {
+  padding: 0.5714em 0.8571em;
+  border: 0;
+  border-radius: var(--mbx-radius);
+  background: transparent;
+  color: var(--mbx-muted);
+  font: inherit;
+  font-size: 0.8571em;
+  cursor: pointer;
+}
+[part~="more"]:disabled {
+  cursor: default;
+}
+[part~="more"]:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--mbx-text);
+}
+[part~="note"] {
+  padding: 1.7143em 1.1429em;
+  color: var(--mbx-muted);
+  text-align: center;
+}
+[part~="status"] {
+  padding: 0.5714em 1.1429em;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--mbx-muted);
+  font-size: 0.8571em;
+}
+[part~="status"][hidden] {
+  display: none;
+}
+
+/* A compact player has no room for a panel beside the picture: the
+   transcript is a sheet from the foot of the player. The host covers the
+   player and dims it, and its parts sit at its bottom. With `drawer` the
+   player shows them over the page instead, and the host dims nothing. */
+:host([layout="compact"]) {
+  left: 0;
+  z-index: 1000;
+  justify-content: flex-end;
+  width: auto;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 1em;
+}
+:host([layout="compact"]) [part~="header"],
+:host([layout="compact"]) [part~="tools"],
+:host([layout="compact"]) [part~="list"],
+:host([layout="compact"]) [part~="status"] {
+  background: rgb(28, 28, 32);
+}
+:host([layout="compact"]) [part~="header"] {
+  padding: 0.125em 0.375em;
+  border-radius: 0.75em 0.75em 0 0;
+}
+:host([layout="compact"]) [part~="button"],
+:host([layout="compact"]) [part~="chooser"] {
+  height: 2.75em;
+}
+:host([layout="compact"]) [part~="button"] {
+  width: 2.75em;
+}
+:host([layout="compact"]) [part~="list"] {
+  flex: 0 1 auto;
+  height: 60vh;
+  max-height: 60%;
+  padding-bottom: calc(0.4286em + env(safe-area-inset-bottom, 0px));
+}
+:host([layout="compact"]) [part~="line"] {
+  padding-top: 0.6875em;
+  padding-bottom: 0.6875em;
+}
+:host([in-drawer]) {
+  background: none;
+}
+:host([in-drawer]) [part~="list"] {
+  max-height: 60vh;
+}

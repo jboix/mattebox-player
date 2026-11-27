@@ -34,7 +34,9 @@ function browserProject(browser: Browser, order: number) {
     // The demo imports the engine and every preset. Named here so Vite
     // bundles them before the first test, rather than finding them during
     // it and reloading the page.
-    optimizeDeps: { include: ['mattebox', ...PRESETS, 'mattebox/stages/eme-core'] },
+    optimizeDeps: {
+      include: ['mattebox', ...PRESETS, 'mattebox/stages/eme-core', 'mattebox/stages/transcript'],
+    },
     test: {
       name: browser,
       include: ['test/e2e/**/*.test.ts'],
