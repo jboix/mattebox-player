@@ -18,24 +18,24 @@
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch {}
   </script>
-  <script type="module" crossorigin src="/assets/main-Cosl-dD4.js"></script>
+  <script type="module" crossorigin src="/assets/main-DLQDlQfr.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/objectSpread2-F7K17kIq.js">
-  <link rel="modulepreload" crossorigin href="/assets/es2015-Da--qzcz.js">
+  <link rel="modulepreload" crossorigin href="/assets/es2015-C8qXbrFf.js">
   <link rel="modulepreload" crossorigin href="/assets/base64-Damuu2zB.js">
-  <link rel="modulepreload" crossorigin href="/assets/theme-h5UzYNP4.js">
+  <link rel="modulepreload" crossorigin href="/assets/theme-Bt20QS_5.js">
   <link rel="modulepreload" crossorigin href="/assets/src-DTvO_1e0.js">
   <link rel="modulepreload" crossorigin href="/assets/mp4-box-DVEinQVf.js">
-  <link rel="modulepreload" crossorigin href="/assets/live-shared-D_ZlmIVl.js">
+  <link rel="modulepreload" crossorigin href="/assets/live-shared-QAXU6uBA.js">
   <link rel="modulepreload" crossorigin href="/assets/scte35-Cr5m6Ypv.js">
-  <link rel="modulepreload" crossorigin href="/assets/ts-T53m2SkG.js">
-  <link rel="modulepreload" crossorigin href="/assets/demux-BmsOF399.js">
-  <link rel="modulepreload" crossorigin href="/assets/define-DeBk328c.js">
-  <link rel="modulepreload" crossorigin href="/assets/dash-live-Dx1D83vq.js">
-  <link rel="modulepreload" crossorigin href="/assets/drm-gmrX5rlV.js">
-  <link rel="modulepreload" crossorigin href="/assets/aes-128-0RWo4qEE.js">
-  <link rel="modulepreload" crossorigin href="/assets/full-BSZVRxns.js">
-  <link rel="modulepreload" crossorigin href="/assets/srgssr-DuV--LMH.js">
-  <link rel="modulepreload" crossorigin href="/assets/event-log-DtKK-e7k.js">
+  <link rel="modulepreload" crossorigin href="/assets/ts-CTE9S5Vb.js">
+  <link rel="modulepreload" crossorigin href="/assets/demux-fSzfTIKr.js">
+  <link rel="modulepreload" crossorigin href="/assets/define-JZIYC9GI.js">
+  <link rel="modulepreload" crossorigin href="/assets/dash-live-CcQY0GUq.js">
+  <link rel="modulepreload" crossorigin href="/assets/drm-CT81wFzH.js">
+  <link rel="modulepreload" crossorigin href="/assets/aes-128-BfUtjHBZ.js">
+  <link rel="modulepreload" crossorigin href="/assets/full-BNcDgtez.js">
+  <link rel="modulepreload" crossorigin href="/assets/srgssr-C9Jw9RiW.js">
+  <link rel="modulepreload" crossorigin href="/assets/event-log-PY-bySpk.js">
   <link rel="stylesheet" crossorigin href="/assets/theme-CGRvTb3F.css">
 </head>
 <body>
@@ -347,8 +347,8 @@
                   <option value="es">Spanish (es)</option>
                 </select>
               </label>
-              <label class="check" title="hide=&quot;unavailable&quot; on mbx-live-captions: the subtitles menu leaves live captions out while the language or the source cannot work, instead of offering them and explaining why."><input type="checkbox" data-caption="hide-unavailable" /><span>Hide from the menu when they cannot work</span></label>
-              <label class="check" title="hide=&quot;covered&quot; on mbx-live-captions: the subtitles menu leaves live captions out while the stream has subtitles in the spoken language."><input type="checkbox" data-caption="hide-covered" /><span>Hide when the stream has subtitles in the language</span></label>
+              <label class="check" title="hide=&quot;unavailable&quot; on mbx-live-captions: the subtitles menu leaves live captions out while the language or the source cannot work, instead of offering them and explaining why."><input type="checkbox" data-caption="hide-unavailable" checked /><span>Hide from the menu when they cannot work</span></label>
+              <label class="check" title="hide=&quot;covered&quot; on mbx-live-captions: the subtitles menu leaves live captions out while the stream has subtitles in the spoken language."><input type="checkbox" data-caption="hide-covered" checked /><span>Hide when the stream has subtitles in the language</span></label>
               <label class="check" title="cloud on mbx-live-captions: Chrome may send the sound to its server when it cannot recognize the language on the device."><input type="checkbox" data-caption="cloud" /><span>Allow Chrome&#x27;s server</span></label>
             </div>
           </details>
@@ -362,6 +362,15 @@
             </div>
           </details>
           <label class="switch" title="Puts mbx-360 in the player, from @mattebox/player-360: a 360° source, by its projection, is drawn on the inside of a sphere, and the viewer looks around."><input type="checkbox" data-screen="360" aria-label="360° video" /></label>
+        </div>
+        <div class="section with-switch" data-section="transcript">
+          <details>
+            <summary><svg class="chevron" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" /></svg><span class="section-title">Transcript</span><code class="section-tag">mbx-transcript</code><span class="changed" hidden></span></summary>
+            <div class="section-body">
+              <p class="hint">From @mattebox/player-transcript: the subtitles as a list of lines, with a search. A press on a line seeks to it, and the matches of a search are marked on the seek bar. The button hides where the source has no subtitles the engine can read.</p>
+            </div>
+          </details>
+          <label class="switch" title="Puts mbx-transcript in the player and mbx-transcript-button in the bar, from @mattebox/player-transcript: the subtitles of the programme as a list of lines, with a search."><input type="checkbox" data-screen="transcript" aria-label="Transcript" /></label>
         </div>
         <div class="section with-switch" data-section="spatial-nav">
           <details>
